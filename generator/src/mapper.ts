@@ -91,6 +91,8 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
 
   for (const crawl of crawls) {
     const seenPages = new Set<string>();
+    const seenFieldlessForms = new Set<string>();
+    const seenFieldForms = new Set<string>();
     for (const page of crawl.pages) {
       const canonicalPageUrl = canonicalPath(page.url);
       const pageKey = `${crawl.role}:${canonicalPageUrl}`;
@@ -104,9 +106,10 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
         route: canonicalPageUrl,
         expectAllowed: true,
       });
-      const formSignatureCounts = countBy(page.forms.map((form) => formTitleSignature(form)));
+      const forms = dedupeForms(crawl.role, page.forms, canonicalPageUrl, seenFieldlessForms, seenFieldForms);
+      const formSignatureCounts = countBy(forms.map((form) => formTitleSignature(form)));
       const formSignatureOrdinals = new Map<string, number>();
-      for (const form of page.forms) {
+      for (const form of forms) {
         const formSignature = formTitleSignature(form);
         const formOrdinal = (formSignatureOrdinals.get(formSignature) ?? 0) + 1;
         formSignatureOrdinals.set(formSignature, formOrdinal);
@@ -200,6 +203,7 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
 function interactionCasesForPage(role: string, page: PageModel, canonicalPageUrl: string, baseUrl: string): TestCase[] {
   const cases: TestCase[] = [];
   const seen = new Set<string>();
+  const formSubmitLocators = new Set(page.forms.map((form) => locatorKey(form.submit.locator)));
 
   for (const link of page.links) {
     const target = canonicalPath(link.href);
@@ -225,6 +229,7 @@ function interactionCasesForPage(role: string, page: PageModel, canonicalPageUrl
 
   for (const button of page.buttons) {
     const label = button.text || `${button.locator.strategy}:${button.locator.value}`;
+    if (formSubmitLocators.has(locatorKey(button.locator))) continue;
     if (isPaginationCandidate(button.text, button.locator.value, undefined, page.url, baseUrl)) continue;
     const key = `button:${label}`;
     if (seen.has(key)) continue;
@@ -244,6 +249,49 @@ function interactionCasesForPage(role: string, page: PageModel, canonicalPageUrl
     });
   }
   return cases;
+}
+
+function dedupeForms(
+  role: string,
+  forms: Form[],
+  canonicalPageUrl: string,
+  seenFieldlessForms: Set<string>,
+  seenFieldForms: Set<string>,
+): Form[] {
+  const out: Form[] = [];
+  for (const form of forms) {
+    const key = form.fields.length === 0
+      ? `${role}:fieldless:${formShapeKey(form)}`
+      : `${role}:fields:${routeShape(canonicalPageUrl)}:${formShapeKey(form)}`;
+    const seen = form.fields.length === 0 ? seenFieldlessForms : seenFieldForms;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(form);
+  }
+  return out;
+}
+
+function formShapeKey(form: Form): string {
+  return [
+    routeShape(canonicalPath(form.action)),
+    form.method,
+    form.crudOp,
+    normalizeTitleText(form.submit.text),
+    form.fields.map((field) => fieldShapeKey(field)).join('|'),
+  ].join(';');
+}
+
+function fieldShapeKey(field: Field): string {
+  return [
+    field.name,
+    field.type,
+    field.required ? 'required' : 'optional',
+    field.options?.map((option) => option.value).join(',') ?? '',
+  ].join(':');
+}
+
+function locatorKey(locator: Locator): string {
+  return `${locator.strategy}:${locator.value}`;
 }
 
 function paginationCasesForPage(role: string, page: PageModel, canonicalPageUrl: string, baseUrl: string): TestCase[] {
@@ -326,6 +374,13 @@ function canonicalPath(path: string): string {
     const [withoutQuery] = withoutHash.split('?', 1);
     return withoutQuery || '/';
   }
+}
+
+function routeShape(path: string): string {
+  return canonicalPath(path)
+    .split('/')
+    .map((part) => /^\d+$/.test(part) ? ':id' : part)
+    .join('/');
 }
 
 function paginationTitleBase(role: string, canonicalPageUrl: string, action: 'first' | 'previous' | 'next' | 'last' | 'page', label: string): string {

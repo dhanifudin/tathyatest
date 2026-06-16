@@ -254,7 +254,7 @@ describe('mapTestCases', () => {
     expect(new Set(formTitles).size).toBe(formTitles.length);
   });
 
-  it('adds ordinals when identical form signatures repeat', () => {
+  it('deduplicates identical form signatures on the same route shape', () => {
     const crawl: CrawlOutput = {
       baseUrl: config.baseUrl,
       engine: 'rendered',
@@ -293,10 +293,128 @@ describe('mapTestCases', () => {
     const formTitles = cases.filter((testCase) => testCase.kind === 'form').map((testCase) => testCase.title);
 
     expect(formTitles).toEqual([
-      'admin /basket form [action /basket; method GET; submit Checkout] #1 -> success',
-      'admin /basket form [action /basket; method GET; submit Checkout] #2 -> success',
+      'admin /basket form [action /basket; method GET; submit Checkout] -> success',
     ]);
     expect(new Set(formTitles).size).toBe(formTitles.length);
+  });
+
+  it('does not emit form submit buttons as generic interactions', () => {
+    const crawl: CrawlOutput = {
+      baseUrl: config.baseUrl,
+      engine: 'rendered',
+      role: 'admin',
+      crawledAt: '2026-06-15T00:00:00.000Z',
+      pages: [
+        {
+          url: '/todos',
+          title: 'Todos',
+          forms: [
+            {
+              action: '/todos',
+              method: 'GET',
+              crudOp: 'unknown',
+              noValidate: false,
+              fields: [
+                {
+                  name: 'search',
+                  type: 'search',
+                  label: 'Search todos',
+                  required: false,
+                  constraints: { minlength: null, maxlength: 255, min: null, max: null, step: null, pattern: null, inputmode: null, accept: null },
+                  options: null,
+                  nameHints: [],
+                  locator: { strategy: 'label', value: 'Search todos' },
+                },
+              ],
+              submit: { text: 'Apply', locator: { strategy: 'role', value: 'button:Apply' } },
+            },
+          ],
+          links: [],
+          buttons: [
+            { text: 'Apply', locator: { strategy: 'role', value: 'button:Apply' } },
+            { text: 'Open menu', locator: { strategy: 'role', value: 'button:Open menu' } },
+          ],
+          tables: [],
+        },
+      ],
+    };
+
+    const cases = mapTestCases([crawl], new Map(), config);
+    const interactions = cases.filter((testCase) => testCase.kind === 'interaction');
+
+    expect(interactions.map((testCase) => testCase.title)).toEqual([
+      'admin /todos button Open menu -> handled',
+    ]);
+  });
+
+  it('deduplicates validation matrices for repeated numeric resource routes', () => {
+    const fields: CrawlOutput['pages'][number]['forms'][number]['fields'] = [
+      {
+        name: 'title',
+        type: 'text',
+        label: 'Title',
+        required: true,
+        constraints: { minlength: null, maxlength: 255, min: null, max: null, step: null, pattern: null, inputmode: null, accept: null },
+        options: null,
+        nameHints: [],
+        locator: { strategy: 'label', value: 'Title' },
+      },
+    ];
+    const crawl: CrawlOutput = {
+      baseUrl: config.baseUrl,
+      engine: 'rendered',
+      role: 'admin',
+      crawledAt: '2026-06-15T00:00:00.000Z',
+      pages: [
+        {
+          url: '/todos/2/edit',
+          title: 'Edit Todo',
+          forms: [
+            {
+              action: '/todos/2',
+              method: 'POST',
+              crudOp: 'update',
+              noValidate: true,
+              fields,
+              submit: { text: 'Update', locator: { strategy: 'role', value: 'button:Update' } },
+            },
+          ],
+          links: [],
+          buttons: [],
+          tables: [],
+        },
+        {
+          url: '/todos/3/edit',
+          title: 'Edit Todo',
+          forms: [
+            {
+              action: '/todos/3',
+              method: 'POST',
+              crudOp: 'update',
+              noValidate: true,
+              fields,
+              submit: { text: 'Update', locator: { strategy: 'role', value: 'button:Update' } },
+            },
+          ],
+          links: [],
+          buttons: [],
+          tables: [],
+        },
+      ],
+    };
+
+    const cases = mapTestCases([crawl], new Map(), config);
+    const updateForms = cases.filter((testCase) => testCase.kind === 'form' && testCase.form.crudOp === 'update');
+
+    expect(updateForms.map((testCase) => testCase.title)).toEqual([
+      'admin /todos/2/edit form [action /todos/2; method POST; submit Update; fields title] - valid -> success',
+      'admin /todos/2/edit form [action /todos/2; method POST; submit Update; fields title] - title required-empty -> error',
+      'admin /todos/2/edit form [action /todos/2; method POST; submit Update; fields title] - title maxlength-plus-one -> error',
+      'admin /todos/2/edit form [action /todos/2; method POST; submit Update; fields title] - title maxlength-exact -> success',
+      'admin /todos/2/edit form [action /todos/2; method POST; submit Update; fields title] - title very-long -> graceful',
+      'admin /todos/2/edit form [action /todos/2; method POST; submit Update; fields title] - title unicode -> graceful',
+      'admin /todos/2/edit form [action /todos/2; method POST; submit Update; fields title] - title whitespace -> graceful',
+    ]);
   });
 
   it('does not synthesize Sauce Demo routes when they are absent from crawl output', () => {
