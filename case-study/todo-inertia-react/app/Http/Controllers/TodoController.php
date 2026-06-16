@@ -6,17 +6,41 @@ use App\Http\Requests\StoreTodoRequest;
 use App\Http\Requests\UpdateTodoRequest;
 use App\Models\Todo;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class TodoController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', 'in:all,done,undone'],
+        ]);
+
+        $query = auth()->user()->isAdmin()
+            ? Todo::with('user')
+            : auth()->user()->todos();
+
+        $query
+            ->when($filters['search'] ?? null, function ($query, string $search): void {
+                $query->where(function ($query) use ($search): void {
+                    $query
+                        ->where('title', 'like', "%{$search}%")
+                        ->orWhere('body', 'like', "%{$search}%")
+                        ->orWhere('contact_email', 'like', "%{$search}%");
+                });
+            })
+            ->when(($filters['status'] ?? 'all') === 'done', fn ($query) => $query->where('done', true))
+            ->when(($filters['status'] ?? 'all') === 'undone', fn ($query) => $query->where('done', false));
+
         return Inertia::render('Todos/Index', [
-            'todos' => auth()->user()->isAdmin()
-                ? Todo::with('user')->latest()->get()->map(fn (Todo $todo): array => $this->serializeTodo($todo))
-                : auth()->user()->todos()->latest()->get()->map(fn (Todo $todo): array => $this->serializeTodo($todo)),
+            'filters' => [
+                'search' => $filters['search'] ?? '',
+                'status' => $filters['status'] ?? 'all',
+            ],
+            'todos' => $query->latest()->paginate(10)->withQueryString()->through(fn (Todo $todo): array => $this->serializeTodo($todo)),
         ]);
     }
 
@@ -53,6 +77,14 @@ class TodoController extends Controller
         $todo->delete();
 
         return redirect('/todos');
+    }
+
+    public function toggle(Todo $todo): RedirectResponse
+    {
+        $this->authorizeTodo($todo);
+        $todo->update(['done' => ! $todo->done]);
+
+        return back();
     }
 
     private function authorizeTodo(Todo $todo): void

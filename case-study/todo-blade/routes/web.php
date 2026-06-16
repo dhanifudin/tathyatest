@@ -22,6 +22,7 @@ Route::post('/__testing/reset', function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::view('/dashboard', 'dashboard')->name('dashboard');
+    Route::put('/todos/{todo}/toggle', [TodoController::class, 'toggle'])->name('todos.toggle');
     Route::resource('todos', TodoController::class);
     Route::get('/admin/users', AdminUserController::class)->middleware('role:admin')->name('admin.users');
 });
