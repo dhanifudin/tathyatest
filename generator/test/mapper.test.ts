@@ -200,14 +200,103 @@ describe('mapTestCases', () => {
     const form = cases.find((testCase) => testCase.kind === 'form' && testCase.variant.name === 'valid');
     const interactions = cases.filter((testCase) => testCase.kind === 'interaction');
 
-    expect(form?.title).toBe('admin /inventory.html form - valid -> success');
-    expect(interactions).toHaveLength(3);
-    expect(interactions.map((testCase) => testCase.interaction.ordinal)).toEqual([0, 0, 1]);
+    expect(form?.title).toBe('admin /inventory.html form [action /search; method GET; submit Search; fields q] - valid -> success');
+    expect(interactions).toHaveLength(2);
+    expect(interactions.map((testCase) => testCase.interaction.ordinal)).toEqual([0, 0]);
     expect(interactions.map((testCase) => testCase.title)).toEqual([
-      'admin /inventory.html link Cart -> handled',
-      'admin /inventory.html button Add to cart #1 -> handled',
-      'admin /inventory.html button Add to cart #2 -> handled',
+      'admin /inventory.html link /cart.html -> handled',
+      'admin /inventory.html button Add to cart -> handled',
     ]);
+  });
+
+  it('keeps multiple forms on the same page distinct by signature', () => {
+    const crawl: CrawlOutput = {
+      baseUrl: config.baseUrl,
+      engine: 'rendered',
+      role: 'admin',
+      crawledAt: '2026-06-15T00:00:00.000Z',
+      pages: [
+        {
+          url: '/basket',
+          title: 'Basket',
+          forms: [
+            {
+              action: '/basket',
+              method: 'GET',
+              crudOp: 'unknown',
+              noValidate: false,
+              fields: [],
+              submit: { text: 'Redeem', locator: { strategy: 'role', value: 'button:Redeem' } },
+            },
+            {
+              action: '/basket',
+              method: 'GET',
+              crudOp: 'unknown',
+              noValidate: true,
+              fields: [],
+              submit: { text: 'Continue to checkout', locator: { strategy: 'role', value: 'button:Continue to checkout' } },
+            },
+          ],
+          links: [],
+          buttons: [],
+          tables: [],
+        },
+      ],
+    };
+
+    const cases = mapTestCases([crawl], new Map(), config);
+    const formTitles = cases.filter((testCase) => testCase.kind === 'form').map((testCase) => testCase.title);
+
+    expect(formTitles).toEqual([
+      'admin /basket form [action /basket; method GET; submit Redeem] -> success',
+      'admin /basket form [action /basket; method GET; submit Continue to checkout] -> success',
+    ]);
+    expect(new Set(formTitles).size).toBe(formTitles.length);
+  });
+
+  it('adds ordinals when identical form signatures repeat', () => {
+    const crawl: CrawlOutput = {
+      baseUrl: config.baseUrl,
+      engine: 'rendered',
+      role: 'admin',
+      crawledAt: '2026-06-15T00:00:00.000Z',
+      pages: [
+        {
+          url: '/basket',
+          title: 'Basket',
+          forms: [
+            {
+              action: '/basket',
+              method: 'GET',
+              crudOp: 'unknown',
+              noValidate: false,
+              fields: [],
+              submit: { text: 'Checkout', locator: { strategy: 'role', value: 'button:Checkout' } },
+            },
+            {
+              action: '/basket',
+              method: 'GET',
+              crudOp: 'unknown',
+              noValidate: false,
+              fields: [],
+              submit: { text: 'Checkout', locator: { strategy: 'role', value: 'button:Checkout' } },
+            },
+          ],
+          links: [],
+          buttons: [],
+          tables: [],
+        },
+      ],
+    };
+
+    const cases = mapTestCases([crawl], new Map(), config);
+    const formTitles = cases.filter((testCase) => testCase.kind === 'form').map((testCase) => testCase.title);
+
+    expect(formTitles).toEqual([
+      'admin /basket form [action /basket; method GET; submit Checkout] #1 -> success',
+      'admin /basket form [action /basket; method GET; submit Checkout] #2 -> success',
+    ]);
+    expect(new Set(formTitles).size).toBe(formTitles.length);
   });
 
   it('does not synthesize Sauce Demo routes when they are absent from crawl output', () => {
@@ -240,6 +329,48 @@ describe('mapTestCases', () => {
     expect(serialized).not.toContain('/inventory.html');
     expect(serialized).not.toContain('Add to cart');
     expect(cases.filter((testCase) => testCase.kind === 'interaction')).toHaveLength(2);
+  });
+
+  it('maps common pagination controls as dedicated cases', () => {
+    const crawl: CrawlOutput = {
+      baseUrl: config.baseUrl,
+      engine: 'rendered',
+      role: 'admin',
+      crawledAt: '2026-06-15T00:00:00.000Z',
+      pages: [
+        {
+          url: '/products?page=1',
+          title: 'Products',
+          forms: [],
+          links: [
+            { href: '/products?page=2', text: '2', locator: { strategy: 'role', value: 'link:2' } },
+            { href: '/products?page=3', text: '3', locator: { strategy: 'role', value: 'link:3' } },
+          ],
+          buttons: [
+            { text: 'First', locator: { strategy: 'role', value: 'button:First' } },
+            { text: 'Previous', locator: { strategy: 'role', value: 'button:Previous' } },
+            { text: 'Next', locator: { strategy: 'role', value: 'button:Next' } },
+            { text: 'Last', locator: { strategy: 'role', value: 'button:Last' } },
+          ],
+          tables: [],
+        },
+      ],
+    };
+
+    const cases = mapTestCases([crawl], new Map(), config);
+    const pagination = cases.filter((testCase) => testCase.kind === 'pagination');
+    const interactions = cases.filter((testCase) => testCase.kind === 'interaction');
+
+    expect(pagination.map((testCase) => testCase.title)).toEqual([
+      'admin /products pagination page 2 -> handled',
+      'admin /products pagination page 3 -> handled',
+      'admin /products pagination first -> handled',
+      'admin /products pagination previous -> handled',
+      'admin /products pagination next -> handled',
+      'admin /products pagination last -> handled',
+    ]);
+    expect(new Set(pagination.map((testCase) => testCase.title)).size).toBe(pagination.length);
+    expect(interactions).toHaveLength(0);
   });
 
   it('deduplicates query-only page routes and keeps generated titles unique', () => {
@@ -284,11 +415,10 @@ describe('mapTestCases', () => {
     expect(rbacAllowed).toHaveLength(1);
     expect(rbacAllowed[0].route).toBe('/inventory.html');
     expect(interactions.map((testCase) => testCase.title)).toEqual([
-      'admin /inventory.html link /inventory.html #1 -> handled',
-      'admin /inventory.html link /inventory.html #2 -> handled',
-      'admin /inventory.html button Add to cart #1 -> handled',
-      'admin /inventory.html button Add to cart #2 -> handled',
+      'admin /inventory.html link /inventory.html -> handled',
+      'admin /inventory.html button Add to cart -> handled',
     ]);
+    expect(interactions).toHaveLength(2);
     expect(new Set(titles).size).toBe(titles.length);
     expect(JSON.stringify(cases)).not.toContain('sort=za');
   });

@@ -12,9 +12,10 @@ export async function emitJs(cases: TestCase[], config: TathyaConfig): Promise<v
   await mkdir(join(config.output.dir, 'auth'), { recursive: true });
   await mkdir(join(config.output.dir, 'forms'), { recursive: true });
   await mkdir(join(config.output.dir, 'interactions'), { recursive: true });
+  await mkdir(join(config.output.dir, 'pagination'), { recursive: true });
   await mkdir(join(config.output.dir, 'rbac'), { recursive: true });
   const { readFile } = await import('node:fs/promises');
-  for (const folder of ['auth', 'forms', 'interactions', 'rbac']) {
+  for (const folder of ['auth', 'forms', 'interactions', 'pagination', 'rbac']) {
     const source = await readFile(join(tsDir, folder, `${folder}.spec.ts`), 'utf8');
     await writeFile(join(config.output.dir, folder, `${folder}.spec.js`), transpileSpec(source));
   }

@@ -294,6 +294,49 @@ describe('emitTs', () => {
     }
   });
 
+  it('emits pagination specs in their own folder', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'tt-emit-pagination-'));
+    try {
+      const localConfig: TathyaConfig = {
+        ...config,
+        output: { ...config.output, dir },
+      };
+      const cases: TestCase[] = [
+        {
+          kind: 'pagination',
+          tier: 'positive',
+          title: 'admin /products pagination next -> handled',
+          role: 'admin',
+          page: {
+            url: '/products?page=1',
+            title: 'Products',
+            forms: [],
+            links: [],
+            buttons: [],
+            tables: [],
+          },
+          pagination: {
+            type: 'link',
+            label: 'Next',
+            locator: { strategy: 'role', value: 'link:Next' },
+            ordinal: 0,
+            href: '/products?page=2',
+            action: 'next',
+          },
+        },
+      ];
+
+      await emitTs(cases, localConfig);
+      const paginationSpec = await readFile(join(dir, 'pagination', 'pagination.spec.ts'), 'utf8');
+
+      expect(paginationSpec).toContain('await resetAndLogin(page, "admin");');
+      expect(paginationSpec).toContain('page.getByRole("link", { name: "Next" }).nth(0)');
+      expect(paginationSpec).toContain('new URL("/products?page=2", "http://127.0.0.1:8000").pathname + new URL("/products?page=2", "http://127.0.0.1:8000").search');
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it('emits JavaScript specs in the forms and interactions folders', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'tt-emit-js-'));
     try {
@@ -302,6 +345,28 @@ describe('emitTs', () => {
         output: { ...config.output, dir, language: 'js' },
       };
       const cases: TestCase[] = [
+        {
+          kind: 'pagination',
+          tier: 'positive',
+          title: 'admin /products pagination next -> handled',
+          role: 'admin',
+          page: {
+            url: '/products?page=1',
+            title: 'Products',
+            forms: [],
+            links: [],
+            buttons: [],
+            tables: [],
+          },
+          pagination: {
+            type: 'link',
+            label: 'Next',
+            locator: { strategy: 'role', value: 'link:Next' },
+            ordinal: 0,
+            href: '/products?page=2',
+            action: 'next',
+          },
+        },
         {
           kind: 'interaction',
           tier: 'positive',
@@ -329,11 +394,13 @@ describe('emitTs', () => {
 
       const formsSpec = await readFile(join(dir, 'forms', 'forms.spec.js'), 'utf8');
       const interactionsSpec = await readFile(join(dir, 'interactions', 'interactions.spec.js'), 'utf8');
+      const paginationSpec = await readFile(join(dir, 'pagination', 'pagination.spec.js'), 'utf8');
 
       expect(formsSpec).toContain("from '@playwright/test'");
       expect(formsSpec).not.toContain('type LoginLocator');
       expect(interactionsSpec).toContain('page.getByRole("link", { name: "Cart" }).nth(0)');
       expect(interactionsSpec).not.toContain("import('@playwright/test').Page");
+      expect(paginationSpec).toContain('page.getByRole("link", { name: "Next" }).nth(0)');
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

@@ -4,7 +4,7 @@ import { shouldIncludeCoverage } from './config.js';
 import type { AccessMatrix } from './rbac.js';
 import { variantsForField, validValueForField, type FieldVariant } from './fieldgen.js';
 
-export type TestCaseKind = 'auth' | 'form' | 'interaction' | 'rbac';
+export type TestCaseKind = 'auth' | 'form' | 'interaction' | 'pagination' | 'rbac';
 export type TestCase =
   | {
       kind: 'auth';
@@ -38,6 +38,21 @@ export type TestCase =
         locator: Locator;
         ordinal: number;
         href?: string;
+      };
+    }
+  | {
+      kind: 'pagination';
+      tier: 'positive';
+      title: string;
+      role: string;
+      page: PageModel;
+      pagination: {
+        type: 'link' | 'button';
+        label: string;
+        locator: Locator;
+        ordinal: number;
+        href?: string;
+        action: 'first' | 'previous' | 'next' | 'last' | 'page';
       };
     }
   | {
@@ -89,13 +104,19 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
         route: canonicalPageUrl,
         expectAllowed: true,
       });
+      const formSignatureCounts = countBy(page.forms.map((form) => formTitleSignature(form)));
+      const formSignatureOrdinals = new Map<string, number>();
       for (const form of page.forms) {
+        const formSignature = formTitleSignature(form);
+        const formOrdinal = (formSignatureOrdinals.get(formSignature) ?? 0) + 1;
+        formSignatureOrdinals.set(formSignature, formOrdinal);
+        const formTitleBase = formSignatureCounts.get(formSignature)! > 1 ? `${formSignature} #${formOrdinal}` : formSignature;
         if (form.fields.length > 0) {
           const baseValues = buildBaseValues(form, config);
           cases.push({
             kind: 'form',
             tier: 'positive',
-            title: `${crawl.role} ${canonicalPageUrl} ${formLabel(form)} - valid -> success`,
+            title: `${crawl.role} ${canonicalPageUrl} ${formTitleBase} - valid -> success`,
             role: crawl.role,
             page,
             form,
@@ -121,7 +142,7 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
               cases.push({
                 kind: 'form',
                 tier: variant.kind,
-                title: `${crawl.role} ${canonicalPageUrl} ${formLabel(form)} - ${field.name} ${variant.name} -> ${variant.outcome}`,
+                title: `${crawl.role} ${canonicalPageUrl} ${formTitleBase} - ${field.name} ${variant.name} -> ${variant.outcome}`,
                 role: crawl.role,
                 page,
                 form,
@@ -135,7 +156,7 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
           cases.push({
             kind: 'form',
             tier: 'positive',
-            title: `${crawl.role} ${canonicalPageUrl} ${formLabel(form)} -> success`,
+            title: `${crawl.role} ${canonicalPageUrl} ${formTitleBase} -> success`,
             role: crawl.role,
             page,
             form,
@@ -145,7 +166,8 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
           });
         }
       }
-      cases.push(...interactionCasesForPage(crawl.role, page, canonicalPageUrl));
+      cases.push(...paginationCasesForPage(crawl.role, page, canonicalPageUrl, crawl.baseUrl));
+      cases.push(...interactionCasesForPage(crawl.role, page, canonicalPageUrl, crawl.baseUrl));
     }
   }
 
@@ -172,33 +194,30 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
     }
   }
 
-  return uniquifyTitles(cases);
+  return cases;
 }
 
-function interactionCasesForPage(role: string, page: PageModel, canonicalPageUrl: string): TestCase[] {
-  type PendingInteraction = Omit<Extract<TestCase, { kind: 'interaction' }>, 'title'> & { titleBase: string };
-  const pending: PendingInteraction[] = [];
-  const ordinals = new Map<string, number>();
-  const nextOrdinal = (type: 'link' | 'button', locator: Locator): number => {
-    const key = `${type}:${locator.strategy}:${locator.value}`;
-    const ordinal = ordinals.get(key) ?? 0;
-    ordinals.set(key, ordinal + 1);
-    return ordinal;
-  };
+function interactionCasesForPage(role: string, page: PageModel, canonicalPageUrl: string, baseUrl: string): TestCase[] {
+  const cases: TestCase[] = [];
+  const seen = new Set<string>();
 
   for (const link of page.links) {
-    const label = link.text || canonicalPath(link.href) || `${link.locator.strategy}:${link.locator.value}`;
-    pending.push({
+    const target = canonicalPath(link.href);
+    if (isPaginationCandidate(link.text, link.locator.value, link.href, page.url, baseUrl)) continue;
+    const key = `link:${target}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    cases.push({
       kind: 'interaction',
       tier: 'positive',
-      titleBase: `${role} ${canonicalPageUrl} link ${label}`,
+      title: `${role} ${canonicalPageUrl} link ${target} -> handled`,
       role,
       page,
       interaction: {
         type: 'link',
-        label,
+        label: link.text || target,
         locator: link.locator,
-        ordinal: nextOrdinal('link', link.locator),
+        ordinal: 0,
         href: link.href,
       },
     });
@@ -206,35 +225,96 @@ function interactionCasesForPage(role: string, page: PageModel, canonicalPageUrl
 
   for (const button of page.buttons) {
     const label = button.text || `${button.locator.strategy}:${button.locator.value}`;
-    pending.push({
+    if (isPaginationCandidate(button.text, button.locator.value, undefined, page.url, baseUrl)) continue;
+    const key = `button:${label}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    cases.push({
       kind: 'interaction',
       tier: 'positive',
-      titleBase: `${role} ${canonicalPageUrl} button ${label}`,
+      title: `${role} ${canonicalPageUrl} button ${label} -> handled`,
       role,
       page,
       interaction: {
         type: 'button',
         label,
         locator: button.locator,
-        ordinal: nextOrdinal('button', button.locator),
+        ordinal: 0,
+      },
+    });
+  }
+  return cases;
+}
+
+function paginationCasesForPage(role: string, page: PageModel, canonicalPageUrl: string, baseUrl: string): TestCase[] {
+  type PaginationAction = 'first' | 'previous' | 'next' | 'last' | 'page';
+  type PaginationCandidate =
+    | { type: 'link'; label: string; locator: Locator; href: string; action: PaginationAction | null }
+    | { type: 'button'; label: string; locator: Locator; action: PaginationAction | null };
+  type PaginationControl =
+    | { type: 'link'; label: string; locator: Locator; href: string; action: PaginationAction }
+    | { type: 'button'; label: string; locator: Locator; action: PaginationAction };
+
+  const candidates: PaginationCandidate[] = [
+    ...page.links.map((link) => ({
+      type: 'link' as const,
+      label: controlLabel(link.text, link.locator.value),
+      locator: link.locator,
+      href: link.href,
+      action: paginationActionForControl(link.text, link.locator.value, link.href, page.url, baseUrl),
+    })),
+    ...page.buttons.map((button) => ({
+      type: 'button' as const,
+      label: controlLabel(button.text, button.locator.value),
+      locator: button.locator,
+      action: paginationActionForControl(button.text, button.locator.value, undefined, page.url, baseUrl),
+    })),
+  ];
+
+  const paginationControls: PaginationControl[] = candidates.flatMap((control) =>
+    control.action ? [{ ...control, action: control.action }] as PaginationControl[] : [],
+  );
+  const titleCounts = countBy(paginationControls.map((control) => paginationTitleBase(role, canonicalPageUrl, control.action, control.label)));
+  const titleOrdinals = new Map<string, number>();
+  const seen = new Set<string>();
+  const cases: TestCase[] = [];
+
+  for (const control of paginationControls) {
+    const targetKey = control.type === 'link'
+      ? resolveHrefPathAndSearch(control.href, baseUrl)
+      : `${control.type}:${control.locator.strategy}:${control.locator.value}`;
+    const dedupeKey = `${control.action}:${control.label}:${targetKey}`;
+    if (seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
+    const titleBase = paginationTitleBase(role, canonicalPageUrl, control.action, control.label);
+    const ordinal = (titleOrdinals.get(titleBase) ?? 0) + 1;
+    titleOrdinals.set(titleBase, ordinal);
+    cases.push({
+      kind: 'pagination',
+      tier: 'positive',
+      title: titleCounts.get(titleBase)! > 1 ? `${titleBase} #${ordinal} -> handled` : `${titleBase} -> handled`,
+      role,
+      page,
+      pagination: {
+        type: control.type,
+        label: control.label,
+        locator: control.locator,
+        ordinal: 0,
+        href: control.type === 'link' ? control.href : undefined,
+        action: control.action,
       },
     });
   }
 
-  const titleCounts = countBy(pending.map((testCase) => testCase.titleBase));
-  const titleOrdinals = new Map<string, number>();
-  return pending.map(({ titleBase, ...testCase }) => {
-    const ordinal = titleOrdinals.get(titleBase) ?? 0;
-    titleOrdinals.set(titleBase, ordinal + 1);
-    const title = titleCounts.get(titleBase)! > 1
-      ? `${titleBase} #${ordinal + 1} -> handled`
-      : `${titleBase} -> handled`;
-    return { ...testCase, title };
-  });
+  return cases;
 }
 
-function formLabel(form: Form): string {
-  return form.crudOp === 'unknown' ? 'form' : form.crudOp;
+function formTitleSignature(form: Form): string {
+  const parts = [`action ${canonicalPath(form.action)}`, `method ${form.method}`];
+  const submitText = normalizeTitleText(form.submit.text);
+  if (submitText) parts.push(`submit ${submitText}`);
+  if (form.fields.length > 0) parts.push(`fields ${form.fields.map((field) => field.name).join(',')}`);
+  return `form [${parts.join('; ')}]`;
 }
 
 function canonicalPath(path: string): string {
@@ -248,31 +328,90 @@ function canonicalPath(path: string): string {
   }
 }
 
+function paginationTitleBase(role: string, canonicalPageUrl: string, action: 'first' | 'previous' | 'next' | 'last' | 'page', label: string): string {
+  return action === 'page'
+    ? `${role} ${canonicalPageUrl} pagination page ${label}`
+    : `${role} ${canonicalPageUrl} pagination ${action}`;
+}
+
+function controlLabel(text: string | null, fallback: string): string {
+  return normalizeTitleText(text) || fallback;
+}
+
+function paginationActionForControl(
+  text: string | null,
+  fallback: string,
+  href: string | undefined,
+  currentPageUrl: string,
+  baseUrl: string,
+): 'first' | 'previous' | 'next' | 'last' | 'page' | null {
+  const label = normalizePaginationLabel(text || fallback);
+  const target = href ? resolveHrefPathAndSearch(href, baseUrl) : null;
+  const current = resolveHrefPathAndSearch(currentPageUrl, baseUrl);
+  if (target && current && target === current) return null;
+  if (isPreviousLabel(label)) return 'previous';
+  if (isNextLabel(label)) return 'next';
+  if (isFirstLabel(label)) return 'first';
+  if (isLastLabel(label)) return 'last';
+  if (isPageLabel(label)) return 'page';
+  if (target && hasPaginationQuery(target)) return 'page';
+  return null;
+}
+
+function isPaginationCandidate(text: string | null, fallback: string, href: string | undefined, currentPageUrl: string, baseUrl: string): boolean {
+  return paginationActionForControl(text, fallback, href, currentPageUrl, baseUrl) !== null;
+}
+
+function normalizePaginationLabel(text: string): string {
+  return normalizeTitleText(text).toLowerCase();
+}
+
+function isPreviousLabel(label: string): boolean {
+  return /^(previous|prev|older|‹|«|<|←)$/i.test(label);
+}
+
+function isNextLabel(label: string): boolean {
+  return /^(next|newer|›|»|>|→)$/i.test(label);
+}
+
+function isFirstLabel(label: string): boolean {
+  return /^(first|<<)$/i.test(label);
+}
+
+function isLastLabel(label: string): boolean {
+  return /^(last|>>)$/i.test(label);
+}
+
+function isPageLabel(label: string): boolean {
+  return /^page\s+\d+$/i.test(label) || /^\d+$/.test(label);
+}
+
+function hasPaginationQuery(targetPathAndSearch: string): boolean {
+  const query = targetPathAndSearch.split('?', 2)[1] ?? '';
+  if (!query) return false;
+  const params = new URLSearchParams(query);
+  return [...params.keys()].some((key) => /^(page|p|pageNo|pageNum|pageNumber|offset|start|cursor|after|before|limit)$/i.test(key));
+}
+
+function resolveHrefPathAndSearch(path: string, baseUrl: string): string {
+  try {
+    const url = new URL(path, baseUrl);
+    return `${url.pathname}${url.search}`;
+  } catch {
+    const [withoutHash] = path.split('#', 1);
+    const [pathname = '/', search = ''] = withoutHash.split('?', 2);
+    return `${pathname || '/'}${search ? `?${search}` : ''}`;
+  }
+}
+
 function countBy(values: string[]): Map<string, number> {
   const counts = new Map<string, number>();
   for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
   return counts;
 }
 
-function uniquifyTitles(cases: TestCase[]): TestCase[] {
-  const totals = countBy(cases.map((testCase) => testCase.title));
-  const ordinals = new Map<string, number>();
-  return cases.map((testCase) => {
-    if (totals.get(testCase.title)! <= 1) return testCase;
-    const ordinal = ordinals.get(testCase.title) ?? 0;
-    ordinals.set(testCase.title, ordinal + 1);
-    return {
-      ...testCase,
-      title: appendTitleOrdinal(testCase.title, ordinal + 1),
-    } as TestCase;
-  });
-}
-
-function appendTitleOrdinal(title: string, ordinal: number): string {
-  const marker = ` #${ordinal}`;
-  return title.includes(' -> ')
-    ? title.replace(' -> ', `${marker} -> `)
-    : `${title}${marker}`;
+function normalizeTitleText(text: string | null): string {
+  return text?.replace(/\s+/g, ' ').trim() ?? '';
 }
 
 function buildBaseValues(form: Form, config: TathyaConfig): Record<string, string> {

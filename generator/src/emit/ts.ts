@@ -11,6 +11,7 @@ export async function emitTs(cases: TestCase[], config: TathyaConfig): Promise<v
   await writeFile(join(config.output.dir, 'auth', 'auth.spec.ts'), authSpec(cases, config));
   await writeFile(join(config.output.dir, 'forms', 'forms.spec.ts'), formSpec(cases, config));
   await writeFile(join(config.output.dir, 'interactions', 'interactions.spec.ts'), interactionSpec(cases, config));
+  await writeFile(join(config.output.dir, 'pagination', 'pagination.spec.ts'), paginationSpec(cases, config));
   await writeFile(join(config.output.dir, 'rbac', 'rbac.spec.ts'), rbacSpec(cases, config));
 }
 
@@ -19,6 +20,7 @@ async function resetOutput(dir: string): Promise<void> {
   await mkdir(join(dir, 'auth'), { recursive: true });
   await mkdir(join(dir, 'forms'), { recursive: true });
   await mkdir(join(dir, 'interactions'), { recursive: true });
+  await mkdir(join(dir, 'pagination'), { recursive: true });
   await mkdir(join(dir, 'rbac'), { recursive: true });
 }
 
@@ -58,6 +60,23 @@ function interactionSpec(cases: TestCase[], config: TathyaConfig): string {
   await target.click();
   await page.waitForLoadState('domcontentloaded').catch(() => undefined);
   await page.waitForLoadState('networkidle').catch(() => undefined);
+  await expect(page.locator('body')).not.toContainText(/500|server error|exception/i);
+});`).join('\n\n') + '\n';
+}
+
+function paginationSpec(cases: TestCase[], config: TathyaConfig): string {
+  const paginationCases = cases.filter((testCase) => testCase.kind === 'pagination');
+  return header() + roleLoginHelpers(config) + paginationCases.map((testCase) => `test(${JSON.stringify(testCase.title)}, async ({ page }) => {
+  test.skip(!test.info().project.name.startsWith(${JSON.stringify(`${testCase.role}-`)}), 'role-specific test');
+  await resetAndLogin(page, ${JSON.stringify(testCase.role)});
+  await page.goto(${JSON.stringify(testCase.page.url)});
+  const target = ${locatorSource(testCase.pagination.locator)}.nth(${testCase.pagination.ordinal});
+  test.skip(await target.count() === 0 || !(await target.isVisible().catch(() => false)), 'pagination target is not visible');
+  const beforePath = new URL(page.url()).pathname + new URL(page.url()).search;
+  await target.click();
+  await page.waitForLoadState('domcontentloaded').catch(() => undefined);
+  await page.waitForLoadState('networkidle').catch(() => undefined);
+  ${testCase.pagination.href ? `await expect(new URL(page.url()).pathname + new URL(page.url()).search).toBe(new URL(${JSON.stringify(testCase.pagination.href)}, ${JSON.stringify(config.baseUrl)}).pathname + new URL(${JSON.stringify(testCase.pagination.href)}, ${JSON.stringify(config.baseUrl)}).search);` : ''}
   await expect(page.locator('body')).not.toContainText(/500|server error|exception/i);
 });`).join('\n\n') + '\n';
 }
