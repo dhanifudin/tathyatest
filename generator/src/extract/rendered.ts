@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { chromium, type Page } from '@playwright/test';
 import type { CrawlOutput, FieldConstraints, Locator, PageModel } from '../crawl.js';
 import type { TathyaConfig } from '../config.js';
+import { inferLoginControlsOnPage, playwrightLocator } from '../login-runtime.js';
 
 type DomPageModel = Omit<PageModel, 'url'>;
 
@@ -12,8 +13,8 @@ export async function renderedCrawl(config: TathyaConfig): Promise<void> {
   try {
     for (const role of config.auth.roles) {
       const page = await browser.newPage({ baseURL: config.baseUrl });
-      await login(page, config, role.username, role.password);
-      const output = await crawlRole(page, config, role.name);
+      const landingPath = await login(page, config, role.name, role.username, role.password);
+      const output = await crawlRole(page, config, role.name, landingPath);
       await writeFile(join('crawl', `${role.name}.json`), `${JSON.stringify(output, null, 2)}\n`);
       await page.close();
     }
@@ -22,16 +23,25 @@ export async function renderedCrawl(config: TathyaConfig): Promise<void> {
   }
 }
 
-async function login(page: Page, config: TathyaConfig, username: string, password: string): Promise<void> {
+async function login(page: Page, config: TathyaConfig, roleName: string, username: string, password: string): Promise<string> {
   await page.goto(config.auth.loginPath);
-  await page.locator(`[name="${config.auth.usernameField}"]`).fill(username);
-  await page.locator(`[name="${config.auth.passwordField}"]`).fill(password);
-  await page.getByRole('button', { name: /log in|login|sign in/i }).click();
+  const controls = await inferLoginControlsOnPage(page);
+  await playwrightLocator(page, controls.username).fill(username);
+  await playwrightLocator(page, controls.password).fill(password);
+  const beforePath = normalizePath(page.url(), config.baseUrl);
+  await Promise.all([
+    page.waitForURL((url) => normalizePath(url.toString(), config.baseUrl) !== beforePath, { timeout: 5000 }).catch(() => undefined),
+    playwrightLocator(page, controls.submit).click(),
+  ]);
+  await page.waitForLoadState('domcontentloaded').catch(() => undefined);
   await page.waitForLoadState('networkidle').catch(() => undefined);
+  const landingPath = normalizePath(page.url(), config.baseUrl);
+  await assertRenderedLoginSucceeded(page, config, roleName, landingPath);
+  return landingPath;
 }
 
-async function crawlRole(page: Page, config: TathyaConfig, role: string): Promise<CrawlOutput> {
-  const queue = uniquePaths(['/', ...config.crawl.include]);
+async function crawlRole(page: Page, config: TathyaConfig, role: string, landingPath = '/'): Promise<CrawlOutput> {
+  const queue = renderedCrawlSeeds(config, landingPath);
   const seen = new Set<string>();
   const pages: PageModel[] = [];
 
@@ -39,15 +49,21 @@ async function crawlRole(page: Page, config: TathyaConfig, role: string): Promis
     const path = queue.shift();
     if (!path || seen.has(path) || excluded(path, config)) continue;
     seen.add(path);
-    const response = await page.goto(path);
-    if (!response?.ok()) continue;
+    const currentPath = normalizePath(page.url(), config.baseUrl);
+    const response = currentPath === path ? null : await page.goto(path, { waitUntil: 'domcontentloaded' });
+    if (!shouldExtractCrawlPage(response?.ok() ?? null, path, normalizePath(page.url(), config.baseUrl))) continue;
     await page.waitForLoadState('domcontentloaded');
     const model = await extractPage(page);
     pages.push({ url: normalizePath(page.url(), config.baseUrl), ...model });
-    for (const link of model.links) {
-      if (!seen.has(link.href) && !excluded(link.href, config)) queue.push(link.href);
+    const discovered = await discoverInternalURLs(page, config.baseUrl);
+    for (const href of uniquePaths([...model.links.map((link) => link.href), ...model.forms.map((form) => form.action), ...discovered])) {
+      if (!seen.has(href) && !excluded(href, config)) queue.push(href);
     }
     depth = Math.max(depth, path.split('/').filter(Boolean).length);
+  }
+
+  if (pages.length === 0) {
+    throw new Error(`rendered crawl found no pages for role "${role}" after login at ${landingPath}; check credentials, crawl.include, and crawl.exclude`);
   }
 
   return {
@@ -59,14 +75,80 @@ async function crawlRole(page: Page, config: TathyaConfig, role: string): Promis
   };
 }
 
+export function shouldExtractCrawlPage(responseOk: boolean | null, requestedPath: string, currentPath: string): boolean {
+  if (responseOk === false) return false;
+  return currentPath === requestedPath || responseOk === true;
+}
+
+export function renderedCrawlSeeds(config: Pick<TathyaConfig, 'auth' | 'crawl'>, landingPath: string): string[] {
+  const seeds = [landingPath];
+  if (pathOnly(config.auth.loginPath) !== '/' && pathOnly(landingPath) !== '/') {
+    seeds.push('/');
+  }
+  seeds.push(...config.crawl.include);
+  return uniquePaths(seeds);
+}
+
+export async function assertRenderedLoginSucceeded(page: Pick<Page, 'locator'>, config: Pick<TathyaConfig, 'auth'>, roleName: string, landingPath: string): Promise<void> {
+  if (!isPotentialLoginFailurePath(config, landingPath)) return;
+  if (!(await loginFormStillVisible(page))) return;
+  throw new Error(`rendered crawl login failed for role "${roleName}": credentials may be invalid; still on login page ${landingPath}`);
+}
+
+function isPotentialLoginFailurePath(config: Pick<TathyaConfig, 'auth'>, landingPath: string): boolean {
+  const currentPath = pathOnly(landingPath);
+  return currentPath === pathOnly(config.auth.loginPath) || currentPath === '/';
+}
+
+async function loginFormStillVisible(page: Pick<Page, 'locator'>): Promise<boolean> {
+  const selectors = [
+    'input[type="password"]',
+    'input[autocomplete="current-password"]',
+    'input[name*="password"]',
+    'input[id*="password"]',
+    'input[placeholder*="Password"]',
+  ];
+  for (const selector of selectors) {
+    if (await page.locator(selector).first().isVisible().catch(() => false)) return true;
+  }
+  return false;
+}
+
 function uniquePaths(paths: string[]): string[] {
   return [...new Set(paths.filter((path) => path.trim() !== ''))];
 }
 
 function excluded(path: string, config: TathyaConfig): boolean {
   if (config.crawl.exclude.some((prefix) => path.startsWith(prefix))) return true;
-  if (config.crawl.include.length === 0 || path === '/') return false;
-  return !config.crawl.include.some((prefix) => path.startsWith(prefix));
+  return false;
+}
+
+async function discoverInternalURLs(page: Page, baseUrl: string): Promise<string[]> {
+  return page.evaluate((base) => {
+    const normalize = (raw: string | null): string => {
+      if (!raw?.trim()) return '';
+      try {
+        const url = new URL(raw, location.href);
+        const root = new URL(base);
+        if (url.origin !== root.origin || !['http:', 'https:'].includes(url.protocol)) return '';
+        return `${url.pathname}${url.search}`;
+      } catch {
+        return '';
+      }
+    };
+    const values: string[] = [];
+    const add = (raw: string | null) => {
+      const normalized = normalize(raw);
+      if (normalized) values.push(normalized);
+    };
+    document.querySelectorAll<HTMLAnchorElement>('a[href]').forEach((element) => add(element.getAttribute('href')));
+    document.querySelectorAll<HTMLFormElement>('form[action]').forEach((element) => add(element.getAttribute('action')));
+    document.querySelectorAll<HTMLButtonElement | HTMLInputElement>('button[formaction], input[formaction]').forEach((element) => add(element.getAttribute('formaction')));
+    for (const attr of ['data-href', 'data-url', 'data-route', 'data-to']) {
+      document.querySelectorAll(`[${attr}]`).forEach((element) => add(element.getAttribute(attr)));
+    }
+    return [...new Set(values)];
+  }, baseUrl);
 }
 
 async function extractPage(page: Page): Promise<DomPageModel> {
@@ -328,4 +410,20 @@ function normalizeAccessibleRole(role: string, fallback: string): string {
 function normalizePath(url: string, baseUrl: string): string {
   const parsed = new URL(url, baseUrl);
   return `${parsed.pathname}${parsed.search}`;
+}
+
+function pathOnly(path: string): string {
+  return new URL(path, 'http://tathyatest.local').pathname || '/';
+}
+
+export function normalizeInternalURL(raw: string, currentUrl: string, baseUrl: string): string {
+  if (raw.trim() === '') return '';
+  try {
+    const url = new URL(raw, currentUrl);
+    const root = new URL(baseUrl);
+    if (url.origin !== root.origin || !['http:', 'https:'].includes(url.protocol)) return '';
+    return `${url.pathname}${url.search}`;
+  } catch {
+    return '';
+  }
 }

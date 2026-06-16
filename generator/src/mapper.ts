@@ -1,10 +1,10 @@
-import type { CrawlOutput, Field, Form, PageModel } from './crawl.js';
+import type { CrawlOutput, Field, Form, Locator, PageModel } from './crawl.js';
 import type { TathyaConfig } from './config.js';
 import { shouldIncludeCoverage } from './config.js';
 import type { AccessMatrix } from './rbac.js';
 import { variantsForField, validValueForField, type FieldVariant } from './fieldgen.js';
 
-export type TestCaseKind = 'auth' | 'crud' | 'rbac';
+export type TestCaseKind = 'auth' | 'form' | 'interaction' | 'rbac';
 export type TestCase =
   | {
       kind: 'auth';
@@ -16,7 +16,7 @@ export type TestCase =
       expectSuccess: boolean;
     }
   | {
-      kind: 'crud';
+      kind: 'form';
       tier: 'positive' | 'negative' | 'edge';
       title: string;
       role: string;
@@ -25,6 +25,20 @@ export type TestCase =
       targetField: Field | null;
       variant: FieldVariant;
       values: Record<string, string>;
+    }
+  | {
+      kind: 'interaction';
+      tier: 'positive';
+      title: string;
+      role: string;
+      page: PageModel;
+      interaction: {
+        type: 'link' | 'button';
+        label: string;
+        locator: Locator;
+        ordinal: number;
+        href?: string;
+      };
     }
   | {
       kind: 'rbac';
@@ -61,22 +75,27 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
   }
 
   for (const crawl of crawls) {
+    const seenPages = new Set<string>();
     for (const page of crawl.pages) {
+      const canonicalPageUrl = canonicalPath(page.url);
+      const pageKey = `${crawl.role}:${canonicalPageUrl}`;
+      if (seenPages.has(pageKey)) continue;
+      seenPages.add(pageKey);
       cases.push({
         kind: 'rbac',
         tier: 'positive',
-        title: `${crawl.role} can visit ${page.url} -> allowed`,
+        title: `${crawl.role} can visit ${canonicalPageUrl} -> allowed`,
         role: crawl.role,
-        route: page.url,
+        route: canonicalPageUrl,
         expectAllowed: true,
       });
       for (const form of page.forms) {
         if (form.fields.length > 0) {
           const baseValues = buildBaseValues(form, config);
           cases.push({
-            kind: 'crud',
+            kind: 'form',
             tier: 'positive',
-            title: `${crawl.role} ${page.url} ${form.crudOp} - valid -> success`,
+            title: `${crawl.role} ${canonicalPageUrl} ${formLabel(form)} - valid -> success`,
             role: crawl.role,
             page,
             form,
@@ -100,9 +119,9 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
               if (variant.omit) delete values[field.name];
               else values[field.name] = variantValue(field, variant, baseValues);
               cases.push({
-                kind: 'crud',
+                kind: 'form',
                 tier: variant.kind,
-                title: `${crawl.role} ${page.url} ${form.crudOp} - ${field.name} ${variant.name} -> ${variant.outcome}`,
+                title: `${crawl.role} ${canonicalPageUrl} ${formLabel(form)} - ${field.name} ${variant.name} -> ${variant.outcome}`,
                 role: crawl.role,
                 page,
                 form,
@@ -112,36 +131,40 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
               });
             }
           }
+        } else {
+          cases.push({
+            kind: 'form',
+            tier: 'positive',
+            title: `${crawl.role} ${canonicalPageUrl} ${formLabel(form)} -> success`,
+            role: crawl.role,
+            page,
+            form,
+            targetField: null,
+            variant: { kind: 'positive', name: form.crudOp === 'delete' ? 'delete' : 'valid', value: '', outcome: 'success' },
+            values: {},
+          });
         }
       }
-      const deleteForm = page.forms.find((form) => form.crudOp === 'delete' && form.fields.length === 0);
-      if (deleteForm) {
-        cases.push({
-          kind: 'crud',
-          tier: 'positive',
-          title: `${crawl.role} ${page.url} delete -> success`,
-          role: crawl.role,
-          page,
-          form: deleteForm,
-          targetField: null,
-          variant: { kind: 'positive', name: 'delete', value: '', outcome: 'success' },
-          values: {},
-        });
-      }
+      cases.push(...interactionCasesForPage(crawl.role, page, canonicalPageUrl));
     }
   }
 
   if (shouldIncludeCoverage(config.coverage, 'negative')) {
     const roles = config.auth.roles.map((role) => role.name);
+    const seenBlockedRoutes = new Set<string>();
     for (const entry of matrix.values()) {
+      const route = canonicalPath(entry.route);
       for (const role of roles) {
         if (!entry.reachableBy.includes(role)) {
+          const key = `${role}:${route}`;
+          if (seenBlockedRoutes.has(key)) continue;
+          seenBlockedRoutes.add(key);
           cases.push({
             kind: 'rbac',
             tier: 'negative',
-            title: `${role} cannot visit ${entry.route} -> blocked`,
+            title: `${role} cannot visit ${route} -> blocked`,
             role,
-            route: entry.route,
+            route,
             expectAllowed: false,
           });
         }
@@ -149,7 +172,107 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
     }
   }
 
-  return cases;
+  return uniquifyTitles(cases);
+}
+
+function interactionCasesForPage(role: string, page: PageModel, canonicalPageUrl: string): TestCase[] {
+  type PendingInteraction = Omit<Extract<TestCase, { kind: 'interaction' }>, 'title'> & { titleBase: string };
+  const pending: PendingInteraction[] = [];
+  const ordinals = new Map<string, number>();
+  const nextOrdinal = (type: 'link' | 'button', locator: Locator): number => {
+    const key = `${type}:${locator.strategy}:${locator.value}`;
+    const ordinal = ordinals.get(key) ?? 0;
+    ordinals.set(key, ordinal + 1);
+    return ordinal;
+  };
+
+  for (const link of page.links) {
+    const label = link.text || canonicalPath(link.href) || `${link.locator.strategy}:${link.locator.value}`;
+    pending.push({
+      kind: 'interaction',
+      tier: 'positive',
+      titleBase: `${role} ${canonicalPageUrl} link ${label}`,
+      role,
+      page,
+      interaction: {
+        type: 'link',
+        label,
+        locator: link.locator,
+        ordinal: nextOrdinal('link', link.locator),
+        href: link.href,
+      },
+    });
+  }
+
+  for (const button of page.buttons) {
+    const label = button.text || `${button.locator.strategy}:${button.locator.value}`;
+    pending.push({
+      kind: 'interaction',
+      tier: 'positive',
+      titleBase: `${role} ${canonicalPageUrl} button ${label}`,
+      role,
+      page,
+      interaction: {
+        type: 'button',
+        label,
+        locator: button.locator,
+        ordinal: nextOrdinal('button', button.locator),
+      },
+    });
+  }
+
+  const titleCounts = countBy(pending.map((testCase) => testCase.titleBase));
+  const titleOrdinals = new Map<string, number>();
+  return pending.map(({ titleBase, ...testCase }) => {
+    const ordinal = titleOrdinals.get(titleBase) ?? 0;
+    titleOrdinals.set(titleBase, ordinal + 1);
+    const title = titleCounts.get(titleBase)! > 1
+      ? `${titleBase} #${ordinal + 1} -> handled`
+      : `${titleBase} -> handled`;
+    return { ...testCase, title };
+  });
+}
+
+function formLabel(form: Form): string {
+  return form.crudOp === 'unknown' ? 'form' : form.crudOp;
+}
+
+function canonicalPath(path: string): string {
+  try {
+    const url = new URL(path, 'http://tathyatest.local');
+    return url.pathname || '/';
+  } catch {
+    const [withoutHash] = path.split('#', 1);
+    const [withoutQuery] = withoutHash.split('?', 1);
+    return withoutQuery || '/';
+  }
+}
+
+function countBy(values: string[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
+  return counts;
+}
+
+function uniquifyTitles(cases: TestCase[]): TestCase[] {
+  const totals = countBy(cases.map((testCase) => testCase.title));
+  const ordinals = new Map<string, number>();
+  return cases.map((testCase) => {
+    if (totals.get(testCase.title)! <= 1) return testCase;
+    const ordinal = ordinals.get(testCase.title) ?? 0;
+    ordinals.set(testCase.title, ordinal + 1);
+    return {
+      ...testCase,
+      title: appendTitleOrdinal(testCase.title, ordinal + 1),
+    } as TestCase;
+  });
+}
+
+function appendTitleOrdinal(title: string, ordinal: number): string {
+  const marker = ` #${ordinal}`;
+  return title.includes(' -> ')
+    ? title.replace(' -> ', `${marker} -> `)
+    : `${title}${marker}`;
 }
 
 function buildBaseValues(form: Form, config: TathyaConfig): Record<string, string> {

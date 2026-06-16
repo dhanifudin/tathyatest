@@ -117,6 +117,11 @@ export async function runCrawl(config: TathyaConfig): Promise<void> {
     return;
   }
   await runStaticCrawler();
+  const crawls = await loadCrawls('crawl');
+  if (shouldFallbackToRendered(crawls, config)) {
+    console.warn('static crawl could not observe authenticated app content, retrying with rendered crawler');
+    await renderedCrawl({ ...config, extractor: { engine: 'rendered' } });
+  }
 }
 
 export async function ensureCrawls(config: TathyaConfig, options: { crawlDir?: string; configPath?: string; crawlRunner?: (config: TathyaConfig) => Promise<void> } = {}): Promise<void> {
@@ -140,6 +145,23 @@ export async function shouldRefreshCrawls(config: TathyaConfig, crawlDir = 'craw
   } catch {
     return true;
   }
+}
+
+export function shouldFallbackToRendered(crawls: CrawlOutput[], config: TathyaConfig): boolean {
+  if (config.extractor.engine !== 'static') return false;
+  if (crawls.length === 0) return false;
+  const roles = new Set(config.auth.roles.map((role) => role.name));
+  const roleCrawls = crawls.filter((crawl) => roles.has(crawl.role));
+  if (roleCrawls.length !== roles.size) return false;
+  return roleCrawls.every((crawl) => {
+    if (crawl.engine !== 'static' || crawl.pages.length !== 1) return false;
+    const page = crawl.pages[0];
+    if (page.url !== '/' && page.url !== config.auth.loginPath) return false;
+    return page.forms.length === 0 &&
+      page.links.length === 0 &&
+      page.buttons.length === 0 &&
+      page.tables.length === 0;
+  });
 }
 
 async function runStaticCrawler(): Promise<void> {

@@ -2,6 +2,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { emitJs } from '../src/emit/js.js';
 import { emitTs } from '../src/emit/ts.js';
 import type { TathyaConfig } from '../src/config.js';
 import type { TestCase } from '../src/mapper.js';
@@ -14,8 +15,6 @@ const config: TathyaConfig = {
   oracle: { errorSelector: '.invalid-feedback, [role=alert], .text-red-600, x-input-error p' },
   auth: {
     loginPath: '/login',
-    usernameField: 'email',
-    passwordField: 'password',
     roles: [{ name: 'admin', username: 'admin@example.com', password: 'password' }],
   },
   crawl: { maxDepth: 3, maxPages: 100, include: [], exclude: [] },
@@ -47,6 +46,9 @@ describe('emitTs', () => {
 
       expect(authSpec).toContain('test.use({ storageState: { cookies: [], origins: [] } });');
       expect(authSpec).toContain('await page.goto("/login");');
+      expect(authSpec).toContain('async function inferLoginControls');
+      expect(authSpec).toContain('await performLogin(page, "admin@example.com", "password");');
+      expect(authSpec).not.toContain('loginSelectors');
       expect(authSpec).not.toContain('storageState/admin.json');
     } finally {
       await rm(dir, { recursive: true, force: true });
@@ -62,7 +64,7 @@ describe('emitTs', () => {
       };
       const cases: TestCase[] = [
         {
-          kind: 'crud',
+          kind: 'form',
           tier: 'negative',
           title: 'admin /todos create - status invalid-option -> error',
           role: 'admin',
@@ -115,12 +117,12 @@ describe('emitTs', () => {
       ];
 
       await emitTs(cases, localConfig);
-      const crudSpec = await readFile(join(dir, 'crud', 'crud.spec.ts'), 'utf8');
+      const formsSpec = await readFile(join(dir, 'forms', 'forms.spec.ts'), 'utf8');
 
-      expect(crudSpec).toContain('HTMLSelectElement');
-      expect(crudSpec).toContain('document.createElement(\'option\')');
-      expect(crudSpec).toContain('element.value = value;');
-      expect(crudSpec).not.toContain('selectOption("__invalid_option__")');
+      expect(formsSpec).toContain('HTMLSelectElement');
+      expect(formsSpec).toContain('document.createElement(\'option\')');
+      expect(formsSpec).toContain('element.value = value;');
+      expect(formsSpec).not.toContain('selectOption("__invalid_option__")');
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -135,7 +137,7 @@ describe('emitTs', () => {
       };
       const cases: TestCase[] = [
         {
-          kind: 'crud',
+          kind: 'form',
           tier: 'negative',
           title: 'admin /todos create - status required-empty -> error',
           role: 'admin',
@@ -186,7 +188,7 @@ describe('emitTs', () => {
           values: { status: '' },
         },
         {
-          kind: 'crud',
+          kind: 'form',
           tier: 'negative',
           title: 'admin /todos create - choice required-empty -> error',
           role: 'admin',
@@ -239,11 +241,99 @@ describe('emitTs', () => {
       ];
 
       await emitTs(cases, localConfig);
-      const crudSpec = await readFile(join(dir, 'crud', 'crud.spec.ts'), 'utf8');
+      const formsSpec = await readFile(join(dir, 'forms', 'forms.spec.ts'), 'utf8');
 
-      expect(crudSpec).toContain('selectedIndex = -1');
-      expect(crudSpec).toContain('evaluateAll((elements) =>');
-      expect(crudSpec).toContain('element.checked = false;');
+      expect(formsSpec).toContain('selectedIndex = -1');
+      expect(formsSpec).toContain('evaluateAll((elements) =>');
+      expect(formsSpec).toContain('element.checked = false;');
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('emits interaction specs with duplicate locator ordinals and generic login success', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'tt-emit-'));
+    try {
+      const localConfig: TathyaConfig = {
+        ...config,
+        output: { ...config.output, dir },
+      };
+      const cases: TestCase[] = [
+        {
+          kind: 'interaction',
+          tier: 'positive',
+          title: 'admin /inventory.html button Add to cart -> handled',
+          role: 'admin',
+          page: {
+            url: '/inventory.html',
+            title: 'Inventory',
+            forms: [],
+            links: [],
+            buttons: [],
+            tables: [],
+          },
+          interaction: {
+            type: 'button',
+            label: 'Add to cart',
+            locator: { strategy: 'role', value: 'button:Add to cart' },
+            ordinal: 1,
+          },
+        },
+      ];
+
+      await emitTs(cases, localConfig);
+      const interactionsSpec = await readFile(join(dir, 'interactions', 'interactions.spec.ts'), 'utf8');
+
+      expect(interactionsSpec).toContain('page.getByRole("button", { name: "Add to cart" }).nth(1)');
+      expect(interactionsSpec).toContain('.nth(1)');
+      expect(interactionsSpec).toContain('interaction target is not visible');
+      expect(interactionsSpec).toContain('await assertLoginSucceeded(page);');
+      expect(interactionsSpec).not.toContain('/dashboard');
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('emits JavaScript specs in the forms and interactions folders', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'tt-emit-js-'));
+    try {
+      const localConfig: TathyaConfig = {
+        ...config,
+        output: { ...config.output, dir, language: 'js' },
+      };
+      const cases: TestCase[] = [
+        {
+          kind: 'interaction',
+          tier: 'positive',
+          title: 'admin /inventory.html link Cart -> handled',
+          role: 'admin',
+          page: {
+            url: '/inventory.html',
+            title: 'Inventory',
+            forms: [],
+            links: [],
+            buttons: [],
+            tables: [],
+          },
+          interaction: {
+            type: 'link',
+            label: 'Cart',
+            locator: { strategy: 'role', value: 'link:Cart' },
+            ordinal: 0,
+            href: '/cart.html',
+          },
+        },
+      ];
+
+      await emitJs(cases, localConfig);
+
+      const formsSpec = await readFile(join(dir, 'forms', 'forms.spec.js'), 'utf8');
+      const interactionsSpec = await readFile(join(dir, 'interactions', 'interactions.spec.js'), 'utf8');
+
+      expect(formsSpec).toContain("from '@playwright/test'");
+      expect(formsSpec).not.toContain('type LoginLocator');
+      expect(interactionsSpec).toContain('page.getByRole("link", { name: "Cart" }).nth(0)');
+      expect(interactionsSpec).not.toContain("import('@playwright/test').Page");
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

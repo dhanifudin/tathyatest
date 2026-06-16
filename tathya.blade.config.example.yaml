@@ -9,8 +9,6 @@ oracle:
   errorSelector: ".invalid-feedback, [role=alert], .text-red-600, x-input-error p"
 auth:
   loginPath: /login
-  usernameField: email
-  passwordField: password
   roles:
     - name: admin
       username: admin@example.com

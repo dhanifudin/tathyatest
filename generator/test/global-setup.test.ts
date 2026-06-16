@@ -17,8 +17,6 @@ describe('playwright global setup config parsing', () => {
           baseUrl: 'http://127.0.0.1:8000',
           auth: {
             loginPath: '/login',
-            usernameField: 'email',
-            passwordField: 'password',
             roles: [{ name: 'admin', username: 'admin@example.com', password: 'password' }],
           },
         }),

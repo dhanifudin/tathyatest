@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { defaultRoleName, inferLoginFieldsFromHtml, initProjectPaths, slugifyProjectName } from '../src/init';
+import { buildInitConfig, defaultRoleName, initProjectPaths, slugifyProjectName } from '../src/init';
+import { inferLoginControlsFromHtml, normalizeBaseUrl } from '../src/login';
 
 describe('init project helpers', () => {
   it('slugifies project names for directory creation', () => {
@@ -29,27 +30,60 @@ describe('init project helpers', () => {
     });
   });
 
+  it('normalizes bare domains to absolute URLs', () => {
+    expect(normalizeBaseUrl('saucedemo.com')).toBe('https://saucedemo.com');
+    expect(normalizeBaseUrl('localhost:8000')).toBe('http://localhost:8000');
+    expect(normalizeBaseUrl('https://www.saucedemo.com')).toBe('https://www.saucedemo.com');
+  });
+
   it('uses admin for the first credential role and user after that', () => {
     expect(defaultRoleName(0)).toBe('admin');
     expect(defaultRoleName(1)).toBe('user');
     expect(defaultRoleName(2)).toBe('role-3');
   });
 
-  it('infers login field names from a Breeze-like login form', () => {
-    const fields = inferLoginFieldsFromHtml(`
-      <form method="POST" action="/login">
-        <input type="hidden" name="_token" value="token">
-        <input id="email" type="email" name="email" />
-        <input id="password" type="password" name="password" />
+  it('builds generic crawl config without case-study seed paths', () => {
+    const config = buildInitConfig({
+      baseUrl: 'https://www.saucedemo.com',
+      engine: 'rendered',
+      loginPath: '/',
+      roles: [{ name: 'standard', username: 'standard_user', password: 'secret_sauce' }],
+      language: 'ts',
+    });
+
+    expect(config.crawl).toEqual({ maxDepth: 3, maxPages: 100, include: [], exclude: [] });
+    expect(JSON.stringify(config)).not.toMatch(/\/todos|\/dashboard|\/admin/);
+  });
+
+  it('infers Sauce Demo login controls from rendered DOM', () => {
+    const controls = inferLoginControlsFromHtml(`
+      <form>
+        <input type="text" name="user-name" placeholder="Username" data-test="username" />
+        <input type="password" name="password" placeholder="Password" data-test="password" />
+        <input type="submit" value="Login" data-test="login-button" />
       </form>
     `);
 
-    expect(fields).toEqual({ usernameField: 'email', passwordField: 'password' });
+    expect(controls).toEqual({
+      username: { strategy: 'css', value: '[data-test="username"]' },
+      password: { strategy: 'css', value: '[data-test="password"]' },
+      submit: { strategy: 'css', value: '[data-test="login-button"]' },
+    });
   });
 
-  it('infers a two-field login form from structure when labels are missing', () => {
-    const fields = inferLoginFieldsFromHtml('<form><input type="text" name="login"><input type="text" name="secret"></form>');
+  it('falls back to name-based selectors when no richer signal exists', () => {
+    const controls = inferLoginControlsFromHtml(`
+      <form method="POST" action="/login">
+        <input type="text" name="login" />
+        <input type="password" name="secret" />
+        <button type="submit">Login</button>
+      </form>
+    `);
 
-    expect(fields).toEqual({ usernameField: 'login', passwordField: 'secret' });
+    expect(controls).toEqual({
+      username: { strategy: 'name', value: 'login' },
+      password: { strategy: 'name', value: 'secret' },
+      submit: { strategy: 'role', value: 'button:Login' },
+    });
   });
 });

@@ -27,8 +27,13 @@ hand-edited.
       Goquery extraction, locator descriptors, CRUD classification, and per-role JSON output.
 - [x] Static crawler seeds configured `crawl.include` routes after login, so authenticated routes do
       not have to be discoverable from `/`.
+- [x] Static crawler now seeds the post-login landing URL first and discovers same-origin internal
+      URLs from anchors, form actions, formactions, and route-like data attributes.
 - [x] TypeScript crawl contract mirror added in `generator/src/crawl.ts`.
-- [x] Rendered crawler added and now seeds configured `crawl.include` routes after login.
+- [x] Rendered crawler added and now seeds the post-login landing URL plus configured
+      `crawl.include` routes after login.
+- [x] Static crawl outputs that only contain an empty root/login page fall back to the rendered
+      crawler, so JS-rendered apps such as Sauce Demo can be discovered.
 - [x] Generator config validation, init wizard, RBAC diff, field variants, oracle, locator rendering,
       mapper, TS/JS emitters, and CLI commands implemented.
 - [x] Root Playwright config added with per-role Chromium/Firefox/WebKit projects.
@@ -98,7 +103,7 @@ tt/
 ├── crawler/             # Go module — STATIC engine, builds to `tt-crawler`
 ├── generator/           # TypeScript — tt CLI, rendered engine, generator
 ├── crawl/               # per-role crawl outputs: admin.json, user.json
-├── tests/generated/     # emitted specs: auth/, crud/, rbac/
+├── tests/generated/     # emitted specs: auth/, forms/, interactions/, rbac/
 ├── playwright.config.ts
 ├── tathya.config.yaml
 └── docs/
@@ -152,16 +157,14 @@ oracle:
   errorSelector: ".invalid-feedback, [role=alert], .text-red-600"   # Breeze default
 auth:
   loginPath: /login
-  usernameField: email
-  passwordField: password
   roles:
     - { name: admin, username: admin@example.com, password: password }
     - { name: user,  username: user@example.com,  password: password }
 crawl:
   maxDepth: 3
   maxPages: 100
-  include: ["/todos", "/dashboard", "/admin"]
-  exclude: ["/logout"]
+  include: []               # optional explicit seed paths; app routes are discovered from DOM links/forms
+  exclude: []
 data:
   fields:   { title: "Buy groceries", body: "Milk, eggs, bread" }
   defaults: { text: "Sample", email: "user@example.com", number: "1" }
@@ -245,7 +248,7 @@ data:
 
 6.3. `src/init.ts`: interactive **`tt init`** wizard (`@clack/prompts`) — prompt project name,
      URL/domain, crawler engine, login path, credentials, and generated Playwright language;
-     infer login field names from the login page; create the slugged project directory; write
+     infer login controls from the login page; create the slugged project directory; write
      `tathya.config.yaml` and `tests/generated/` inside it.
 
 6.4. `src/crawl.ts`: per-role crawl loader + dispatcher (static → shell `tt-crawler`; rendered →
@@ -266,7 +269,7 @@ data:
      **positive / negative / edge** and **RBAC positive / negative**, filtered by `coverage`.
 
 6.10. `src/emit/ts.ts` + `src/emit/js.ts`: `TestCase` → `@playwright/test` spec source; one titled
-      test per variant; write into `tests/generated/{auth,crud,rbac}/` in `output.language`.
+      test per variant; write into `tests/generated/{auth,forms,interactions,rbac}/` in `output.language`.
 
 ---
 
@@ -308,7 +311,7 @@ data:
 
 9.2. **Wizard:** `tt init` → answer prompts (project name, URL, engine, login path, add admin +
      user, generated language) → `<project>/tathya.config.yaml` written with `auth.roles[]`,
-     inferred login field names, and `<project>/tests/generated/` created.
+     inferred login controls, and `<project>/tests/generated/` created.
 
 9.3. **Static crawl:** `tt crawl` → inspect `crawl/admin.json` & `crawl/user.json`; admin includes
      `/admin/users`, user does not; create form shows full constraints + `crudOp` on edit/delete.
@@ -316,9 +319,9 @@ data:
 9.4. **Rendered parity:** set `extractor.engine: rendered`; `tt crawl` → same-shape per-role files;
      diff vs static to confirm contract parity.
 
-9.5. **Generate:** `tt generate` → `tests/generated/{auth,crud,rbac}/`; each form yields
-     positive + negative + edge specs; `coverage: positive` drops negatives/edges; flip
-     `output.language` ts↔js → both valid.
+9.5. **Generate:** `tt generate` → `tests/generated/{auth,forms,interactions,rbac}/`; each form yields
+     positive + negative + edge specs, and crawled links/buttons yield interaction specs;
+     `coverage: positive` drops negatives/edges; flip `output.language` ts↔js → both valid.
 
 9.6. **Execute:** `tt run` across all browsers → positives pass; negatives pass by detecting the
      error state (empty `title` → Breeze error; bad email rejected); RBAC admin-can / user-blocked.

@@ -12,7 +12,7 @@ access matrix, and emits Playwright tests for positive, negative, and edge cover
 - `case-study/todo-inertia-react/`: Laravel Breeze React/Inertia TypeScript todo target for the rendered crawler.
 - `tathya.blade.config.example.yaml`: Blade/static config reference.
 - `tathya.inertia-react.config.example.yaml`: Inertia/rendered config reference.
-- `tathya.config.example.yaml`: canonical Blade/static config reference.
+- `tathya.config.example.yaml`: canonical generic config reference.
 - `crawl/` and `tests/generated/`: runtime outputs, intentionally ignored by git.
 
 ## Setup
@@ -104,10 +104,18 @@ tt all
 `tt crawl` uses `extractor.engine` from `tathya.config.yaml`:
 
 - `static`: invokes the Go `tt-crawler`.
-- `rendered`: uses Playwright from the generator and is required for the React/Inertia target.
+- `rendered`: uses Playwright from the generator and is required for JavaScript-rendered targets such
+  as React/Inertia apps and Sauce Demo.
 
-`tt generate` refreshes crawl outputs if they are missing or stale, then writes specs into
-`output.dir` using `output.language` (`ts` or `js`).
+When a static crawl only sees an empty root/login page, `tt crawl` retries with the rendered engine so
+authenticated JavaScript apps can still be discovered.
+
+`crawl.include` is optional explicit seeding for paths the crawler should visit in addition to
+URLs discovered from the authenticated app DOM. Generic configs leave it empty; target-specific
+case-study configs may include known routes such as `/todos` or `/admin`.
+
+`tt generate` refreshes crawl outputs if they are missing or stale, then writes auth, forms,
+interactions, and RBAC specs into `output.dir` using `output.language` (`ts` or `js`).
 
 `tt init` asks for a project name, creates a slugged directory, and writes the config inside it:
 
@@ -120,9 +128,9 @@ tt run
 ```
 
 The wizard asks for URL/domain, crawler engine, then each credential role with its username and
-password before prompting for another role. It infers the login field names from the login page,
-then asks for the generated Playwright language. The generated specs are written to
-`tests/generated` inside the project directory.
+password before prompting for another role, then asks for the generated Playwright language. Login
+controls are inferred at crawl/test runtime. The generated specs are written to `tests/generated`
+inside the project directory.
 
 ## Coverage
 

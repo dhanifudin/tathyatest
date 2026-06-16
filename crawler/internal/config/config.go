@@ -12,10 +12,8 @@ type Config struct {
 		Engine string `yaml:"engine"`
 	} `yaml:"extractor"`
 	Auth struct {
-		LoginPath     string `yaml:"loginPath"`
-		UsernameField string `yaml:"usernameField"`
-		PasswordField string `yaml:"passwordField"`
-		Roles         []Role `yaml:"roles"`
+		LoginPath string `yaml:"loginPath"`
+		Roles     []Role `yaml:"roles"`
 	} `yaml:"auth"`
 	Crawl struct {
 		MaxDepth int      `yaml:"maxDepth"`

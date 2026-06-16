@@ -1,13 +1,14 @@
 import { readFile } from 'node:fs/promises';
 import { z } from 'zod';
 import YAML from 'yaml';
+import { normalizeBaseUrl } from './login.js';
 
 const coverageSchema = z.enum(['positive', 'negative', 'edge', 'all']);
 const engineSchema = z.enum(['static', 'rendered']);
 const languageSchema = z.enum(['ts', 'js']);
 
 export const configSchema = z.object({
-  baseUrl: z.string().url(),
+  baseUrl: z.preprocess((value) => (typeof value === 'string' ? normalizeBaseUrl(value) : value), z.string().url()),
   extractor: z.object({ engine: engineSchema }),
   output: z.object({
     dir: z.string().default('tests/generated'),
@@ -19,14 +20,12 @@ export const configSchema = z.object({
   }),
   auth: z.object({
     loginPath: z.string().startsWith('/'),
-    usernameField: z.string(),
-    passwordField: z.string(),
     roles: z.array(z.object({
       name: z.string().min(1),
       username: z.string().min(1),
       password: z.string().min(1),
     })).min(1),
-  }),
+  }).strict(),
   crawl: z.object({
     maxDepth: z.number().int().positive().default(3),
     maxPages: z.number().int().positive().default(100),

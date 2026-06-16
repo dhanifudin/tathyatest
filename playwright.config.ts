@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { access } from 'node:fs/promises';
 import YAML from 'yaml';
+import { normalizeBaseUrl } from './generator/src/login.js';
 
 type RoleConfig = { name: string };
 type TathyaConfig = { baseUrl?: string; auth?: { roles?: RoleConfig[] } };
@@ -11,7 +12,8 @@ await ensureDisplay();
 
 function loadConfig(): TathyaConfig {
   if (!existsSync('tathya.config.yaml')) return {};
-  return YAML.parse(readFileSync('tathya.config.yaml', 'utf8')) as TathyaConfig;
+  const parsed = YAML.parse(readFileSync('tathya.config.yaml', 'utf8')) as TathyaConfig;
+  return { ...parsed, baseUrl: parsed.baseUrl ? normalizeBaseUrl(parsed.baseUrl) : parsed.baseUrl };
 }
 
 async function ensureDisplay(): Promise<void> {

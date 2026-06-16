@@ -12,7 +12,7 @@ import (
 	"github.com/polinema/tathyatest/crawler/internal/model"
 )
 
-func Role(cfg config.Config, role config.Role, client *http.Client) (model.CrawlOutput, error) {
+func Role(cfg config.Config, role config.Role, client *http.Client, seeds ...string) (model.CrawlOutput, error) {
 	pages := []model.Page{}
 	seenPages := map[string]bool{}
 	c := colly.NewCollector(
@@ -28,25 +28,20 @@ func Role(cfg config.Config, role config.Role, client *http.Client) (model.Crawl
 		seenPages[path] = true
 		page := extract.Page(e.DOM, e.Request.URL, cfg.BaseURL)
 		pages = append(pages, page)
-		e.ForEach("a[href]", func(_ int, link *colly.HTMLElement) {
-			href := normalizeURL(link.Attr("href"), cfg.BaseURL)
+		for _, href := range discoveredURLs(e) {
 			if href != "" && !seenPages[href] && !excluded(href, cfg) {
 				_ = e.Request.Visit(href)
 			}
-		})
+		}
 	})
-	err := c.Visit(cfg.BaseURL)
-	if err != nil && !strings.Contains(err.Error(), "Max depth") {
-		return model.CrawlOutput{}, err
-	}
-	for _, include := range cfg.Crawl.Include {
+	for _, seed := range crawlSeeds(cfg, seeds...) {
 		if len(pages) >= cfg.Crawl.MaxPages {
 			break
 		}
-		if include == "" || excluded(include, cfg) {
+		if seed == "" || excluded(seed, cfg) {
 			continue
 		}
-		err := c.Visit(resolveURL(include, cfg.BaseURL))
+		err := c.Visit(resolveURL(seed, cfg.BaseURL))
 		if err != nil && !isBenignVisitError(err) {
 			return model.CrawlOutput{}, err
 		}
@@ -58,6 +53,39 @@ func Role(cfg config.Config, role config.Role, client *http.Client) (model.Crawl
 		CrawledAt: time.Now().UTC().Format(time.RFC3339),
 		Pages:     pages,
 	}, nil
+}
+
+func crawlSeeds(cfg config.Config, seeds ...string) []string {
+	out := []string{}
+	seen := map[string]bool{}
+	for _, seed := range append(append([]string{}, seeds...), append([]string{"/"}, cfg.Crawl.Include...)...) {
+		normalized := normalizeURL(seed, cfg.BaseURL)
+		if normalized == "" || seen[normalized] {
+			continue
+		}
+		seen[normalized] = true
+		out = append(out, normalized)
+	}
+	return out
+}
+
+func discoveredURLs(e *colly.HTMLElement) []string {
+	out := []string{}
+	add := func(raw string) {
+		if normalized := normalizeURL(raw, e.Request.URL.String()); normalized != "" {
+			out = append(out, normalized)
+		}
+	}
+	e.ForEach("a[href]", func(_ int, element *colly.HTMLElement) { add(element.Attr("href")) })
+	e.ForEach("form[action]", func(_ int, element *colly.HTMLElement) { add(element.Attr("action")) })
+	e.ForEach("button[formaction], input[formaction]", func(_ int, element *colly.HTMLElement) {
+		add(element.Attr("formaction"))
+	})
+	for _, attr := range []string{"data-href", "data-url", "data-route", "data-to"} {
+		selector := "[" + attr + "]"
+		e.ForEach(selector, func(_ int, element *colly.HTMLElement) { add(element.Attr(attr)) })
+	}
+	return out
 }
 
 func isBenignVisitError(err error) bool {
@@ -73,18 +101,13 @@ func excluded(path string, cfg config.Config) bool {
 			return true
 		}
 	}
-	if path == "/" || len(cfg.Crawl.Include) == 0 {
-		return false
-	}
-	for _, prefix := range cfg.Crawl.Include {
-		if strings.HasPrefix(path, prefix) {
-			return false
-		}
-	}
-	return true
+	return false
 }
 
 func normalizeURL(raw string, base string) string {
+	if strings.TrimSpace(raw) == "" {
+		return ""
+	}
 	u, err := url.Parse(raw)
 	if err != nil {
 		return ""
@@ -94,8 +117,14 @@ func normalizeURL(raw string, base string) string {
 		return ""
 	}
 	resolved := baseURL.ResolveReference(u)
-	if resolved.Host != baseURL.Host {
+	if resolved.Host != baseURL.Host || resolved.Scheme != baseURL.Scheme || (resolved.Scheme != "http" && resolved.Scheme != "https") {
 		return ""
+	}
+	if resolved.Path == "" {
+		resolved.Path = "/"
+	}
+	if resolved.RawQuery != "" {
+		return resolved.Path + "?" + resolved.RawQuery
 	}
 	return resolved.Path
 }

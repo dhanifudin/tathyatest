@@ -15,7 +15,7 @@ func Page(doc *goquery.Selection, current *url.URL, base string) model.Page {
 		URL:     normalizeURL(current.String(), base),
 		Title:   clean(doc.Find("title").First().Text()),
 		Forms:   forms(doc, current),
-		Links:   links(doc, current, base),
+		Links:   links(doc, current),
 		Buttons: buttons(doc),
 		Tables:  tables(doc),
 	}
@@ -30,13 +30,17 @@ func forms(doc *goquery.Selection, current *url.URL) []model.Form {
 		}
 		action := attrDefault(form, "action", current.Path)
 		resolved := current.ResolveReference(mustParse(action))
+		actionPath := resolved.Path
+		if resolved.RawQuery != "" {
+			actionPath += "?" + resolved.RawQuery
+		}
 		submit := form.Find(`button[type="submit"], input[type="submit"], button:not([type])`).First()
 		submitText := nullable(clean(submit.Text()))
 		if value, ok := submit.Attr("value"); ok && submitText == nil {
 			submitText = nullable(value)
 		}
 		out = append(out, model.Form{
-			Action:     resolved.Path,
+			Action:     actionPath,
 			Method:     method,
 			CrudOp:     crudOp(form, method),
 			NoValidate: hasAttr(form, "novalidate"),
@@ -110,10 +114,10 @@ func constraints(s *goquery.Selection) model.Constraints {
 	}
 }
 
-func links(doc *goquery.Selection, current *url.URL, base string) []model.Link {
+func links(doc *goquery.Selection, current *url.URL) []model.Link {
 	out := []model.Link{}
 	doc.Find("a[href]").Each(func(_ int, link *goquery.Selection) {
-		href := normalizeURL(attrDefault(link, "href", ""), base)
+		href := normalizeURL(attrDefault(link, "href", ""), current.String())
 		if href == "" {
 			return
 		}
@@ -245,6 +249,9 @@ func crudOp(form *goquery.Selection, method string) string {
 }
 
 func normalizeURL(raw string, base string) string {
+	if strings.TrimSpace(raw) == "" {
+		return ""
+	}
 	baseURL, err := url.Parse(base)
 	if err != nil {
 		return ""
@@ -254,8 +261,14 @@ func normalizeURL(raw string, base string) string {
 		return ""
 	}
 	resolved := baseURL.ResolveReference(u)
-	if resolved.Host != baseURL.Host {
+	if resolved.Host != baseURL.Host || resolved.Scheme != baseURL.Scheme || (resolved.Scheme != "http" && resolved.Scheme != "https") {
 		return ""
+	}
+	if resolved.Path == "" {
+		resolved.Path = "/"
+	}
+	if resolved.RawQuery != "" {
+		return resolved.Path + "?" + resolved.RawQuery
 	}
 	return resolved.Path
 }

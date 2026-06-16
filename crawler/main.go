@@ -21,11 +21,11 @@ func main() {
 		log.Fatal(err)
 	}
 	for _, role := range cfg.Auth.Roles {
-		client, err := auth.Login(cfg, role)
+		client, landingPath, err := auth.Login(cfg, role)
 		if err != nil {
 			log.Fatal(err)
 		}
-		output, err := crawl.Role(cfg, role, client)
+		output, err := crawl.Role(cfg, role, client, landingPath)
 		if err != nil {
 			log.Fatal(err)
 		}
