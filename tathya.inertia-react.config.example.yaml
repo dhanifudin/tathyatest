@@ -1,0 +1,48 @@
+baseUrl: http://127.0.0.1:8001
+extractor:
+  engine: rendered
+output:
+  dir: tests/generated
+  language: ts
+coverage: all
+oracle:
+  errorSelector: ".invalid-feedback, [role=alert], .text-red-600, x-input-error p"
+auth:
+  loginPath: /login
+  usernameField: email
+  passwordField: password
+  roles:
+    - name: admin
+      username: admin@example.com
+      password: password
+    - name: user
+      username: user@example.com
+      password: password
+crawl:
+  maxDepth: 3
+  maxPages: 100
+  include:
+    - /todos
+    - /dashboard
+    - /admin
+  exclude:
+    - /logout
+data:
+  fields:
+    title: Buy groceries
+    body: Milk, eggs, bread
+    contact_email: contact@example.com
+    due_date: "2026-06-15"
+    email: user@example.com
+  defaults:
+    text: Sample
+    email: user@example.com
+    number: "1"
+    date: "2026-06-15"
+  unique:
+    - contact_email
+  duplicates:
+    contact_email: admin.todo@example.com
+  requiredFields: []
+  confirmFields:
+    - contact_email_confirmation

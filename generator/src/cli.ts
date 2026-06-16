@@ -1,0 +1,100 @@
+import { access } from 'node:fs/promises';
+import { spawn } from 'node:child_process';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { Command } from 'commander';
+import { loadConfig } from './config.js';
+import { ensureCrawls, loadCrawls, runCrawl } from './crawl.js';
+import { runInit } from './init.js';
+import { buildAccessMatrix } from './rbac.js';
+import { mapTestCases } from './mapper.js';
+import { emit } from './emit/index.js';
+
+const program = new Command();
+
+program.name('tt').description('TathyaTest CLI').version('0.1.0');
+
+program.command('init').description('write tathya.config.yaml').action(async () => {
+  await runInit();
+});
+
+program.command('crawl').description('crawl configured app once per role').action(async () => {
+  const config = await loadConfig();
+  await runCrawl(config);
+});
+
+program.command('generate').description('generate Playwright specs').action(async () => {
+  const config = await loadConfig();
+  await ensureCrawls(config);
+  await generateFromCrawls(config);
+});
+
+program.command('run').description('run generated Playwright specs').action(async () => {
+  await runPlaywright();
+});
+
+program.command('all').description('crawl, generate, and run').action(async () => {
+  const config = await loadConfig();
+  await ensureCrawls(config, { crawlRunner: runCrawl });
+  await generateFromCrawls(config);
+  await runPlaywright();
+});
+
+program.parseAsync().catch((error: unknown) => {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exitCode = 1;
+});
+
+function runPlaywright(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    resolvePlaywrightBinary()
+      .then((bin) => {
+        const child = spawn(bin, ['test', '--reporter=list'], {
+          stdio: 'inherit',
+          env: withPlaywrightNodePath(),
+        });
+        child.on('error', reject);
+        child.on('exit', (code) => {
+          if (code === 0) resolve();
+          else reject(new Error(`playwright exited with code ${code ?? 'unknown'}`));
+        });
+      })
+      .catch(reject);
+  });
+}
+
+async function resolvePlaywrightBinary(): Promise<string> {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    resolve(here, '..', 'node_modules', '.bin', 'playwright'),
+    resolve(process.cwd(), 'node_modules', '.bin', 'playwright'),
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      await access(candidate);
+      return candidate;
+    } catch {
+      // Try the next conventional location.
+    }
+  }
+
+  throw new Error('Could not find the installed Playwright binary. Re-run `make install`.');
+}
+
+function withPlaywrightNodePath(): NodeJS.ProcessEnv {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const playwrightNodeModules = resolve(here, '..', 'node_modules');
+  const currentNodePath = process.env.NODE_PATH ?? '';
+  const nodePath = [playwrightNodeModules, currentNodePath].filter(Boolean).join(process.platform === 'win32' ? ';' : ':');
+  return {
+    ...process.env,
+    NODE_PATH: nodePath,
+  };
+}
+
+async function generateFromCrawls(config: Awaited<ReturnType<typeof loadConfig>>): Promise<void> {
+  const crawls = await loadCrawls();
+  const matrix = buildAccessMatrix(crawls);
+  await emit(mapTestCases(crawls, matrix, config), config);
+}
