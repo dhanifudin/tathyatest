@@ -8,5 +8,6 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["playwright.config.ts", "playwright.global-setup.ts"]
+  "include": ["playwright.config.ts", "playwright.global-setup.ts", "tests/**/*.ts"],
+  "exclude": ["tests/baseline-public"]
 }

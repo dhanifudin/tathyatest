@@ -36,40 +36,48 @@ export function variantsForField(field: Field, hints: FieldgenHints): FieldVaria
   const valid = validValueForField(field, hints);
   const variants: FieldVariant[] = [{ kind: 'positive', name: 'valid', value: valid, outcome: 'success' }];
   const required = isRequired(field, hints);
+  const isConfirmation = field.nameHints.includes('confirmation') || hints.confirmFields.includes(field.name);
 
   if (required) variants.push({ kind: 'negative', name: 'required-empty', value: '', outcome: 'error' });
-  if (['email', 'url', 'number', 'tel'].includes(field.type)) {
-    variants.push({ kind: 'negative', name: `${field.type}-format`, value: badFormatValue(field.type), outcome: 'error' });
+
+  // Confirmation fields exist only to echo another field's value. Length/format variants are
+  // meaningless for them because they cannot differ from the source field without a mismatch error.
+  // Only the required-empty and confirmation-mismatch tests make semantic sense for them.
+  if (!isConfirmation) {
+    if (['email', 'url', 'number', 'tel'].includes(field.type)) {
+      variants.push({ kind: 'negative', name: `${field.type}-format`, value: badFormatValue(field.type), outcome: 'error' });
+    }
+    if (field.constraints.pattern) variants.push({ kind: 'negative', name: 'pattern-fail', value: 'pattern_mismatch', outcome: 'error' });
+    if (field.constraints.minlength !== null && field.constraints.minlength > 0) {
+      variants.push({ kind: 'negative', name: 'minlength-minus-one', value: 'x'.repeat(field.constraints.minlength - 1), outcome: 'error' });
+    }
+    if (field.constraints.maxlength !== null) {
+      variants.push({ kind: 'negative', name: 'maxlength-plus-one', value: 'x'.repeat(field.constraints.maxlength + 1), outcome: 'error' });
+      variants.push({ kind: 'edge', name: 'maxlength-exact', value: maxlengthExactValue(field), outcome: 'success' });
+      variants.push({ kind: 'edge', name: 'very-long', value: 'x'.repeat(Math.max(field.constraints.maxlength * 10, field.constraints.maxlength + 1)), outcome: 'graceful' });
+    } else if (isTextLike(field)) {
+      variants.push({ kind: 'edge', name: 'very-long', value: 'x'.repeat(10_000), outcome: 'graceful' });
+    }
+    if (field.constraints.min !== null) {
+      variants.push({ kind: 'negative', name: 'min-minus-one', value: decrement(field.constraints.min), outcome: 'error' });
+    }
+    if (field.constraints.max !== null) {
+      variants.push({ kind: 'negative', name: 'max-plus-one', value: increment(field.constraints.max), outcome: 'error' });
+    }
+    if (isTextLike(field)) {
+      variants.push({ kind: 'edge', name: 'unicode', value: 'こんにちは مرحبا 😀', outcome: 'graceful' });
+      variants.push({ kind: 'edge', name: 'whitespace', value: `  ${valid}  `, outcome: 'graceful' });
+    }
   }
-  if (field.constraints.pattern) variants.push({ kind: 'negative', name: 'pattern-fail', value: 'pattern_mismatch', outcome: 'error' });
-  if (field.constraints.minlength !== null && field.constraints.minlength > 0) {
-    variants.push({ kind: 'negative', name: 'minlength-minus-one', value: 'x'.repeat(field.constraints.minlength - 1), outcome: 'error' });
-  }
-  if (field.constraints.maxlength !== null) {
-    variants.push({ kind: 'negative', name: 'maxlength-plus-one', value: 'x'.repeat(field.constraints.maxlength + 1), outcome: 'error' });
-    variants.push({ kind: 'edge', name: 'maxlength-exact', value: 'x'.repeat(field.constraints.maxlength), outcome: 'success' });
-    variants.push({ kind: 'edge', name: 'very-long', value: 'x'.repeat(Math.max(field.constraints.maxlength * 10, field.constraints.maxlength + 1)), outcome: 'graceful' });
-  } else if (isTextLike(field)) {
-    variants.push({ kind: 'edge', name: 'very-long', value: 'x'.repeat(10_000), outcome: 'graceful' });
-  }
-  if (field.constraints.min !== null) {
-    variants.push({ kind: 'negative', name: 'min-minus-one', value: decrement(field.constraints.min), outcome: 'error' });
-  }
-  if (field.constraints.max !== null) {
-    variants.push({ kind: 'negative', name: 'max-plus-one', value: increment(field.constraints.max), outcome: 'error' });
-  }
+
   if (field.options?.length) {
     variants.push({ kind: 'negative', name: 'invalid-option', value: '__invalid_option__', outcome: 'error', forceInvalidOption: true });
   }
   if (hints.unique.includes(field.name)) {
     variants.push({ kind: 'negative', name: 'duplicate', value: hints.duplicates[field.name] ?? valid, outcome: 'error' });
   }
-  if (field.nameHints.includes('confirmation') || hints.confirmFields.includes(field.name)) {
+  if (isConfirmation) {
     variants.push({ kind: 'negative', name: 'confirmation-mismatch', value: `${valid}-mismatch`, outcome: 'error' });
-  }
-  if (isTextLike(field)) {
-    variants.push({ kind: 'edge', name: 'unicode', value: 'こんにちは مرحبا 😀', outcome: 'graceful' });
-    variants.push({ kind: 'edge', name: 'whitespace', value: `  ${valid}  `, outcome: 'graceful' });
   }
   if (!required) variants.push({ kind: 'edge', name: 'optional-omitted', value: '', outcome: 'graceful', omit: true });
 
@@ -131,6 +139,32 @@ function increment(value: string): string {
 function decrement(value: string): string {
   const n = Number(value);
   return Number.isFinite(n) ? String(n - 1) : value;
+}
+
+/**
+ * Synthesise a value that is exactly `field.constraints.maxlength` characters long **and**
+ * is still valid for the field's type so the `maxlength-exact` edge case can expect `success`.
+ * Plain text gets 'x'.repeat(n); typed formats get a format-valid padded value.
+ */
+function maxlengthExactValue(field: Field): string {
+  const n = field.constraints.maxlength!;
+  switch (field.type) {
+    case 'email': {
+      // Pad the local part: u…u@example.com — long enough to hit maxlength.
+      const domain = '@example.com'; // 12 chars
+      const localLen = Math.max(n - domain.length, 1);
+      return ('u'.repeat(localLen) + domain).slice(0, n);
+    }
+    case 'url': {
+      const prefix = 'https://example.com/'; // 20 chars
+      return n <= prefix.length ? 'https://x.co/' : (prefix + 'a'.repeat(n - prefix.length)).slice(0, n);
+    }
+    case 'tel':
+      // Digit-only strings of exactly n characters satisfy most tel validators.
+      return '5'.repeat(n);
+    default:
+      return 'x'.repeat(n);
+  }
 }
 
 function isRequired(field: Field, hints: FieldgenHints): boolean {

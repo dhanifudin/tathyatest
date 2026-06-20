@@ -118,6 +118,7 @@ function roleLoginHelpersFromEntries(
   const credentials = Object.fromEntries(entries);
   return loginHelperSource(config) + `const roleCredentials = ${JSON.stringify(credentials, null, 2)};\n\nasync function resetAndLogin(page: import('@playwright/test').Page, role: keyof typeof roleCredentials) {
   await page.request.post('/__testing/reset');
+  await page.context().clearCookies();
   const credentials = roleCredentials[role];
   await performLogin(page, credentials.username, credentials.password);
   await assertLoginSucceeded(page);
@@ -411,12 +412,14 @@ function formAssertion(testCase: Extract<TestCase, { kind: 'form' }>, config: Ta
   return "await expect(page.locator('body')).not.toContainText(/500|server error|exception/i);";
 }
 
-// First free-text field whose valid value is faker-generated — its emitted const is the value the
-// app should echo back after a successful create/update, so we assert that variable is visible.
+// First short free-text field (type 'text' or 'search') whose valid value is faker-generated.
+// Its emitted const is the value the app should echo back after a successful create/update, so we
+// assert it is visible. Textarea fields are excluded because their content is rarely rendered in
+// list/summary views; the fallback body assertion is used instead.
 function representativeTextField(testCase: Extract<TestCase, { kind: 'form' }>): string | null {
   for (const field of testCase.form.fields) {
     const fieldValue = testCase.values[field.name];
-    if (fieldValue?.kind === 'runtime' && ['text', 'search', 'textarea'].includes(field.type)) {
+    if (fieldValue?.kind === 'runtime' && ['text', 'search'].includes(field.type)) {
       return field.name;
     }
   }
