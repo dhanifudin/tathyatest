@@ -18,7 +18,8 @@ const config: TathyaConfig = {
     roles: [{ name: 'admin', username: 'admin@example.com', password: 'password' }],
   },
   crawl: { maxDepth: 3, maxPages: 100, include: [], exclude: [] },
-  data: { fields: {}, defaults: {}, unique: [], duplicates: {}, requiredFields: [], confirmFields: [] },
+  data: { fields: {}, defaults: {}, unique: [], duplicates: {}, requiredFields: [], confirmFields: [], faker: { locale: 'en', seed: null } },
+  evaluation: { outDir: 'metrics', repeat: 1, manualBaselineSecPerCase: 300, baselineDir: 'tests/manual', faultProject: null, stacks: [], faults: { enabled: true, classes: ['validation', 'authz', 'crud', 'pagination', 'auth'] } },
 };
 
 describe('emitTs', () => {
@@ -50,6 +51,59 @@ describe('emitTs', () => {
       expect(authSpec).toContain('await performLogin(page, "admin@example.com", "password");');
       expect(authSpec).not.toContain('loginSelectors');
       expect(authSpec).not.toContain('storageState/admin.json');
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('fills valid create forms with runtime faker values and asserts the variable', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'tt-emit-faker-'));
+    try {
+      const localConfig: TathyaConfig = {
+        ...config,
+        output: { ...config.output, dir },
+        data: { ...config.data, faker: { locale: 'en', seed: 99 } },
+      };
+      const titleField = {
+        name: 'title',
+        type: 'text',
+        label: 'Title',
+        required: true,
+        constraints: { minlength: null, maxlength: 255, min: null, max: null, step: null, pattern: null, inputmode: null, accept: null },
+        options: null,
+        nameHints: [] as string[],
+        locator: { strategy: 'label' as const, value: 'Title' },
+      };
+      const form = {
+        action: '/todos',
+        method: 'POST' as const,
+        crudOp: 'create' as const,
+        noValidate: true,
+        fields: [titleField],
+        submit: { text: 'Create', locator: { strategy: 'role' as const, value: 'button:Create' } },
+      };
+      const cases: TestCase[] = [
+        {
+          kind: 'form',
+          tier: 'positive',
+          title: 'admin /todos create - valid -> success',
+          role: 'admin',
+          page: { url: '/todos/create', title: 'Create Todo', forms: [], links: [], buttons: [], tables: [] },
+          form,
+          targetField: null,
+          variant: { kind: 'positive', name: 'valid', value: '', outcome: 'success' },
+          values: { title: { kind: 'runtime', expr: 'faker.lorem.words({ min: 2, max: 4 })' } },
+        },
+      ];
+
+      await emitTs(cases, localConfig);
+      const formsSpec = await readFile(join(dir, 'forms', 'forms.spec.ts'), 'utf8');
+
+      expect(formsSpec).toContain("import { faker } from '@faker-js/faker';");
+      expect(formsSpec).toContain('test.beforeAll(() => { faker.seed(99); });');
+      expect(formsSpec).toContain('const f_title = faker.lorem.words({ min: 2, max: 4 });');
+      expect(formsSpec).toContain('.fill(f_title);');
+      expect(formsSpec).toContain('await expect(page.getByText(f_title).first()).toBeVisible();');
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -112,7 +166,7 @@ describe('emitTs', () => {
             locator: { strategy: 'label', value: 'Status' },
           },
           variant: { kind: 'negative', name: 'invalid-option', value: '__invalid_option__', outcome: 'error', forceInvalidOption: true },
-          values: { status: '__invalid_option__' },
+          values: { status: { kind: 'literal', value: '__invalid_option__' } },
         },
       ];
 
@@ -185,7 +239,7 @@ describe('emitTs', () => {
             locator: { strategy: 'label', value: 'Status' },
           },
           variant: { kind: 'negative', name: 'required-empty', value: '', outcome: 'error' },
-          values: { status: '' },
+          values: { status: { kind: 'literal', value: '' } },
         },
         {
           kind: 'form',
@@ -236,7 +290,7 @@ describe('emitTs', () => {
             locator: { strategy: 'label', value: 'Choice' },
           },
           variant: { kind: 'negative', name: 'required-empty', value: '', outcome: 'error' },
-          values: { choice: '' },
+          values: { choice: { kind: 'literal', value: '' } },
         },
       ];
 

@@ -3,7 +3,6 @@ import { configSchema } from '../src/config.js';
 
 const baseConfig = {
   baseUrl: 'http://127.0.0.1:8000',
-  extractor: { engine: 'static' },
   output: { dir: 'tests/generated', language: 'ts' },
   coverage: 'all',
   oracle: { errorSelector: '.invalid-feedback, [role=alert], .text-red-600, x-input-error p' },
@@ -18,6 +17,11 @@ const baseConfig = {
 describe('configSchema', () => {
   it('accepts auth config without login field selectors', () => {
     expect(configSchema.safeParse(baseConfig).success).toBe(true);
+  });
+
+  it('accepts legacy extractor engine config for existing projects', () => {
+    expect(configSchema.safeParse({ ...baseConfig, extractor: { engine: 'static' } }).success).toBe(true);
+    expect(configSchema.safeParse({ ...baseConfig, extractor: { engine: 'rendered' } }).success).toBe(true);
   });
 
   it('rejects removed login selector config keys', () => {

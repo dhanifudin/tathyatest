@@ -9,12 +9,12 @@ specific task it has been given.
 ## Project in one paragraph
 
 TathyaTest generates Playwright test specs automatically. It crawls a target web app once per
-RBAC role (using either a Go static crawler or a Playwright rendered crawler), extracts a
-normalized element model, maps it against a dataset and an access-control matrix, and emits
+RBAC role using the Playwright crawler, extracts a normalized element model, maps it against
+a dataset and an access-control matrix, and emits
 Playwright `@playwright/test` specs covering the positive → negative → edge spectrum. The
 generated specs are then executed cross-browser (Chromium, Firefox, WebKit) to produce a
 Pass/Fail report. The user-facing binary is `tt`; its subcommands are `init`, `crawl`,
-`generate`, `run`, `all`.
+`generate`, `run`, `all`, and `eval` (metric-based evaluation → `metrics/report.{json,md}`).
 
 ---
 
@@ -22,45 +22,51 @@ Pass/Fail report. The user-facing binary is `tt`; its subcommands are `init`, `c
 
 | Directory | Language | What it owns | What it must NOT do |
 |-----------|----------|--------------|---------------------|
-| `crawler/` | Go | Static HTTP crawl + HTML extraction → `crawl/<role>.json` | Run a browser, generate specs, read specs |
 | `generator/src/extract/rendered.ts` | TypeScript | Playwright DOM crawl → `crawl/<role>.json` | Run tests, generate specs |
 | `generator/src/init.ts` | TypeScript | Interactive wizard → `tathya.config.yaml` | Crawl, generate, run |
 | `generator/src/rbac.ts` | TypeScript | Diff per-role crawls → access matrix | I/O beyond reading `crawl/*.json` |
-| `generator/src/fieldgen.ts` | TypeScript | Constraints → value variants | I/O of any kind (pure function) |
+| `generator/src/fieldgen.ts` | TypeScript | Constraints → value variants + valid `FieldValue` | I/O of any kind (pure function) |
+| `generator/src/faker.ts` | TypeScript | Field → runtime faker **expression string** | I/O, calling faker at gen time (pure) |
 | `generator/src/oracle.ts` | TypeScript | Return assertion code strings | Playwright calls, I/O (pure function) |
 | `generator/src/mapper.ts` | TypeScript | Element model + RBAC + dataset → TestCase intents | I/O, Playwright, emitting source |
-| `generator/src/emit/` | TypeScript | TestCase → `.spec.ts`/`.spec.js` source strings | Crawl, run tests, read config |
+| `generator/src/manifest.ts` | TypeScript | TestCase[] → `manifest.json` entries | I/O (pure; emit/index writes the file) |
+| `generator/src/stats.ts` | TypeScript | mean/CI/Mann-Whitney U/rank-biserial/Fleiss κ | I/O (pure function) |
+| `generator/src/metrics.ts` | TypeScript | Five-family `computeMetrics` | I/O, Playwright, process spawning (pure) |
+| `generator/src/eval/` | TypeScript | `tt eval` orchestration, fault catalogue, report, `baseline-static.ts` (pure spec parser) | Metric math (delegate to `metrics.ts`) |
+| `generator/src/emit/` | TypeScript | TestCase → `.spec.ts`/`.spec.js` source + `manifest.json` | Crawl, run tests, read config |
 | `generator/src/cli.ts` | TypeScript | Wire subcommands, orchestrate pipeline | Business logic beyond dispatch |
 | `case-study/todo-blade/` | PHP/Laravel | Breeze Blade test target application | Tool logic of any kind |
 | `case-study/todo-inertia-react/` | PHP/Laravel + React | Breeze React/Inertia test target application | Tool logic of any kind |
 | `crawl/` | JSON (runtime) | Per-role crawl output — **generated, never hand-edited** | — |
-| `tests/generated/` | TS/JS (runtime) | Generated specs — **generated, never hand-edited** | — |
+| `tests/generated/` | TS/JS (runtime) | Generated specs + `manifest.json` — **generated, never hand-edited** | — |
+| `tests/manual/` | TS (committed) | Hand-written baseline suites (`blade/`, `inertia/`) | — |
+| `tests/baseline-public/saucedemo/` | TS (git submodules) | Three independent MIT-licensed Playwright suites; EQ5 baseline for the SauceDemo subject. See `SOURCES.md`. | — |
+| `metrics/` | JSON/MD (runtime) | `tt eval` report — **generated, never hand-edited** | — |
 
 ---
 
 ## The one contract you must never break
 
 `crawl/<role>.json` is the **only interface** between the crawl layer and the generate layer.
-Both engines (Go static, TS rendered) must produce the identical schema. The generator must
-consume no other representation of the target application.
+The Playwright crawler must produce this schema. The generator must consume no other
+representation of the target application.
 
 **The schema is defined in three synchronized places:**
 
 ```
-crawler/internal/model/   ← Go structs (authoritative source for static engine)
-generator/src/crawl.ts    ← TypeScript types (authoritative source for generator)
+generator/src/crawl.ts             ← TypeScript types and zod validator
 generator/src/extract/rendered.ts  ← must emit the same shape
 ```
 
-**Rule:** if you change the schema in one place, change it in all three in the same commit.
-Never add fields in one place without mirroring them in the others. Use `"schemaVersion"` in
-the JSON root if a breaking change is unavoidable, and update all consumers.
+**Rule:** if you change the schema in one place, change it in both files in the same commit.
+Never add fields in the crawler without mirroring them in the validator and consumers. Use
+`"schemaVersion"` in the JSON root if a breaking change is unavoidable.
 
 Full schema reference:
 ```jsonc
 {
   "baseUrl": "string",
-  "engine": "static | rendered",
+  "engine": "rendered",
   "role": "string",              // role name from config.auth.roles[].name
   "crawledAt": "ISO8601 string",
   "pages": [{
@@ -113,9 +119,33 @@ negative authorization test for role B (expect redirect/403).
 
 ---
 
+## Fault-injection invariant (`tt eval`)
+
+The fault catalogue in `generator/src/eval/faults.ts` is the source of truth for which faults the
+evaluator seeds. **Every fault `id` MUST have a matching toggle in both case studies' `FaultRegistry`
+consumers** (`StoreTodoRequest`, `UpdateTodoRequest`, `EnsureRole`, `TodoController`,
+`Auth/LoginRequest`). A fault whose id is not honoured by the app is un-killable and silently
+deflates the mutation score. Activation is HTTP-only: `POST /__testing/fault {id}` /
+`POST /__testing/fault/clear` (env-gated, CSRF-exempt). Each fault's `relevant(entry)` predicate
+selects the manifest tests that should detect it; the fault is *killed* if any relevant test fails.
+
+**SauceDemo external subject scope:** `tathya.saucedemo.config.yaml` targets an external app.
+Set `faults: false` and `coverage: none` in its stack config. Fault injection and SUT coverage
+(Families B and C) **do not apply** and must not be attempted. Only Families A, D, E run.
+The baseline for EQ5 is `tests/baseline-public/saucedemo/` (git submodules, MIT). A static quality
+comparison (`baseline-static.ts`) always runs from spec sources; the dynamic Mann-Whitney U run
+requires the public suites to be installed (`make baseline-init`) and green.
+
+**Faker invariant:** valid create/update fills are runtime faker (`FieldValue.runtime`); the
+**target field of a negative/edge variant stays a deterministic literal** so the flake/consistency
+metric is not polluted by random data. Never call faker at generation time — `faker.ts` returns an
+expression string emitted into the spec.
+
+---
+
 ## Locator priority chain (enforce everywhere)
 
-All locator computations — in both the Go extractor, the rendered extractor, and `locator.ts`
+All locator computations — in both the rendered extractor and `locator.ts`
 — must follow this exact priority order. Breaking it produces brittle generated tests.
 
 ```
@@ -197,11 +227,10 @@ When multiple agents work in parallel, respect these ownership boundaries to avo
 
 | Agent task | Files it may write | Files it must read-only |
 |---|---|---|
-| Build Go crawler | `crawler/**` | `crawler/internal/model/` → sync to `generator/src/crawl.ts` |
-| Build rendered engine | `generator/src/extract/rendered.ts` | `crawler/internal/model/` (schema) |
+| Build rendered crawler | `generator/src/extract/rendered.ts` | `generator/src/crawl.ts` (schema) |
 | Build generator logic | `generator/src/{fieldgen,oracle,mapper,locator,rbac,emit}/**` | `generator/src/crawl.ts`, `crawl/*.json` |
 | Build CLI/init | `generator/src/{cli,init,config}.ts`, `generator/bin/tt` | generator src |
-| Build case study | `case-study/todo-blade/**`, `case-study/todo-inertia-react/**` | nothing in `crawler/` or `generator/` |
+| Build case study | `case-study/todo-blade/**`, `case-study/todo-inertia-react/**` | nothing in `generator/` |
 | Write playwright config | `playwright.config.ts` | `generator/src/config.ts` |
 
 **Never write to `crawl/` or `tests/generated/`** — those are runtime outputs produced by
@@ -212,13 +241,6 @@ When multiple agents work in parallel, respect these ownership boundaries to avo
 ## Verification an agent must run before declaring a task done
 
 Agents must not claim a component is complete without running its verification. Minimum bar:
-
-### After touching `crawler/`:
-```bash
-cd crawler && go build ./...    # must succeed
-go test ./...                   # must pass
-```
-Manually inspect one `crawl/<role>.json` to confirm schema matches Phase 3 of the plan.
 
 ### After touching `generator/`:
 ```bash
@@ -260,8 +282,8 @@ The following are known limitations of the first prototype, intentionally out of
 
 - **Custom Laravel validation rules** (`Rule::`, closures, FormRequest with complex logic) —
   not visible in HTML; covered only by `data.unique`/`confirmFields` config hints.
-- **JS-rendered forms** (Livewire, Inertia, Vue) when `engine: static` — the Go engine only
-  sees server-rendered HTML; switch `engine: rendered` for these targets.
+- **Closed or hidden flows** that the Playwright crawler cannot discover from authenticated DOM links,
+  forms, buttons, or configured seeds.
 - **Security/injection testing** — out of scope; `edge` payloads are robustness-only.
 - **Non-functional testing** (performance, load, security audits) — out of scope.
 - **Mobile/native apps** — out of scope.
@@ -275,7 +297,11 @@ discovered in this file under this section.
 
 When `tathya.config.yaml`'s schema changes:
 1. Update the zod schema in `generator/src/config.ts` first.
-2. Update `tathya.config.example.yaml`.
+2. Update all three example configs (`tathya.config.example.yaml`,
+   `tathya.blade.config.example.yaml`, `tathya.inertia-react.config.example.yaml`).
 3. Update `init.ts` wizard prompts to collect the new field.
-4. Update the Go config structs in `crawler/internal/config/` if the field is consumed there.
-5. Update `CLAUDE.md` "Config shape" section and this file if the change affects a contract.
+4. Update `CLAUDE.md` "Config shape" section and this file if the change affects a contract.
+
+The config now also carries `data.faker { locale, seed }` (runtime create-data) and an
+`evaluation` block (`stacks`, `repeat`, `manualBaselineSecPerCase`, `baselineDir`, `faults`,
+`faultProject`) consumed by `tt eval`.

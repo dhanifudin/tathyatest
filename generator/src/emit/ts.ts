@@ -1,7 +1,7 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { TathyaConfig } from '../config.js';
-import type { Field, Form } from '../crawl.js';
+import type { Field } from '../crawl.js';
 import { locatorSource } from '../locator.js';
 import { errorAssertionSource, gracefulAssertionSource } from '../oracle.js';
 import type { TestCase } from '../mapper.js';
@@ -28,6 +28,19 @@ function header(): string {
   return `import { test, expect } from '@playwright/test';\n\n`;
 }
 
+function fakerPreamble(config: TathyaConfig): string {
+  const { locale, seed } = config.data.faker;
+  const importLine = locale && locale !== 'en'
+    ? `import { allFakers } from '@faker-js/faker';\nconst faker = allFakers[${JSON.stringify(locale)}] ?? allFakers['en'];\n`
+    : `import { faker } from '@faker-js/faker';\n`;
+  const seedLine = seed !== null && seed !== undefined ? `test.beforeAll(() => { faker.seed(${seed}); });\n` : '';
+  return `${importLine}${seedLine}\n`;
+}
+
+function fieldVar(name: string): string {
+  return `f_${name.replace(/[^a-zA-Z0-9_]/g, '_')}`;
+}
+
 function authSpec(cases: TestCase[], config: TathyaConfig): string {
   const authCases = cases.filter((testCase) => testCase.kind === 'auth');
   return header() + loginHelperSource(config) + `test.use({ storageState: { cookies: [], origins: [] } });\n\n` + authCases.map((testCase) => `test(${JSON.stringify(testCase.title)}, async ({ page }) => {
@@ -39,7 +52,7 @@ function authSpec(cases: TestCase[], config: TathyaConfig): string {
 
 function formSpec(cases: TestCase[], config: TathyaConfig): string {
   const formCases = cases.filter((testCase) => testCase.kind === 'form');
-  return header() + roleLoginHelpers(config) + formCases.map((testCase) => `test(${JSON.stringify(testCase.title)}, async ({ page }) => {
+  return header() + fakerPreamble(config) + roleLoginHelpers(config) + formCases.map((testCase) => `test(${JSON.stringify(testCase.title)}, async ({ page }) => {
   test.skip(!test.info().project.name.startsWith(${JSON.stringify(`${testCase.role}-`)}), 'role-specific test');
   await resetAndLogin(page, ${JSON.stringify(testCase.role)});
   await page.goto(${JSON.stringify(testCase.page.url)});
@@ -285,10 +298,33 @@ function cssEscape(value: string): string {
 
 function fillFormSource(testCase: Extract<TestCase, { kind: 'form' }>): string {
   const { form, values } = testCase;
-  return form.fields.map((field) => {
-    if (values[field.name] === undefined) return '';
+
+  // Resolve runtime/ref fields to a variable (or a referenced literal) and collect their decls.
+  const decls: string[] = [];
+  const runtimeFill = new Map<string, string>();
+  for (const field of form.fields) {
+    const fieldValue = values[field.name];
+    if (fieldValue === undefined) continue;
+    if (fieldValue.kind === 'runtime') {
+      const variable = fieldVar(field.name);
+      decls.push(`  const ${variable} = ${fieldValue.expr};`);
+      runtimeFill.set(field.name, variable);
+    } else if (fieldValue.kind === 'ref') {
+      const source = values[fieldValue.name];
+      if (source?.kind === 'runtime') runtimeFill.set(field.name, fieldVar(fieldValue.name));
+      else if (source?.kind === 'literal') runtimeFill.set(field.name, JSON.stringify(source.value));
+    }
+  }
+
+  const fills = form.fields.map((field) => {
+    const fieldValue = values[field.name];
+    if (fieldValue === undefined) return '';
     const loc = locatorSource(field.locator);
-    const value = values[field.name];
+    const runtimeExpr = runtimeFill.get(field.name);
+    if (runtimeExpr !== undefined && fieldValue.kind !== 'literal') {
+      return `  await ${loc}.fill(${runtimeExpr});`;
+    }
+    const value = fieldValue.kind === 'literal' ? fieldValue.value : '';
     if (field.type === 'radio') {
       if (testCase.targetField?.name === field.name && testCase.variant.name === 'required-empty') {
         return `  await page.locator(${JSON.stringify(`[name="${field.name}"]`)}).evaluateAll((elements) => {
@@ -338,6 +374,8 @@ function fillFormSource(testCase: Extract<TestCase, { kind: 'form' }>): string {
     if (field.options?.length) return `  await ${loc}.selectOption(${JSON.stringify(value)});`;
     return `  await ${loc}.fill(${JSON.stringify(value)});`;
   }).filter(Boolean).join('\n');
+
+  return [decls.join('\n'), fills].filter(Boolean).join('\n');
 }
 
 function shouldForceValue(testCase: Extract<TestCase, { kind: 'form' }>, field: Field): boolean {
@@ -366,5 +404,21 @@ function formAssertion(testCase: Extract<TestCase, { kind: 'form' }>, config: Ta
     return errorAssertionSource(testCase.form, testCase.targetField, config.oracle.errorSelector, testCase.page.url).replaceAll('\n', '\n  ');
   }
   if (testCase.variant.outcome === 'graceful') return gracefulAssertionSource();
+  const representative = representativeTextField(testCase);
+  if (representative && (testCase.form.crudOp === 'create' || testCase.form.crudOp === 'update')) {
+    return `await expect(page.getByText(${fieldVar(representative)}).first()).toBeVisible();`;
+  }
   return "await expect(page.locator('body')).not.toContainText(/500|server error|exception/i);";
+}
+
+// First free-text field whose valid value is faker-generated — its emitted const is the value the
+// app should echo back after a successful create/update, so we assert that variable is visible.
+function representativeTextField(testCase: Extract<TestCase, { kind: 'form' }>): string | null {
+  for (const field of testCase.form.fields) {
+    const fieldValue = testCase.values[field.name];
+    if (fieldValue?.kind === 'runtime' && ['text', 'search', 'textarea'].includes(field.type)) {
+      return field.name;
+    }
+  }
+  return null;
 }

@@ -4,8 +4,8 @@ Automated Playwright test-case generator for functional testing of MVC web apps.
 
 **Pipeline:**
 ```
-tt init  →  tt crawl  →  tt generate  →  tt run
-(wizard)   (per role)    (specs out)    (Playwright)
+tt init  →  tt crawl  →  tt generate  →  tt run  →  tt eval
+(wizard)   (per role)    (specs out)    (Playwright)  (metrics report)
 ```
 
 Read `docs/implementation-plan.md` for the ordered build phases before making changes.
@@ -19,26 +19,37 @@ Read `AGENTS.md` for the contract invariants you must never break.
 tt/
 ├── case-study/todo-blade/          # Laravel Breeze Blade test target
 ├── case-study/todo-inertia-react/  # Laravel Breeze React/Inertia TS test target
-├── crawler/              # Go module — static engine, builds to tt-crawler
-├── generator/            # TypeScript — tt CLI + rendered engine + generator
+├── generator/            # TypeScript — tt CLI + Playwright crawler + generator
 │   ├── bin/tt            # CLI entry point
 │   └── src/
 │       ├── cli.ts        # commander dispatcher
 │       ├── init.ts       # tt init wizard (@clack/prompts)
 │       ├── config.ts     # zod-validated config loader
-│       ├── crawl.ts      # per-role crawl dispatcher
+│       ├── crawl.ts      # per-role crawl contract + dispatcher
 │       ├── extract/
-│       │   └── rendered.ts  # rendered engine (Playwright → crawl.json)
+│       │   └── rendered.ts  # Playwright crawler → crawl.json
 │       ├── rbac.ts       # per-role diff → access matrix
-│       ├── fieldgen.ts   # constraints → value variants (positive/negative/edge)
+│       ├── fieldgen.ts   # constraints → value variants (positive/negative/edge) + valid FieldValue
+│       ├── faker.ts      # pure: field → runtime @faker-js/faker expression for valid fills
 │       ├── oracle.ts     # novalidate-aware error assertion
 │       ├── mapper.ts     # ElementModel + dataset + RBAC → TestCase intents
 │       ├── locator.ts    # priority chain → Playwright locator source
-│       └── emit/         # ts.ts + js.ts — TestCase → spec source
+│       ├── manifest.ts   # TestCase[] → tests/generated/manifest.json (eval enabler)
+│       ├── stats.ts      # pure: mean/CI/Mann-Whitney U/rank-biserial/Fleiss κ
+│       ├── metrics.ts    # pure: five-family computeMetrics (coverage/SUT/faults/quality/reliability)
+│       ├── eval/         # runner.ts + faults.ts + report.ts + playwright.ts + baseline-static.ts
+│       └── emit/         # ts.ts + js.ts — TestCase → spec source (+ manifest via index.ts)
 ├── crawl/                # runtime output: admin.json, user.json, ...
-├── tests/generated/      # runtime output: auth/, crud/, rbac/ specs
+├── tests/generated/      # runtime output: auth/, crud/, rbac/ specs + manifest.json
+├── tests/manual/         # hand-written baseline suites (blade/, inertia/) for the eval comparison
+├── tests/baseline-public/
+│   └── saucedemo/        # 3 public MIT Playwright suites (git submodules, pinned SHA)
+│       ├── SOURCES.md    # provenance, license, SHA record — cite in paper
+│       └── playwright.config.ts  # standalone wrapper (chromium, saucedemo.com, no storageState)
+├── metrics/              # runtime output: report.json + report.md (tt eval)
 ├── playwright.config.ts  # 3 browser projects + per-role storageState
 ├── tathya.config.yaml    # gitignored (has creds) — see tathya.config.example.yaml
+├── tathya.saucedemo.config.yaml   # SauceDemo eval subject (creds are public, can commit)
 └── docs/
     └── implementation-plan.md
 ```
@@ -70,16 +81,7 @@ php artisan serve --port=8001
 
 Seeded credentials: `admin@example.com` / `password` and `user@example.com` / `password`.
 
-### Go static engine (Phase 4)
-
-```bash
-cd crawler
-go mod tidy
-go build -o ../tt-crawler .    # outputs tt-crawler at repo root
-go test ./...
-```
-
-### TypeScript generator (Phases 5–8)
+### TypeScript generator and crawler
 
 ```bash
 cd generator
@@ -96,13 +98,11 @@ npm link    # makes `tt` available in PATH
 
 Repo-level build and verification are also available through `make`:
 ```bash
-make install                   # install crawler + link tt into the active Node/bin path
-make uninstall                 # remove installed tt / tt-crawler binaries
+make install                   # build and link tt into the active Node/bin path
+make uninstall                 # remove installed tt binary
 make verify                    # runs checks and smokes the compiled tt entrypoint
 ```
 
-The static crawler now resolves `tt-crawler` from the local project first and then from `PATH`,
-so a `go install`ed binary can be tested from other directories too.
 If your shell resolves `tt` through `asdf`, `make install` refreshes that asdf-managed binary as
 well so the active shim does not keep an older version.
 
@@ -114,8 +114,38 @@ tt crawl                       # crawl per role → crawl/{role}.json
 tt generate                    # refresh crawl if needed, then generate specs → tests/generated/
 tt run                         # npx playwright test
 tt all                         # crawl → generate → run
+tt eval                        # instrumented run → metrics/report.{json,md}
 npx playwright show-report
 ```
+
+### Metric-based evaluation (`tt eval`)
+
+`tt eval` produces the quantitative evaluation (publication target). It reads
+`evaluation.stacks` (per case study: config + baseUrl + coverage source), and per stack:
+times crawl/generate, runs the generated suite `evaluation.repeat` times for CI + flake, runs the
+hand-written `tests/manual/<stack>` baseline, collects SUT coverage, and injects each fault in the
+catalogue. It writes `metrics/report.json` + `report.md` with five metric families:
+
+1. **Coverage** (RQ1) — element/route/CRUD/RBAC-matrix/constraint-kind, tier counts.
+2. **SUT code coverage** (RQ2) — PCOV line/branch-proxy/function + exact route coverage.
+3. **Fault detection** (RQ3) — mutation score per class + fault-localization accuracy.
+4. **Test-suite quality** (RQ4) — assertion density, locator mix, brittle-locator ratio.
+5. **Reliability/efficiency/baseline** (RQ5) — flake, Fleiss κ, time mean ± 95% CI,
+   generated-vs-manual Mann-Whitney U + effect size.
+
+Faults are seeded in the case studies via `FaultRegistry` (toggled by `POST /__testing/fault`);
+the fault id catalogue lives in `generator/src/eval/faults.ts`. Coverage needs PCOV
+(`COVERAGE=1` + `all.pcov` in `shell.nix`) and is read via `GET /__testing/coverage`.
+
+**SauceDemo evaluation subject** (`tathya.saucedemo.config.yaml`): a third subject — a React SPA
+on an external public server — is evaluated for **generalizability**. Because we cannot instrument
+a third-party app, SUT coverage (RQ2) and fault injection (RQ3) are **not applicable** for this
+stack (set `coverage: none` and `faults: false` in the stack config). Families A, D, and E run
+normally. The EQ5 baseline for SauceDemo comes from three independent MIT-licensed GitHub Playwright
+suites stored as pinned git submodules in `tests/baseline-public/saucedemo/`. Run
+`make baseline-init` once to clone them. A **static quality comparison** (test count, assertion
+density, brittle-locator ratio, locator mix) is always produced from spec source analysis even if
+the public suites are not executed; the dynamic Mann-Whitney U comparison requires a green run.
 
 ### Playwright (direct)
 
@@ -129,29 +159,20 @@ npx playwright test --ui       # interactive UI mode
 
 ## Technology stack conventions
 
-### Go (`crawler/`)
-
-- Package per concern: `internal/config`, `internal/auth`, `internal/crawl`,
-  `internal/extract`, `internal/model`.
-- Structs in `internal/model` are the **canonical source of truth** for `crawl.json` — keep
-  them in sync with `generator/src/crawl.ts` at all times.
-- Use `gopkg.in/yaml.v3` for config (not `v2`).
-- Colly cookie jar must be shared between `auth` and `crawl` — do not create a new jar after
-  login or the authenticated session is lost.
-- Goquery selectors must read `input[name="_method"]` to classify CRUD operations.
-- Every `crawl/<role>.json` gets `"engine": "static"` and `"role": "<name>"` at the top level.
-- No global state — pass config + jar through function arguments.
-- Errors: return `error`, never `log.Fatal` inside library functions. Fatal only in `main`.
-
 ### TypeScript (`generator/`)
 
 - Strict TypeScript: `"strict": true`, no `any`, no `@ts-ignore`.
 - Zod schema in `src/config.ts` is the authoritative validator — update it first when the
   config shape changes, then update the consuming code.
-- `src/crawl.ts` types must **mirror** `internal/model` structs exactly — this is the
-  Go↔TS contract. If you change one, change the other.
-- `fieldgen.ts` is pure (no I/O). Each exported function takes constraints → returns
-  `FieldVariant[]`. Keep it testable with vitest unit tests, no Playwright dependency.
+- `src/crawl.ts` types and zod schema are the crawl contract. Keep
+  `src/extract/rendered.ts` output synchronized with it.
+- `fieldgen.ts` is pure (no I/O). It returns `FieldVariant[]` and the valid `FieldValue` union
+  (`literal` | `runtime` faker expr | `ref` to a confirmation source). Unit-tested, no Playwright.
+- `faker.ts`, `stats.ts`, and `metrics.ts` are pure (no I/O, no Playwright). `faker.ts` returns a
+  runtime `@faker-js/faker` **expression string** emitted into the spec — faker never runs at
+  generation time. `stats.ts`/`metrics.ts` take already-loaded data → report objects.
+- `eval/` does all I/O for `tt eval` (process spawning, HTTP control, file writes); keep the
+  computation in `metrics.ts`/`stats.ts`. `eval/playwright.ts`'s `parsePlaywrightJson` is pure.
 - `oracle.ts` is pure. It returns assertion code strings, not Playwright calls.
 - `mapper.ts` must never read files or spawn processes — it receives already-loaded data.
 - `emit/ts.ts` and `emit/js.ts` must produce syntactically valid Playwright specs. Run
@@ -166,10 +187,10 @@ npx playwright test --ui       # interactive UI mode
 - Use `<x-input-error :messages="$errors->get('field')" />` for all validation error display
   so the default `oracle.errorSelector` (`.text-red-600, [role=alert]`) works out of the box.
 - In React/Inertia pages, render validation errors with `[role=alert]` or `.text-red-600`.
-- Use `@method('PUT')` / `@method('DELETE')` in every edit/delete form — the Go extractor
+- Use `@method('PUT')` / `@method('DELETE')` in every edit/delete form so the crawler
   reads the hidden `_method` input to classify CRUD operations.
 - In React/Inertia pages, keep real `form` metadata (`action`, `method`, field `name`, hidden
-  `_method`) so the rendered crawler can extract the same contract.
+  `_method`) so the crawler can extract the same contract.
 - Name form inputs consistently with the migration column names — the generator maps
   `data.fields[name]` to fill values by the field `name` attribute.
 - Add `data-testid` attributes to key elements only where stable locators are otherwise
@@ -179,10 +200,9 @@ npx playwright test --ui       # interactive UI mode
 
 ## The element-model contract (DO NOT break)
 
-Every change to the `crawl.json` schema must be coordinated across **three** files:
-1. `crawler/internal/model/` — Go structs (source of truth for the static engine)
-2. `generator/src/crawl.ts` — TypeScript types (mirror of the Go structs)
-3. `generator/src/extract/rendered.ts` — rendered engine output (must match the schema)
+Every change to the `crawl.json` schema must be coordinated across **two** files:
+1. `generator/src/crawl.ts` — TypeScript types and zod validator
+2. `generator/src/extract/rendered.ts` — Playwright crawler output (must match the schema)
 
 Schema version is tracked by the `"engine"` field. Add a `"schemaVersion"` field if a
 breaking change is needed, and update all three places atomically.
@@ -224,7 +244,12 @@ Breaking this order produces brittle tests. Never use positional selectors.
 
 ## What NOT to do
 
-- Do not manually edit anything under `crawl/` or `tests/generated/` — both are runtime outputs.
+- Do not manually edit anything under `crawl/`, `tests/generated/` (incl. `manifest.json`), or
+  `metrics/` — all are runtime outputs. `tests/manual/` is hand-written and IS edited by hand.
+- Do not call `@faker-js/faker` at generation time. `faker.ts` returns an expression string that
+  runs inside the emitted spec (fresh per run, seedable via `data.faker.seed`).
+- Keep `eval/faults.ts` fault ids in sync with the `FaultRegistry` toggles in both case studies —
+  a fault whose id has no PHP toggle is silently un-killable.
 - Do not add error handling for cases that cannot happen (e.g. null-check a value guaranteed
   by the zod schema).
 - Do not call `process.exit` inside library code — throw errors and let `cli.ts` handle exit.
@@ -233,21 +258,22 @@ Breaking this order produces brittle tests. Never use positional selectors.
   generation time and changes with i18n.
 - Do not run `php artisan` commands outside `nix-shell` — PHP is not available globally.
 - Do not commit `tathya.config.yaml` (has credentials) — only `tathya.config.example.yaml`.
-- Do not add browser automation to the Go crawler — it is a static HTTP fetcher only.
-
 ---
 
 ## Verification checklist (run before marking any phase done)
 
-- [ ] `go build ./...` passes with zero warnings in `crawler/`
 - [ ] `npm run typecheck` passes in `generator/`
-- [ ] `npm test` (vitest) passes for `fieldgen.ts` and `oracle.ts`
+- [ ] `npm test` (vitest) passes for `fieldgen`, `faker`, `oracle`, `stats`, `metrics`, `eval`
 - [ ] `tt crawl` produces valid JSON at `crawl/<role>.json` for each configured role
+- [ ] `tt generate` writes `tests/generated/manifest.json` (one entry per test) and a create spec
+  imports `@faker-js/faker`, declares `const f_<field> = faker.…`, and asserts that variable
 - [ ] `tsc --noEmit` passes against a generated `.spec.ts` file
 - [ ] `npx playwright test` runs and the report shows at least one pass per spec category
   (auth, crud, rbac)
 - [ ] A negative test that submits an empty required field produces a **failing** test when
   the Laravel validation is intentionally disabled (proves the oracle is real)
+- [ ] `tt eval` writes `metrics/report.{json,md}`; setting `TT_FAULT=validation_title_required`
+  via `POST /__testing/fault` makes the matching negative test fail (fault killed)
 
 ---
 
@@ -255,6 +281,6 @@ Breaking this order produces brittle tests. Never use positional selectors.
 
 1. `docs/implementation-plan.md` — phased build steps (Phases 0–10)
 2. `AGENTS.md` — contract invariants and agent-coordination rules
-3. `crawler/internal/model/` — the element-model contract structs
-4. `generator/src/crawl.ts` — the TypeScript mirror of the contract
+3. `generator/src/crawl.ts` — the element-model contract
+4. `generator/src/extract/rendered.ts` — Playwright crawler output
 5. `tathya.config.example.yaml` — canonical config reference

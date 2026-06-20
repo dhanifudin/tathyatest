@@ -7,10 +7,11 @@ import { normalizeBaseUrl } from './login.js';
 type PromptValue = string | symbol;
 type InitConfigInput = {
   baseUrl: string;
-  engine: string;
   loginPath: string;
   roles: Array<{ name: string; username: string; password: string }>;
   language: string;
+  fakerLocale?: string;
+  fakerSeed?: number | null;
 };
 
 function mustString(value: PromptValue, label: string): string {
@@ -48,7 +49,6 @@ export function initProjectPaths(projectName: string, cwd = '.'): { projectDir: 
 export function buildInitConfig(input: InitConfigInput) {
   return {
     baseUrl: input.baseUrl,
-    extractor: { engine: input.engine },
     output: { dir: 'tests/generated', language: input.language },
     coverage: 'all',
     oracle: { errorSelector: '.invalid-feedback, [role=alert], .text-red-600, x-input-error p' },
@@ -61,6 +61,7 @@ export function buildInitConfig(input: InitConfigInput) {
       duplicates: {},
       requiredFields: [],
       confirmFields: [],
+      faker: { locale: input.fakerLocale ?? 'en', seed: input.fakerSeed ?? null },
     },
   };
 }
@@ -71,13 +72,6 @@ export async function runInit(): Promise<void> {
   const paths = initProjectPaths(projectName);
 
   const baseUrl = normalizeBaseUrl(mustString(await text({ message: 'URL/domain', initialValue: 'http://127.0.0.1:8000' }), 'URL/domain'));
-  const engine = mustString(await select({
-    message: 'Crawler engine',
-    options: [
-      { value: 'static', label: 'static - server-rendered HTML' },
-      { value: 'rendered', label: 'rendered - JavaScript-rendered app' },
-    ],
-  }), 'Crawler engine');
 
   const loginPath = mustString(await text({ message: 'Login path', initialValue: '/login' }), 'Login path');
 
@@ -103,7 +97,12 @@ export async function runInit(): Promise<void> {
     ],
   }), 'Generated Playwright language');
 
-  const config = buildInitConfig({ baseUrl, engine, loginPath, roles, language });
+  const fakerLocale = mustString(await text({ message: 'Faker locale for generated create data', initialValue: 'en' }), 'Faker locale');
+  const seedInput = mustString(await text({ message: 'Faker seed (blank = random each run)', initialValue: '' }), 'Faker seed');
+  const fakerSeed = seedInput.trim() === '' ? null : Number.parseInt(seedInput.trim(), 10);
+  if (fakerSeed !== null && !Number.isFinite(fakerSeed)) throw new Error('Faker seed must be an integer or blank');
+
+  const config = buildInitConfig({ baseUrl, loginPath, roles, language, fakerLocale, fakerSeed });
 
   await mkdir(paths.outputDir, { recursive: true });
   await writeFile(paths.configPath, YAML.stringify(config));

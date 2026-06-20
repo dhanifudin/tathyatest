@@ -17,6 +17,6 @@ class UpdateTodoRequest extends StoreTodoRequest
             'confirmed',
         ];
 
-        return $rules;
+        return $this->applyFaults($rules);
     }
 }

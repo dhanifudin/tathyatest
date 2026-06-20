@@ -1,0 +1,9 @@
+[submodule "tests/baseline-public/saucedemo/markjb-saucelabs-playwright"]
+	path = tests/baseline-public/saucedemo/markjb-saucelabs-playwright
+	url = https://github.com/MarkJB/saucelabs-playwright.git
+[submodule "tests/baseline-public/saucedemo/paweljelonek-saucedemo-playwright-ts"]
+	path = tests/baseline-public/saucedemo/paweljelonek-saucedemo-playwright-ts
+	url = https://github.com/paweljelonek/saucedemo-playwright-ts.git
+[submodule "tests/baseline-public/saucedemo/nettokrt-playwright-saucedemo-e2e"]
+	path = tests/baseline-public/saucedemo/nettokrt-playwright-saucedemo-e2e
+	url = https://github.com/nettokrt/playwright-saucedemo-e2e.git

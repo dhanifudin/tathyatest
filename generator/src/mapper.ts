@@ -2,7 +2,7 @@ import type { CrawlOutput, Field, Form, Locator, PageModel } from './crawl.js';
 import type { TathyaConfig } from './config.js';
 import { shouldIncludeCoverage } from './config.js';
 import type { AccessMatrix } from './rbac.js';
-import { variantsForField, validValueForField, type FieldVariant } from './fieldgen.js';
+import { variantsForField, validFieldValue, type FieldValue, type FieldVariant } from './fieldgen.js';
 
 export type TestCaseKind = 'auth' | 'form' | 'interaction' | 'pagination' | 'rbac';
 export type TestCase =
@@ -24,7 +24,7 @@ export type TestCase =
       form: Form;
       targetField: Field | null;
       variant: FieldVariant;
-      values: Record<string, string>;
+      values: Record<string, FieldValue>;
     }
   | {
       kind: 'interaction';
@@ -141,7 +141,7 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
               if (!shouldIncludeCoverage(config.coverage, variant.kind)) continue;
               const values = { ...baseValues };
               if (variant.omit) delete values[field.name];
-              else values[field.name] = variantValue(field, variant, baseValues);
+              else values[field.name] = { kind: 'literal', value: variant.value };
               cases.push({
                 kind: 'form',
                 tier: variant.kind,
@@ -469,27 +469,26 @@ function normalizeTitleText(text: string | null): string {
   return text?.replace(/\s+/g, ' ').trim() ?? '';
 }
 
-function buildBaseValues(form: Form, config: TathyaConfig): Record<string, string> {
-  const values = new Map<string, string>();
-  for (const field of form.fields) {
-    values.set(field.name, validValueForField(field, {
-      dataFields: config.data.fields,
-      defaults: config.data.defaults,
-      unique: config.data.unique,
-      duplicates: config.data.duplicates,
-      requiredFields: config.data.requiredFields,
-      confirmFields: config.data.confirmFields,
-    }));
-  }
-
+function buildBaseValues(form: Form, config: TathyaConfig): Record<string, FieldValue> {
+  const hints = {
+    dataFields: config.data.fields,
+    defaults: config.data.defaults,
+    unique: config.data.unique,
+    duplicates: config.data.duplicates,
+    requiredFields: config.data.requiredFields,
+    confirmFields: config.data.confirmFields,
+  };
+  const names = new Set(form.fields.map((field) => field.name));
+  const values: Record<string, FieldValue> = {};
   for (const field of form.fields) {
     const sourceName = confirmationSourceName(field);
-    if (sourceName && values.has(sourceName)) {
-      values.set(field.name, values.get(sourceName) ?? values.get(field.name) ?? '');
+    if (sourceName && names.has(sourceName)) {
+      values[field.name] = { kind: 'ref', name: sourceName };
+    } else {
+      values[field.name] = validFieldValue(field, hints);
     }
   }
-
-  return Object.fromEntries(values);
+  return values;
 }
 
 function confirmationSourceName(field: Field): string | null {
@@ -497,11 +496,4 @@ function confirmationSourceName(field: Field): string | null {
     return field.name.slice(0, -'_confirmation'.length);
   }
   return null;
-}
-
-function variantValue(field: Field, variant: FieldVariant, baseValues: Record<string, string>): string {
-  if (variant.name === 'confirmation-mismatch') {
-    return `${baseValues[field.name] ?? variant.value}-mismatch`;
-  }
-  return variant.value;
 }

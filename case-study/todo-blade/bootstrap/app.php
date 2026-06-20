@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\CoverageMiddleware;
 use App\Http\Middleware\EnsureRole;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -15,6 +16,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => EnsureRole::class,
         ]);
+        // Eval-only: accumulates SUT code coverage when COVERAGE=1 (no-op otherwise).
+        $middleware->append(CoverageMiddleware::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

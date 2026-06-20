@@ -9,6 +9,7 @@ import { runInit } from './init.js';
 import { buildAccessMatrix } from './rbac.js';
 import { mapTestCases } from './mapper.js';
 import { emit } from './emit/index.js';
+import { runEvaluation } from './eval/runner.js';
 
 const program = new Command();
 
@@ -39,6 +40,24 @@ program.command('all').description('crawl, generate, and run').action(async () =
   await generateFromCrawls(config);
   await runPlaywright();
 });
+
+program.command('eval')
+  .description('run the metric-based evaluation and write metrics/report.{json,md}')
+  .option('--stack <name>', 'only evaluate the named stack')
+  .option('--repeat <n>', 'override evaluation.repeat', (value) => Number.parseInt(value, 10))
+  .option('--no-faults', 'skip fault-injection effectiveness')
+  .option('--no-coverage', 'skip SUT code-coverage collection')
+  .option('--no-baseline', 'skip the manual baseline comparison')
+  .action(async (options: { stack?: string; repeat?: number; faults?: boolean; coverage?: boolean; baseline?: boolean }) => {
+    const config = await loadConfig();
+    await runEvaluation(config, {
+      stack: options.stack ?? null,
+      repeat: options.repeat ?? null,
+      faults: options.faults,
+      coverage: options.coverage,
+      baseline: options.baseline,
+    });
+  });
 
 program.parseAsync().catch((error: unknown) => {
   console.error(error instanceof Error ? error.message : String(error));

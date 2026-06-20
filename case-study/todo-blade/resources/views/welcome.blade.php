@@ -19,7 +19,7 @@
             <section class="space-y-4">
                 <h1 class="text-3xl font-semibold">Tathya Todo Blade</h1>
                 <p class="max-w-2xl text-gray-700">
-                    Breeze Blade implementation of the Todo case study for static crawler coverage.
+                    Breeze Blade implementation of the Todo case study for TathyaTest coverage.
                 </p>
                 <a href="/todos" class="inline-block font-medium text-indigo-700 hover:text-indigo-900">Open todos</a>
             </section>

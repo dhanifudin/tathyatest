@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreTodoRequest;
 use App\Http\Requests\UpdateTodoRequest;
 use App\Models\Todo;
+use App\Support\FaultRegistry;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,6 +15,9 @@ class TodoController extends Controller
 {
     public function index(Request $request): Response
     {
+        // Eval-only pagination fault: error out beyond the first page so pagination tests fail.
+        abort_if(FaultRegistry::is('pagination_off_by_one') && (int) $request->query('page', '1') > 1, 500);
+
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', 'in:all,done,undone'],
@@ -51,7 +55,10 @@ class TodoController extends Controller
 
     public function store(StoreTodoRequest $request): RedirectResponse
     {
-        auth()->user()->todos()->create($request->validated() + ['done' => $request->boolean('done')]);
+        // Eval-only crud fault: skip persistence so the create happy-path assertion fails.
+        if (! FaultRegistry::is('crud_skip_persist')) {
+            auth()->user()->todos()->create($request->validated() + ['done' => $request->boolean('done')]);
+        }
 
         return redirect('/todos');
     }
@@ -66,7 +73,10 @@ class TodoController extends Controller
     public function update(UpdateTodoRequest $request, Todo $todo): RedirectResponse
     {
         $this->authorizeTodo($todo);
-        $todo->update($request->validated() + ['done' => $request->boolean('done')]);
+        // Eval-only crud fault: skip persistence so the update happy-path assertion fails.
+        if (! FaultRegistry::is('crud_skip_persist')) {
+            $todo->update($request->validated() + ['done' => $request->boolean('done')]);
+        }
 
         return redirect('/todos');
     }

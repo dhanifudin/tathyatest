@@ -3,12 +3,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import YAML from 'yaml';
-import { ensureCrawls, shouldFallbackToRendered, shouldRefreshCrawls, type CrawlOutput } from '../src/crawl.js';
+import { ensureCrawls, shouldRefreshCrawls } from '../src/crawl.js';
 import type { TathyaConfig } from '../src/config.js';
 
 const config: TathyaConfig = {
   baseUrl: 'http://127.0.0.1:8000',
-  extractor: { engine: 'static' },
   output: { dir: 'tests/generated', language: 'ts' },
   coverage: 'all',
   oracle: { errorSelector: '.invalid-feedback, [role=alert], .text-red-600, x-input-error p' },
@@ -105,43 +104,5 @@ describe('crawl bootstrap', () => {
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
-  });
-
-  it('falls back to rendered for static login-only crawl output', () => {
-    const crawls: CrawlOutput[] = [{
-      baseUrl: config.baseUrl,
-      engine: 'static',
-      role: 'admin',
-      crawledAt: '2026-06-16T00:00:00.000Z',
-      pages: [{
-        url: '/',
-        title: 'Swag Labs',
-        forms: [],
-        links: [],
-        buttons: [],
-        tables: [],
-      }],
-    }];
-
-    expect(shouldFallbackToRendered(crawls, config)).toBe(true);
-  });
-
-  it('keeps static crawl output when it discovered useful content', () => {
-    const crawls: CrawlOutput[] = [{
-      baseUrl: config.baseUrl,
-      engine: 'static',
-      role: 'admin',
-      crawledAt: '2026-06-16T00:00:00.000Z',
-      pages: [{
-        url: '/inventory.html',
-        title: 'Products',
-        forms: [],
-        links: [{ href: '/cart.html', text: 'Cart', locator: { strategy: 'css', value: 'a' } }],
-        buttons: [],
-        tables: [],
-      }],
-    }];
-
-    expect(shouldFallbackToRendered(crawls, config)).toBe(false);
   });
 });

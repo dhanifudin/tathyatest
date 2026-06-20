@@ -45,13 +45,13 @@ describe('init project helpers', () => {
   it('builds generic crawl config without case-study seed paths', () => {
     const config = buildInitConfig({
       baseUrl: 'https://www.saucedemo.com',
-      engine: 'rendered',
       loginPath: '/',
       roles: [{ name: 'standard', username: 'standard_user', password: 'secret_sauce' }],
       language: 'ts',
     });
 
     expect(config.crawl).toEqual({ maxDepth: 3, maxPages: 100, include: [], exclude: [] });
+    expect(config).not.toHaveProperty('extractor');
     expect(JSON.stringify(config)).not.toMatch(/\/todos|\/dashboard|\/admin/);
   });
 

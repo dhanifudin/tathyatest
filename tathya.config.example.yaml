@@ -1,6 +1,4 @@
 baseUrl: http://127.0.0.1:8000
-extractor:
-  engine: static
 output:
   dir: tests/generated
   language: ts
@@ -40,3 +38,26 @@ data:
   requiredFields: []
   confirmFields:
     - contact_email_confirmation
+  faker:
+    locale: en          # faker locale for generated create/update data
+    seed: null          # set an integer for reproducible data (used by the consistency metric)
+evaluation:             # `tt eval` — metric-based evaluation (writes metrics/report.{json,md})
+  outDir: metrics
+  repeat: 10            # measurement repeats → 95% CI on timing + flake rate
+  manualBaselineSecPerCase: 300   # labelled assumption for the time-savings ratio
+  baselineDir: tests/manual       # hand-written reference suite for the baseline comparison
+  faultProject: null   # restrict fault runs to one browser project (e.g. chromium) for speed
+  stacks:              # cross-stack study; omit to evaluate the current config as one stack
+    - name: blade
+      dir: .
+      config: tathya.blade.config.yaml
+      baseUrl: http://127.0.0.1:8000
+      coverage: pcov    # pcov | xdebug | none (SUT code-coverage source)
+    - name: inertia
+      dir: .
+      config: tathya.inertia-react.config.yaml
+      baseUrl: http://127.0.0.1:8001
+      coverage: pcov
+  faults:
+    enabled: true
+    classes: [validation, authz, crud, pagination, auth]

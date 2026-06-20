@@ -1,5 +1,9 @@
 # TathyaTest — Implementation Plan (Incremental, Ordered Steps)
 
+> Historical note: this document records the original multi-engine prototype plan. The current
+> implementation has since been refactored to a single Playwright crawler in `generator/`; the
+> Go `crawler/` module and `tt-crawler` binary are no longer part of the active architecture.
+
 Automated Playwright test-case generator for functional testing of MVC web apps. It crawls a
 target site (per RBAC role), extracts a normalized element model, and generates Playwright specs
 covering the **positive → negative → edge** spectrum, then executes them cross-browser.
@@ -336,6 +340,39 @@ data:
 
 10.1. `README.md`: setup (nix-shell, npm), the `tt` commands, the engine switch, config reference,
       coverage toggle, and the documented gaps (custom server rules; security/injection out of scope).
+
+---
+
+## Phase 11 — Runtime faker + metric-based evaluation (`tt eval`)
+
+11.1. **Runtime faker for valid fills.** `faker.ts` (pure) maps a field → a runtime
+      `@faker-js/faker` expression string. `fieldgen.ts` exports `FieldValue`
+      (`literal` | `runtime` | `ref`); `validFieldValue` makes valid fills runtime (unique fields
+      get a uniqueness suffix), confirmation fields `ref` their source. `mapper.ts` threads
+      `Record<string, FieldValue>`; the negative/edge **target** field stays a deterministic literal.
+      `emit/ts.ts` declares `const f_<field> = <expr>` and asserts that variable on create/update.
+      Config gains `data.faker { locale, seed }`; `init.ts` prompts for them.
+
+11.2. **Test manifest.** `emit/index.ts` writes `tests/generated/manifest.json` (one entry per test:
+      category, tier, role, route, targetField, constraintKind, assertionCount, locatorStrategy,
+      faultClass) via the pure `manifest.ts` — the enabler for coverage/quality metrics.
+
+11.3. **Pure metric core.** `stats.ts` (mean, 95% CI, Mann-Whitney U, rank-biserial, Fleiss κ) and
+      `metrics.ts` (`computeMetrics` over five families: model coverage, SUT code coverage, fault
+      detection, test-suite quality, reliability/efficiency + baseline). Unit-tested with fixtures.
+
+11.4. **Eval orchestration.** `eval/faults.ts` (fault catalogue + relevance predicates),
+      `eval/playwright.ts` (`runPlaywrightJson` + pure `parsePlaywrightJson`), `eval/runner.ts`
+      (per-stack: timed crawl/generate, R repeat runs, baseline, coverage, fault loop),
+      `eval/report.ts` (JSON + Markdown + cross-stack table). `cli.ts` adds `tt eval`. Config gains
+      the `evaluation` block (`stacks`, `repeat`, `manualBaselineSecPerCase`, `baselineDir`,
+      `faults`, `faultProject`).
+
+11.5. **Case-study instrumentation (both stacks).** PCOV in `shell.nix`; `CoverageMiddleware` +
+      `CoverageCollector` (line/function/branch-proxy/route coverage via PCOV + token analysis);
+      `FaultRegistry` with `TT_FAULT` toggles in `StoreTodoRequest`/`UpdateTodoRequest`/`EnsureRole`/
+      `TodoController`/`Auth/LoginRequest`; HTTP control plane (`/__testing/fault`,
+      `/__testing/coverage`). Hand-written baseline suites in `tests/manual/{blade,inertia}`.
 
 ---
 

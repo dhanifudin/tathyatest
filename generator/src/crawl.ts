@@ -1,7 +1,5 @@
-import { access, mkdir, readdir, readFile, stat } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { spawn } from 'node:child_process';
+import { mkdir, readdir, readFile, stat } from 'node:fs/promises';
+import { join } from 'node:path';
 import { z } from 'zod';
 import { renderedCrawl } from './extract/rendered.js';
 import type { TathyaConfig } from './config.js';
@@ -112,16 +110,7 @@ export async function loadCrawls(dir = 'crawl'): Promise<CrawlOutput[]> {
 
 export async function runCrawl(config: TathyaConfig): Promise<void> {
   await mkdir('crawl', { recursive: true });
-  if (config.extractor.engine === 'rendered') {
-    await renderedCrawl(config);
-    return;
-  }
-  await runStaticCrawler();
-  const crawls = await loadCrawls('crawl');
-  if (shouldFallbackToRendered(crawls, config)) {
-    console.warn('static crawl could not observe authenticated app content, retrying with rendered crawler');
-    await renderedCrawl({ ...config, extractor: { engine: 'rendered' } });
-  }
+  await renderedCrawl(config);
 }
 
 export async function ensureCrawls(config: TathyaConfig, options: { crawlDir?: string; configPath?: string; crawlRunner?: (config: TathyaConfig) => Promise<void> } = {}): Promise<void> {
@@ -145,51 +134,4 @@ export async function shouldRefreshCrawls(config: TathyaConfig, crawlDir = 'craw
   } catch {
     return true;
   }
-}
-
-export function shouldFallbackToRendered(crawls: CrawlOutput[], config: TathyaConfig): boolean {
-  if (config.extractor.engine !== 'static') return false;
-  if (crawls.length === 0) return false;
-  const roles = new Set(config.auth.roles.map((role) => role.name));
-  const roleCrawls = crawls.filter((crawl) => roles.has(crawl.role));
-  if (roleCrawls.length !== roles.size) return false;
-  return roleCrawls.every((crawl) => {
-    if (crawl.engine !== 'static' || crawl.pages.length !== 1) return false;
-    const page = crawl.pages[0];
-    if (page.url !== '/' && page.url !== config.auth.loginPath) return false;
-    return page.forms.length === 0 &&
-      page.links.length === 0 &&
-      page.buttons.length === 0 &&
-      page.tables.length === 0;
-  });
-}
-
-async function runStaticCrawler(): Promise<void> {
-  const here = dirname(fileURLToPath(import.meta.url));
-  const candidates = [
-    resolve(process.cwd(), 'tt-crawler'),
-    resolve(process.cwd(), 'crawler', 'tt-crawler'),
-    resolve(here, '..', '..', 'tt-crawler'),
-  ];
-  const bin = await firstExisting(candidates);
-  return new Promise((resolvePromise, reject) => {
-    const child = spawn(bin ?? 'tt-crawler', [], { stdio: 'inherit' });
-    child.on('error', reject);
-    child.on('exit', (code) => {
-      if (code === 0) resolvePromise();
-      else reject(new Error(`tt-crawler exited with code ${code ?? 'unknown'}`));
-    });
-  });
-}
-
-async function firstExisting(paths: string[]): Promise<string | null> {
-  for (const path of paths) {
-    try {
-      await access(path);
-      return path;
-    } catch {
-      // Try the next conventional location.
-    }
-  }
-  return null;
 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\CoverageMiddleware;
 use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
@@ -17,6 +18,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+            // Eval-only: accumulates SUT code coverage when COVERAGE=1 (no-op otherwise).
+            CoverageMiddleware::class,
         ]);
 
         $middleware->alias([

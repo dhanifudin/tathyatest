@@ -11,6 +11,7 @@ let
     all.ctype
     all.openssl
     all.zip
+    all.pcov
   ]);
 in pkgs.mkShell {
   buildInputs = [ php pkgs.php84Packages.composer ];

@@ -1,6 +1,4 @@
 baseUrl: http://127.0.0.1:8000
-extractor:
-  engine: static
 output:
   dir: tests/generated
   language: ts
@@ -44,3 +42,6 @@ data:
   requiredFields: []
   confirmFields:
     - contact_email_confirmation
+  faker:
+    locale: en          # faker locale for generated create/update data
+    seed: null          # set an integer for reproducible data (used by the consistency metric)

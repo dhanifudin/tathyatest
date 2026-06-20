@@ -1,4 +1,17 @@
 import type { Field } from './crawl.js';
+import { fakerExprForField } from './faker.js';
+
+/**
+ * How a single field's fill value is realised in the emitted spec:
+ * - `literal`: a deterministic string written verbatim (negative/edge targets, pinned
+ *   `data.fields`, and `<select>`/radio/checkbox values that must be a real option).
+ * - `runtime`: a faker expression emitted as `const f_<name> = <expr>` and filled fresh per run.
+ * - `ref`: a `*_confirmation` field that must reuse the source field's runtime/literal value.
+ */
+export type FieldValue =
+  | { kind: 'literal'; value: string }
+  | { kind: 'runtime'; expr: string }
+  | { kind: 'ref'; name: string };
 
 export type FieldVariantKind = 'positive' | 'negative' | 'edge';
 export type FieldVariant = {
@@ -61,6 +74,20 @@ export function variantsForField(field: Field, hints: FieldgenHints): FieldVaria
   if (!required) variants.push({ kind: 'edge', name: 'optional-omitted', value: '', outcome: 'graceful', omit: true });
 
   return variants;
+}
+
+/**
+ * The valid fill value for a field, as a {@link FieldValue}. Select/radio/checkbox and pinned
+ * `data.fields` entries are deterministic literals; `data.unique` fields are always generated at
+ * runtime (with a uniqueness suffix) so repeated create runs never collide; everything else is a
+ * runtime faker expression. Confirmation pairing is resolved by the mapper, which has form context.
+ */
+export function validFieldValue(field: Field, hints: FieldgenHints): FieldValue {
+  if (field.options?.length) return { kind: 'literal', value: field.options[0].value };
+  if (field.type === 'checkbox') return { kind: 'literal', value: 'on' };
+  if (hints.unique.includes(field.name)) return { kind: 'runtime', expr: fakerExprForField(field, hints) };
+  if (hints.dataFields[field.name] !== undefined) return { kind: 'literal', value: hints.dataFields[field.name] };
+  return { kind: 'runtime', expr: fakerExprForField(field, hints) };
 }
 
 export function validValueForField(field: Field, hints: FieldgenHints): string {

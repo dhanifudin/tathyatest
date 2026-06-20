@@ -1,0 +1,68 @@
+# TathyaTest config — SauceDemo (https://www.saucedemo.com)
+#
+# SauceDemo is the Sauce Labs public demo e-commerce SPA (React).
+# Credentials are public; there are no secrets in this file.
+#
+# This config is used as an evaluation subject alongside the Laravel case studies.
+# It exercises a different stack (React SPA, client-side routing) to support a
+# generalizability claim. Because SauceDemo is an external app:
+#   - SUT code coverage (Family B) is not available (coverage: none)
+#   - Fault injection (Family C) is not applicable (faults: false)
+#   - Family A (model coverage), D (test-suite quality), and E (reliability/efficiency/
+#     baseline) are fully exercised.
+
+baseUrl: https://www.saucedemo.com
+output:
+  dir: tests/generated
+  language: ts
+coverage: all
+oracle:
+  errorSelector: '[data-test="error"]'
+auth:
+  loginPath: /
+  roles:
+    - name: standard_user
+      username: standard_user
+      password: secret_sauce
+crawl:
+  maxDepth: 3
+  maxPages: 50
+  include:
+    - /inventory.html
+    - /cart.html
+    - /checkout-step-one.html
+    - /checkout-step-two.html
+  exclude: []
+data:
+  fields:
+    firstName: Jane
+    lastName: Doe
+    postalCode: "12345"
+  defaults:
+    text: Sample
+  unique: []
+  duplicates: {}
+  requiredFields:
+    - firstName
+    - lastName
+    - postalCode
+  confirmFields: []
+  faker:
+    locale: en
+    seed: null
+evaluation:
+  outDir: metrics
+  repeat: 5
+  manualBaselineSecPerCase: 300
+  baselineDir: tests/baseline-public/saucedemo
+  faultProject: null
+  stacks:
+    - name: saucedemo
+      dir: .
+      config: tathya.saucedemo.config.yaml
+      baseUrl: https://www.saucedemo.com
+      coverage: none
+      faults: false      # external app — no fault injection endpoint
+  faults:
+    enabled: false
+    classes: []

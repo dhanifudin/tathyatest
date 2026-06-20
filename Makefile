@@ -2,35 +2,24 @@ SHELL := /bin/sh
 
 ROOT := $(CURDIR)
 GENERATOR_DIR := $(ROOT)/generator
-CRAWLER_DIR := $(ROOT)/crawler
-GOBIN ?= $(HOME)/go/bin
 TT := node $(GENERATOR_DIR)/dist/cli.js
-TT_CRAWLER_BIN := $(GOBIN)/crawler
-TT_CRAWLER_LINK := $(GOBIN)/tt-crawler
 
-.PHONY: help install uninstall build generator-install crawler-install generator-uninstall crawler-uninstall verify generator-test crawler-test tt-help clean
+.PHONY: help install uninstall build generator-install generator-uninstall verify generator-test tt-help clean baseline-init
 
 help:
 	@printf '%s\n' \
 		'Targets:' \
-		'  make install        install crawler and link tt into the active Node/bin path' \
-		'  make uninstall      remove the installed tt / tt-crawler binaries' \
-		'  make verify         Run generator/go verification and smoke the compiled tt entrypoint' \
-		'  make clean          Remove compiled artifacts'
+		'  make install         build and link tt into the active Node/bin path' \
+		'  make uninstall       remove the installed tt binary' \
+		'  make verify          Run generator verification and smoke the compiled tt entrypoint' \
+		'  make baseline-init   initialise git submodules (public SauceDemo baseline suites)' \
+		'  make clean           Remove compiled artifacts'
 
-install: crawler-install generator-install
+install: generator-install
 
-uninstall: generator-uninstall crawler-uninstall
+uninstall: generator-uninstall
 
 build: install
-
-crawler-install:
-	cd crawler && GOBIN=$(GOBIN) go install .
-	mkdir -p $(GOBIN)
-	ln -sf crawler $(TT_CRAWLER_LINK)
-
-crawler-uninstall:
-	rm -f $(TT_CRAWLER_LINK) $(TT_CRAWLER_BIN)
 
 generator-install:
 	cd generator && npm install && npm run build
@@ -53,9 +42,6 @@ generator-uninstall:
 generator-test:
 	cd generator && npm run typecheck && npm test
 
-crawler-test:
-	cd crawler && go test ./...
-
 tt-help: install
 	$(TT) --help >/dev/null
 	$(TT) init --help >/dev/null
@@ -64,7 +50,10 @@ tt-help: install
 	$(TT) run --help >/dev/null
 	$(TT) all --help >/dev/null
 
-verify: install generator-test crawler-test tt-help
+verify: install generator-test tt-help
+
+baseline-init:
+	git submodule update --init --recursive
 
 clean:
-	rm -rf $(GENERATOR_DIR)/dist $(TT_CRAWLER_LINK) $(TT_CRAWLER_BIN)
+	rm -rf $(GENERATOR_DIR)/dist

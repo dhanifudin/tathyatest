@@ -22,7 +22,9 @@ const config: TathyaConfig = {
     duplicates: { contact_email: 'admin.todo@example.com' },
     requiredFields: ['status'],
     confirmFields: [],
+    faker: { locale: 'en', seed: 1234 },
   },
+  evaluation: { outDir: 'metrics', repeat: 1, manualBaselineSecPerCase: 300, baselineDir: 'tests/manual', faultProject: null, stacks: [], faults: { enabled: true, classes: ['validation', 'authz', 'crud', 'pagination', 'auth'] } },
 };
 
 describe('mapTestCases', () => {
@@ -95,11 +97,13 @@ describe('mapTestCases', () => {
     const valid = cases.find((testCase) => testCase.kind === 'form' && testCase.variant.name === 'valid');
     const mismatch = cases.find((testCase) => testCase.kind === 'form' && testCase.variant.name === 'confirmation-mismatch');
 
-    expect(valid?.values.contact_email).toBe('contact@example.com');
-    expect(valid?.values.contact_email_confirmation).toBe('contact@example.com');
-    expect(valid?.values.status).toBe('open');
-    expect(mismatch?.values.contact_email).toBe('contact@example.com');
-    expect(mismatch?.values.contact_email_confirmation).toBe('contact@example.com-mismatch');
+    // contact_email is unique → generated at runtime; its confirmation references the same const.
+    expect(valid?.values.contact_email).toMatchObject({ kind: 'runtime' });
+    expect(valid?.values.contact_email && 'expr' in valid.values.contact_email ? valid.values.contact_email.expr : '').toContain('faker');
+    expect(valid?.values.contact_email_confirmation).toEqual({ kind: 'ref', name: 'contact_email' });
+    expect(valid?.values.status).toEqual({ kind: 'literal', value: 'open' });
+    expect(mismatch?.values.contact_email).toMatchObject({ kind: 'runtime' });
+    expect(mismatch?.values.contact_email_confirmation).toEqual({ kind: 'literal', value: 'user@example.com-mismatch' });
   });
 
   it('emits blank negatives for configured required fields', () => {
@@ -150,7 +154,7 @@ describe('mapTestCases', () => {
     const blank = cases.find((testCase) => testCase.kind === 'form' && testCase.variant.name === 'required-empty');
 
     expect(blank?.targetField?.name).toBe('status');
-    expect(blank?.values.status).toBe('');
+    expect(blank?.values.status).toEqual({ kind: 'literal', value: '' });
   });
 
   it('maps non-CRUD forms and page interactions', () => {
