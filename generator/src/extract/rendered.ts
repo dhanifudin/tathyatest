@@ -53,6 +53,8 @@ async function crawlRole(page: Page, config: TathyaConfig, role: string, landing
     const response = currentPath === path ? null : await page.goto(path, { waitUntil: 'domcontentloaded' });
     if (!shouldExtractCrawlPage(response?.ok() ?? null, path, normalizePath(page.url(), config.baseUrl))) continue;
     await page.waitForLoadState('domcontentloaded');
+    // Give SPAs time to hydrate before extracting controls.
+    await page.waitForLoadState('networkidle').catch(() => undefined);
     const model = await extractPage(page);
     pages.push({ url: normalizePath(page.url(), config.baseUrl), ...model });
     const discovered = await discoverInternalURLs(page, config.baseUrl);
@@ -287,11 +289,44 @@ async function extractPage(page: Page): Promise<DomPageModel> {
       links: Array.from(document.querySelectorAll<HTMLAnchorElement>('a[href]'))
         .map((link) => ({ href: normalizeHref(link.href), text: text(link), locator: locatorFor(link, 'link') }))
         .filter((link) => link.href),
-      buttons: Array.from(document.querySelectorAll<HTMLButtonElement>('button')).map((button) => ({ text: text(button), locator: locatorFor(button, 'button') })),
+      // Capture all button-like controls: <button>, <input type=button|submit|reset|image>,
+      // and elements with role=button|menuitem|tab that aren't already a button/input/a.
+      // We do NOT exclude form-descendant controls here — the mapper deduplicates form-submit
+      // locators via formSubmitLocators so these are harmless duplicates that get filtered out.
+      buttons: (() => {
+        const seen = new Set<Element>();
+        const result: { text: string; locator: { strategy: string; value: string } }[] = [];
+        for (const el of Array.from(document.querySelectorAll<HTMLButtonElement>('button'))) {
+          seen.add(el);
+          result.push({ text: text(el), locator: locatorFor(el, 'button') });
+        }
+        for (const el of Array.from(document.querySelectorAll<HTMLInputElement>('input[type=button],input[type=submit],input[type=reset],input[type=image]'))) {
+          if (seen.has(el)) continue;
+          seen.add(el);
+          const label = attr(el, 'value') ?? attr(el, 'aria-label') ?? '';
+          result.push({ text: label, locator: locatorFor(el, 'button') });
+        }
+        for (const el of Array.from(document.querySelectorAll<Element>('[role=button],[role=menuitem],[role=tab]'))) {
+          if (seen.has(el) || el.tagName === 'A' || el.tagName === 'BUTTON' || el.tagName === 'INPUT') continue;
+          seen.add(el);
+          result.push({ text: text(el), locator: locatorFor(el, 'button') });
+        }
+        return result;
+      })(),
       tables: Array.from(document.querySelectorAll('table')).map((table) => ({
         headers: Array.from(table.querySelectorAll('th')).map((th) => text(th)),
         rowCount: table.querySelectorAll('tbody tr').length,
       })),
+      // Orphan selects: <select> elements that are NOT inside any <form>. Form-descendant
+      // selects are already captured as fields. These capture SPA sort/filter dropdowns.
+      controls: Array.from(document.querySelectorAll<HTMLSelectElement>('select'))
+        .filter((el) => !el.closest('form'))
+        .map((el) => ({
+          kind: 'select' as const,
+          text: text(el) || null,
+          options: Array.from(el.options).map((option) => ({ value: option.value, label: text(option) })),
+          locator: locatorFor(el, 'combobox'),
+        })),
     };
   });
   return enrichAccessibility(page, model as DomPageModel);

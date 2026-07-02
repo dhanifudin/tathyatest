@@ -23,6 +23,8 @@ export type MetricsInput = {
   baselineRuns: SuiteRun[];
   baselineStatic: BaselineStaticAnalysis | null;
   faultRuns: FaultRun[];
+  /** Fault runs executed against the baseline suite (no manifest needed; localization is n/a). */
+  baselineFaultRuns: FaultRun[];
   sutCoverage: SutCoverage | null;
   timings: Timings;
   manualBaselineSecPerCase: number;
@@ -84,6 +86,25 @@ export type QualitySide = {
   locatorDistribution: Record<string, number>;
 };
 
+/** One row in the head-to-head verdict table. */
+export type VerdictRow = {
+  metric: string;
+  generated: string;
+  baseline: string;
+  betterWhen: 'higher' | 'lower';
+  winner: 'generated' | 'baseline' | 'tie' | 'n/a';
+};
+
+/** Per-dimension + overall winner of the head-to-head comparison. */
+export type Verdict = {
+  rows: VerdictRow[];
+  comparableDimensions: number;
+  generatedWins: number;
+  baselineWins: number;
+  ties: number;
+  overall: 'generated' | 'baseline' | 'tie' | 'n/a';
+};
+
 export type BaselineComparison = {
   available: boolean;
   generatedTests: number;
@@ -94,6 +115,12 @@ export type BaselineComparison = {
     generated: QualitySide;
     baseline: QualitySide | null;
   };
+  /** Reliability metrics for the baseline suite (requires repeat > 1 to show flake). */
+  baselineReliability: ReliabilityMetrics | null;
+  /** Fault-detection metrics for the baseline suite (requires faults enabled). */
+  baselineMutation: FaultMetrics | null;
+  /** Head-to-head verdict across all comparable dimensions. */
+  verdict: Verdict;
 };
 
 export type MetricsReport = {
@@ -107,14 +134,18 @@ export type MetricsReport = {
 };
 
 export function computeMetrics(input: MetricsInput): MetricsReport {
+  const faults = faultMetrics(input);
+  const quality = qualityMetrics(input);
+  const reliability = reliabilityMetrics(input);
+  const efficiency = efficiencyMetrics(input);
   return {
     coverage: coverageMetrics(input),
     sutCoverage: input.sutCoverage,
-    faults: faultMetrics(input),
-    quality: qualityMetrics(input),
-    reliability: reliabilityMetrics(input),
-    efficiency: efficiencyMetrics(input),
-    baseline: baselineComparison(input),
+    faults,
+    quality,
+    reliability,
+    efficiency,
+    baseline: baselineComparison(input, quality, reliability, faults, efficiency),
   };
 }
 
@@ -220,24 +251,38 @@ function tierCounts(manifest: ManifestEntry[]): CoverageMetrics['tiers'] {
 
 function faultMetrics(input: MetricsInput): FaultMetrics {
   const byTitle = new Map(input.manifest.map((entry) => [entry.title, entry] as const));
+  return faultMetricsOf(input.faultRuns, byTitle);
+}
+
+/**
+ * Pure: compute fault-detection metrics from fault runs.
+ * `byTitle` is the generated-manifest map used for localization; omit (or pass empty map)
+ * for the baseline side, where localization is not applicable.
+ */
+export function faultMetricsOf(
+  faultRuns: FaultRun[],
+  byTitle: Map<string, ManifestEntry> = new Map(),
+): FaultMetrics {
   const byClass: Record<string, { total: number; killed: number; score: number }> = {};
   let killed = 0;
   let localized = 0;
 
-  for (const fault of input.faultRuns) {
+  for (const fault of faultRuns) {
     const bucket = (byClass[fault.faultClass] ??= { total: 0, killed: 0, score: 0 });
     bucket.total += 1;
     const killers = fault.outcomes.filter((outcome) => outcome.status === 'failed');
     if (killers.length > 0) {
       killed += 1;
       bucket.killed += 1;
-      const localizedHere = killers.some((outcome) => byTitle.get(outcome.title)?.faultClass === fault.faultClass);
-      if (localizedHere) localized += 1;
+      if (byTitle.size > 0) {
+        const localizedHere = killers.some((outcome) => byTitle.get(outcome.title)?.faultClass === fault.faultClass);
+        if (localizedHere) localized += 1;
+      }
     }
   }
   for (const bucket of Object.values(byClass)) bucket.score = bucket.total === 0 ? 0 : bucket.killed / bucket.total;
 
-  const total = input.faultRuns.length;
+  const total = faultRuns.length;
   return {
     total,
     killed,
@@ -250,6 +295,21 @@ function faultMetrics(input: MetricsInput): FaultMetrics {
 // ---- Family D: test-suite quality -------------------------------------------------------------
 
 const LOCATOR_RANK: Record<string, number> = { testid: 7, role: 6, label: 5, placeholder: 4, id: 3, name: 2, css: 1 };
+
+/**
+ * Pure: derive a locator-robustness score (0–1) from a strategy-count distribution.
+ * Uses the same LOCATOR_RANK weights as the generated-suite computation in qualityMetrics.
+ * Exported so the baseline side and tests can reuse it.
+ */
+export function locatorRobustnessOf(distribution: Record<string, number>): number {
+  let robustnessSum = 0;
+  let total = 0;
+  for (const [strategy, count] of Object.entries(distribution)) {
+    robustnessSum += (LOCATOR_RANK[strategy] ?? 1) / 7 * count;
+    total += count;
+  }
+  return total === 0 ? 0 : robustnessSum / total;
+}
 
 function qualityMetrics(input: MetricsInput): QualityMetrics {
   const { manifest } = input;
@@ -285,7 +345,11 @@ function qualityMetrics(input: MetricsInput): QualityMetrics {
 // ---- Family E: reliability, efficiency, baseline ----------------------------------------------
 
 function reliabilityMetrics(input: MetricsInput): ReliabilityMetrics {
-  const { runs } = input;
+  return reliabilityOf(input.runs);
+}
+
+/** Pure: compute reliability metrics from a set of suite runs. Reusable for both sides. */
+export function reliabilityOf(runs: SuiteRun[]): ReliabilityMetrics {
   const repeats = runs.length;
   if (repeats === 0) {
     return { repeats: 0, flakeRate: 0, crossBrowserKappa: 1, passRate: 0 };
@@ -354,17 +418,21 @@ function efficiencyMetrics(input: MetricsInput): EfficiencyMetrics {
   };
 }
 
-function baselineComparison(input: MetricsInput): BaselineComparison {
+function baselineComparison(
+  input: MetricsInput,
+  genQuality: QualityMetrics,
+  genReliability: ReliabilityMetrics,
+  genMutation: FaultMetrics,
+  genEfficiency: EfficiencyMetrics,
+): BaselineComparison {
   const generatedDurations = durationsOf(input.runs);
   const manualDurations = durationsOf(input.baselineRuns);
 
-  // Derive generated-suite quality numbers from the manifest (same source as Family D).
-  const quality = qualityMetrics(input);
   const generatedSide: QualitySide = {
-    testCount: quality.testCount,
-    assertionDensity: quality.assertionDensity,
-    brittleLocatorRatio: quality.brittleLocatorRatio,
-    locatorDistribution: quality.locatorDistribution,
+    testCount: genQuality.testCount,
+    assertionDensity: genQuality.assertionDensity,
+    brittleLocatorRatio: genQuality.brittleLocatorRatio,
+    locatorDistribution: genQuality.locatorDistribution,
   };
 
   const baselineSide: QualitySide | null = input.baselineStatic
@@ -376,15 +444,97 @@ function baselineComparison(input: MetricsInput): BaselineComparison {
       }
     : null;
 
+  const baselineReliability = input.baselineRuns.length > 0 ? reliabilityOf(input.baselineRuns) : null;
+  const baselineMutation = input.baselineFaultRuns.length > 0 ? faultMetricsOf(input.baselineFaultRuns) : null;
+
+  // Duration per test: mean execute ms divided by distinct test count (so count differences don't skew).
+  const genDurationPerTest = genEfficiency.perTestMs;
+  const baselineTestCount = distinctTitles(input.baselineRuns);
+  const baseDurationPerTest = manualDurations.length > 0 && baselineTestCount > 0
+    ? manualDurations.reduce((sum, d) => sum + d, 0) / manualDurations.length
+    : null;
+
+  const verdict = computeVerdict(
+    genQuality, genReliability, genMutation, genDurationPerTest,
+    baselineSide, baselineReliability, baselineMutation, baseDurationPerTest,
+  );
+
   return {
     available: input.baselineRuns.length > 0,
     generatedTests: distinctTitles(input.runs),
-    manualTests: distinctTitles(input.baselineRuns),
+    manualTests: baselineTestCount,
     durationMannWhitney: generatedDurations.length > 0 && manualDurations.length > 0
       ? mannWhitneyU(generatedDurations, manualDurations)
       : null,
     quality: { generated: generatedSide, baseline: baselineSide },
+    baselineReliability,
+    baselineMutation,
+    verdict,
   };
+}
+
+function computeVerdict(
+  genQuality: QualityMetrics,
+  genReliability: ReliabilityMetrics,
+  genMutation: FaultMetrics,
+  genDurationPerTest: number,
+  baselineSide: QualitySide | null,
+  baselineReliability: ReliabilityMetrics | null,
+  baselineMutation: FaultMetrics | null,
+  baseDurationPerTest: number | null,
+): Verdict {
+  // Mutation score: n/a if neither side ran any faults.
+  const genMutScore = genMutation.total > 0 ? genMutation.mutationScore : null;
+  const baseMutScore = baselineMutation && baselineMutation.total > 0 ? baselineMutation.mutationScore : null;
+
+  const rows: VerdictRow[] = [
+    verdictRow('Mutation score', genMutScore, baseMutScore, 'higher', fmtPct),
+    verdictRow('Flake rate', genReliability.flakeRate, baselineReliability?.flakeRate ?? null, 'lower', fmtPct),
+    verdictRow('Pass rate', genReliability.passRate, baselineReliability?.passRate ?? null, 'higher', fmtPct),
+    verdictRow('Assertion density', genQuality.assertionDensity, baselineSide?.assertionDensity ?? null, 'higher', (v) => v.toFixed(2)),
+    verdictRow('Brittle-locator ratio', genQuality.brittleLocatorRatio, baselineSide?.brittleLocatorRatio ?? null, 'lower', fmtPct),
+    verdictRow('Locator robustness', genQuality.locatorRobustness, baselineSide ? locatorRobustnessOf(baselineSide.locatorDistribution) : null, 'higher', fmtPct),
+    verdictRow('Duration per test', genDurationPerTest > 0 ? genDurationPerTest : null, baseDurationPerTest, 'lower', (v) => `${Math.round(v)}ms`),
+  ];
+
+  const comparable = rows.filter((row) => row.winner !== 'n/a');
+  const generatedWins = comparable.filter((row) => row.winner === 'generated').length;
+  const baselineWins = comparable.filter((row) => row.winner === 'baseline').length;
+  const ties = comparable.filter((row) => row.winner === 'tie').length;
+  const overall: Verdict['overall'] = comparable.length === 0 ? 'n/a'
+    : generatedWins > baselineWins ? 'generated'
+    : baselineWins > generatedWins ? 'baseline'
+    : 'tie';
+
+  return { rows, comparableDimensions: comparable.length, generatedWins, baselineWins, ties, overall };
+}
+
+function verdictRow(
+  metric: string,
+  genValue: number | null,
+  baseValue: number | null,
+  betterWhen: 'higher' | 'lower',
+  format: (v: number) => string,
+): VerdictRow {
+  const generated = genValue !== null ? format(genValue) : 'n/a';
+  const baseline = baseValue !== null ? format(baseValue) : 'n/a';
+
+  let winner: VerdictRow['winner'] = 'n/a';
+  if (genValue !== null && baseValue !== null) {
+    const EPSILON = 0.001; // 0.1% threshold — differences smaller than this are a tie
+    const diff = genValue - baseValue;
+    if (betterWhen === 'higher') {
+      winner = diff > EPSILON ? 'generated' : diff < -EPSILON ? 'baseline' : 'tie';
+    } else {
+      winner = diff < -EPSILON ? 'generated' : diff > EPSILON ? 'baseline' : 'tie';
+    }
+  }
+
+  return { metric, generated, baseline, betterWhen, winner };
+}
+
+function fmtPct(v: number): string {
+  return `${(v * 100).toFixed(1)}%`;
 }
 
 // ---- helpers ----------------------------------------------------------------------------------

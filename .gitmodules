@@ -1,9 +1,12 @@
-[submodule "tests/baseline-public/saucedemo/markjb-saucelabs-playwright"]
-	path = tests/baseline-public/saucedemo/markjb-saucelabs-playwright
-	url = https://github.com/MarkJB/saucelabs-playwright.git
-[submodule "tests/baseline-public/saucedemo/paweljelonek-saucedemo-playwright-ts"]
-	path = tests/baseline-public/saucedemo/paweljelonek-saucedemo-playwright-ts
-	url = https://github.com/paweljelonek/saucedemo-playwright-ts.git
-[submodule "tests/baseline-public/saucedemo/nettokrt-playwright-saucedemo-e2e"]
-	path = tests/baseline-public/saucedemo/nettokrt-playwright-saucedemo-e2e
-	url = https://github.com/nettokrt/playwright-saucedemo-e2e.git
+[submodule "tests/baseline-public/saucedemo/ashutoshfolane-playwright-saucedemo"]
+	path = tests/baseline-public/saucedemo/ashutoshfolane-playwright-saucedemo
+	url = https://github.com/ashutoshfolane/playwright-saucedemo.git
+	branch = main
+[submodule "tests/baseline-public/saucedemo/aferminboada-saucedemo-pom"]
+	path = tests/baseline-public/saucedemo/aferminboada-saucedemo-pom
+	url = https://github.com/aferminboada/portfolio-playwright-typescript-e2e-tests-pageObjetModel-saucedemo.git
+	branch = main
+[submodule "tests/baseline-public/saucedemo/renanpacheco21-saucedemo-playwright"]
+	path = tests/baseline-public/saucedemo/renanpacheco21-saucedemo-playwright
+	url = https://github.com/renanpacheco21/automation_sauceDemo_playwright.git
+	branch = main

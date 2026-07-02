@@ -12,9 +12,9 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: '.',
   testMatch: [
-    'markjb-saucelabs-playwright/tests/**/*.spec.ts',
-    'paweljelonek-saucedemo-playwright-ts/tests/**/*.spec.ts',
-    'nettokrt-playwright-saucedemo-e2e/tests/**/*.spec.ts',
+    'ashutoshfolane-playwright-saucedemo/tests/**/*.spec.ts',
+    'aferminboada-saucedemo-pom/tests/**/*.spec.ts',
+    'renanpacheco21-saucedemo-playwright/tests/**/*.spec.ts',
   ],
   timeout: 60_000,
   workers: 1,

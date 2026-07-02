@@ -38,13 +38,29 @@ export type Form = {
   fields: Field[];
   submit: { text: string | null; locator: Locator };
 };
+/**
+ * A non-form interactive control extracted from the page. Currently scoped to `select`
+ * elements that live outside any `<form>` (e.g. sort dropdowns in React SPAs). The
+ * `buttons` array records all button-like controls regardless of whether they are inside
+ * a form (form-submit buttons are still deduplicated by the mapper via formSubmitLocators).
+ */
+export type Control = {
+  kind: 'select';
+  text: string | null;
+  options: FieldOption[] | null;
+  locator: Locator;
+};
 export type PageModel = {
   url: string;
   title: string;
   forms: Form[];
   links: { href: string; text: string; locator: Locator }[];
+  /** Button-like controls: <button>, <input type=button|submit|reset|image>, [role=button|menuitem|tab]. */
   buttons: { text: string; locator: Locator }[];
   tables: { headers: string[]; rowCount: number }[];
+  /** Non-form interactive controls (orphan selects, etc.). Optional for back-compat with old crawl
+   * JSON; zod `.default([])` ensures parsed output always has it. Runtime code must use `?? []`. */
+  controls?: Control[];
 };
 export type CrawlOutput = {
   baseUrl: string;
@@ -68,7 +84,10 @@ const constraintsSchema = z.object({
   inputmode: z.string().nullable(),
   accept: z.string().nullable(),
 });
-export const crawlOutputSchema: z.ZodType<CrawlOutput> = z.object({
+// ZodType<Output, Def, Input=Output> — we use `unknown` as Input so that `.default([])`
+// transforms (which widen the accepted input to allow `undefined` fields) satisfy the
+// type-checker without requiring `any`.
+export const crawlOutputSchema: z.ZodType<CrawlOutput, z.ZodTypeDef, unknown> = z.object({
   baseUrl: z.string(),
   engine: z.enum(['static', 'rendered']),
   role: z.string(),
@@ -96,6 +115,12 @@ export const crawlOutputSchema: z.ZodType<CrawlOutput> = z.object({
     links: z.array(z.object({ href: z.string(), text: z.string(), locator: locatorSchema })),
     buttons: z.array(z.object({ text: z.string(), locator: locatorSchema })),
     tables: z.array(z.object({ headers: z.array(z.string()), rowCount: z.number() })),
+    controls: z.array(z.object({
+      kind: z.literal('select'),
+      text: z.string().nullable(),
+      options: z.array(z.object({ value: z.string(), label: z.string() })).nullable(),
+      locator: locatorSchema,
+    })).default([]),
   })),
 });
 

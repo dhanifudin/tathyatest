@@ -85,6 +85,9 @@ function stackMarkdown(stack: StackReport): string[] {
   out.push('#### Generated vs baseline — static quality comparison', '');
   out.push(...qualityComparisonTable(report));
   out.push('');
+  out.push('#### Generated vs baseline — head-to-head verdict', '');
+  out.push(...verdictTable(report));
+  out.push('');
   return out;
 }
 
@@ -124,6 +127,23 @@ function qualityComparisonTable(report: MetricsReport): string[] {
     ['Locator mix (top)', formatLocatorMix(gen), bas ? formatLocatorMix(bas) : 'n/a'],
   ];
   return [header, divider, ...rows.map(([label, g, b]) => `| ${label} | ${g} | ${b} |`)];
+}
+
+function verdictTable(report: MetricsReport): string[] {
+  const v = report.baseline.verdict;
+  const WINNER_SYMBOL: Record<string, string> = { generated: '✓ Generated', baseline: '✓ Baseline', tie: 'Tie', 'n/a': 'n/a' };
+  const header = '| Metric | Generated | Baseline | Better when | Winner |';
+  const divider = '| --- | --- | --- | --- | --- |';
+  const rows = v.rows.map((row) =>
+    `| ${row.metric} | ${row.generated} | ${row.baseline} | ${row.betterWhen} | ${WINNER_SYMBOL[row.winner] ?? row.winner} |`
+  );
+  const summary = v.comparableDimensions === 0
+    ? '*No comparable dimensions — both sides need live execution and/or fault runs.*'
+    : `**Verdict:** Generated wins ${v.generatedWins} / ${v.comparableDimensions} comparable dimensions, `
+      + `Baseline wins ${v.baselineWins} / ${v.comparableDimensions} (ties: ${v.ties}). `
+      + `Overall: **${v.overall}**. `
+      + '*(Coverage % and SUT line coverage are generated-only and excluded from this verdict.)*';
+  return [header, divider, ...rows, '', summary];
 }
 
 function formatLocatorMix(side: QualitySide): string {

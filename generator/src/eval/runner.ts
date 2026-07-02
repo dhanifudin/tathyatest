@@ -64,15 +64,17 @@ async function runStack(stack: StackConfig, rootConfig: TathyaConfig, options: E
       executeMs.push(Date.now() - start);
     }
 
-    const baselineRuns = options.baseline !== false ? await runBaseline(config) : [];
+    const baselineRuns = options.baseline !== false ? await runBaseline(config, repeat) : [];
     const baselineStatic = await analyzeBaselineDir(config.evaluation.baselineDir);
     const sutCoverage = collectCoverage ? await fetchCoverage(stack.baseUrl) : null;
     // Skip fault injection for external stacks (stack.faults === false) or when disabled by flag.
     const runFaultsEnabled = stack.faults !== false && options.faults !== false && rootConfig.evaluation.faults.enabled;
     const faultRuns = runFaultsEnabled ? await runFaults(stack, rootConfig, manifest) : [];
+    const baselineFaultRuns = runFaultsEnabled ? await runBaselineFaults(stack, rootConfig, config) : [];
 
     const input: MetricsInput = {
-      config, manifest, crawls, matrix, runs, baselineRuns, baselineStatic, faultRuns, sutCoverage,
+      config, manifest, crawls, matrix, runs, baselineRuns, baselineStatic,
+      faultRuns, baselineFaultRuns, sutCoverage,
       timings: { crawlMs, generateMs, executeMs },
       manualBaselineSecPerCase: rootConfig.evaluation.manualBaselineSecPerCase,
     };
@@ -82,17 +84,49 @@ async function runStack(stack: StackConfig, rootConfig: TathyaConfig, options: E
   }
 }
 
-async function runBaseline(config: TathyaConfig): Promise<SuiteRun[]> {
+async function runBaseline(config: TathyaConfig, repeat: number): Promise<SuiteRun[]> {
   const dir = config.evaluation.baselineDir;
   if (!(await hasSpecs(dir))) return [];
   // If the baseline dir ships its own playwright.config.ts, use it so the
   // public suites run under their own setup (no role storageState, correct baseURL).
   const standaloneConfig = join(dir, 'playwright.config.ts');
   const hasConfig = await access(standaloneConfig).then(() => true).catch(() => false);
-  if (hasConfig) {
-    return [await runPlaywrightJson({ cwd: '.', config: standaloneConfig })];
+  const runs: SuiteRun[] = [];
+  for (let i = 0; i < repeat; i += 1) {
+    if (hasConfig) {
+      runs.push(await runPlaywrightJson({ cwd: '.', config: standaloneConfig }));
+    } else {
+      runs.push(await runPlaywrightJson({ cwd: '.', paths: [dir] }));
+    }
   }
-  return [await runPlaywrightJson({ cwd: '.', paths: [dir] })];
+  return runs;
+}
+
+/**
+ * Run the baseline suite once under each fault activation to produce a baseline mutation score.
+ * A fault is killed when any baseline test fails while the fault is active.
+ * Localization accuracy is not computed (baseline titles don't map to the fault catalogue).
+ */
+async function runBaselineFaults(stack: StackConfig, rootConfig: TathyaConfig, config: TathyaConfig): Promise<FaultRun[]> {
+  const dir = config.evaluation.baselineDir;
+  if (!(await hasSpecs(dir))) return [];
+  const faults = faultsForClasses(rootConfig.evaluation.faults.classes);
+  const standaloneConfig = join(dir, 'playwright.config.ts');
+  const hasConfig = await access(standaloneConfig).then(() => true).catch(() => false);
+  const faultRuns: FaultRun[] = [];
+  for (const fault of faults) {
+    const set = await control(stack.baseUrl, 'POST', '/__testing/fault', { id: fault.id });
+    if (!set) {
+      console.warn(`[eval] could not activate fault ${fault.id} for baseline; skipping`);
+      continue;
+    }
+    const suite = hasConfig
+      ? await runPlaywrightJson({ cwd: '.', config: standaloneConfig })
+      : await runPlaywrightJson({ cwd: '.', paths: [dir] });
+    faultRuns.push({ id: fault.id, faultClass: fault.faultClass, outcomes: suite.outcomes });
+  }
+  await control(stack.baseUrl, 'POST', '/__testing/fault/clear');
+  return faultRuns;
 }
 
 async function hasSpecs(dir: string): Promise<boolean> {

@@ -64,17 +64,23 @@ ${fillFormSource(testCase)}
 
 function interactionSpec(cases: TestCase[], config: TathyaConfig): string {
   const interactionCases = cases.filter((testCase) => testCase.kind === 'interaction');
-  return header() + roleLoginHelpers(config) + interactionCases.map((testCase) => `test(${JSON.stringify(testCase.title)}, async ({ page }) => {
+  return header() + roleLoginHelpers(config) + interactionCases.map((testCase) => {
+    const { interaction } = testCase;
+    const action = interaction.type === 'select' && interaction.optionValue !== undefined
+      ? `await target.selectOption(${JSON.stringify(interaction.optionValue)});`
+      : 'await target.click();';
+    return `test(${JSON.stringify(testCase.title)}, async ({ page }) => {
   test.skip(!test.info().project.name.startsWith(${JSON.stringify(`${testCase.role}-`)}), 'role-specific test');
   await resetAndLogin(page, ${JSON.stringify(testCase.role)});
   await page.goto(${JSON.stringify(testCase.page.url)});
-  const target = ${locatorSource(testCase.interaction.locator)}.nth(${testCase.interaction.ordinal});
+  const target = ${locatorSource(interaction.locator)}.nth(${interaction.ordinal});
   test.skip(await target.count() === 0 || !(await target.isVisible().catch(() => false)), 'interaction target is not visible');
-  await target.click();
+  ${action}
   await page.waitForLoadState('domcontentloaded').catch(() => undefined);
   await page.waitForLoadState('networkidle').catch(() => undefined);
   await expect(page.locator('body')).not.toContainText(/500|server error|exception/i);
-});`).join('\n\n') + '\n';
+});`;
+  }).join('\n\n') + '\n';
 }
 
 function paginationSpec(cases: TestCase[], config: TathyaConfig): string {

@@ -495,6 +495,46 @@ describe('mapTestCases', () => {
     expect(interactions).toHaveLength(0);
   });
 
+  it('emits select interaction cases from orphan controls and picks a representative option', () => {
+    const crawl: CrawlOutput = {
+      baseUrl: config.baseUrl,
+      engine: 'rendered',
+      role: 'admin',
+      crawledAt: '2026-06-15T00:00:00.000Z',
+      pages: [
+        {
+          url: '/inventory.html',
+          title: 'Inventory',
+          forms: [],
+          links: [],
+          buttons: [],
+          tables: [],
+          controls: [
+            {
+              kind: 'select',
+              text: null,
+              options: [
+                { value: 'az', label: 'Name (A to Z)' },
+                { value: 'za', label: 'Name (Z to A)' },
+                { value: 'lohi', label: 'Price (low to high)' },
+                { value: 'hilo', label: 'Price (high to low)' },
+              ],
+              locator: { strategy: 'testid', value: 'product-sort-container' },
+            },
+          ],
+        },
+      ],
+    };
+
+    const cases = mapTestCases([crawl], new Map(), config);
+    const selects = cases.filter((testCase) => testCase.kind === 'interaction' && testCase.interaction.type === 'select');
+
+    expect(selects).toHaveLength(1);
+    expect(selects[0].title).toBe('admin /inventory.html select testid:product-sort-container -> handled');
+    // Representative option: last non-empty value (hilo)
+    expect(selects[0].interaction.optionValue).toBe('hilo');
+  });
+
   it('deduplicates query-only page routes and keeps generated titles unique', () => {
     const crawl: CrawlOutput = {
       baseUrl: config.baseUrl,

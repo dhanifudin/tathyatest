@@ -10,9 +10,9 @@ is reproducible. All suites are licensed under the MIT License.
 
 | # | Repository | Author | License | Pinned SHA | Language | Coverage |
 |---|-----------|--------|---------|-----------|----------|---------|
-| 1 | [MarkJB/saucelabs-playwright](https://github.com/MarkJB/saucelabs-playwright) | Mark J. Beaumont | MIT | `b0e2331` | TypeScript | Login, inventory, cart, navigation, end-to-end |
-| 2 | [paweljelonek/saucedemo-playwright-ts](https://github.com/paweljelonek/saucedemo-playwright-ts) | Paweł Jelonek | MIT | `29c2e13` | TypeScript | Login, cart, checkout, inventory, navigation, product details |
-| 3 | [nettokrt/playwright-saucedemo-e2e](https://github.com/nettokrt/playwright-saucedemo-e2e) | nettokrt | MIT | `667059e` | TypeScript | Login, cart, checkout, product search/filter, bug-user edge cases |
+| 1 | [ashutoshfolane/playwright-saucedemo](https://github.com/ashutoshfolane/playwright-saucedemo) | Ashutosh Folane | MIT | `0925c3c` | TypeScript | Login, logout, cart, checkout, inventory add/remove |
+| 2 | [aferminboada/portfolio-playwright-typescript-e2e-tests-pageObjetModel-saucedemo](https://github.com/aferminboada/portfolio-playwright-typescript-e2e-tests-pageObjetModel-saucedemo) | Alejandro Fermin Boada | MIT | `5b72fe5` | TypeScript | Login, cart, checkout, inventory, navigation |
+| 3 | [renanpacheco21/automation_sauceDemo_playwright](https://github.com/renanpacheco21/automation_sauceDemo_playwright) | Renan Pacheco | MIT | `51764d4` | TypeScript | Login validation, cart validation, checkout, product sorting and validation |
 
 ## Running the suites
 
@@ -25,9 +25,9 @@ that targets `https://www.saucedemo.com` via a single Chromium project. Each sui
 make baseline-init
 
 # Then install dependencies for each submodule:
-(cd tests/baseline-public/saucedemo/markjb-saucelabs-playwright && npm install)
-(cd tests/baseline-public/saucedemo/paweljelonek-saucedemo-playwright-ts && npm install)
-(cd tests/baseline-public/saucedemo/nettokrt-playwright-saucedemo-e2e && npm install)
+(cd tests/baseline-public/saucedemo/ashutoshfolane-playwright-saucedemo && npm install)
+(cd tests/baseline-public/saucedemo/aferminboada-saucedemo-pom && npm install)
+(cd tests/baseline-public/saucedemo/renanpacheco21-saucedemo-playwright && npm install)
 
 # Run with the wrapper config (from repo root):
 npx playwright test --config=tests/baseline-public/saucedemo/playwright.config.ts

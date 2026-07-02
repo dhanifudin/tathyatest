@@ -70,7 +70,13 @@ function fakeReport(overrides: Partial<MetricsReport> = {}): MetricsReport {
     quality: { testCount: 16, assertionDensity: 1.2, locatorDistribution: { role: 8, label: 6, css: 2 }, brittleLocatorRatio: 0.125, locatorRobustness: 0.8, smellIncidence: 0 },
     reliability: { repeats: 3, flakeRate: 0.01, crossBrowserKappa: 0.94, passRate: 0.98 },
     efficiency: { crawlMs: 1200, generateMs: 300, executeMs: { n: 3, mean: 4000, stddev: 100, marginOfError: 248, lower: 3752, upper: 4248 }, totalSeconds: 5.5, testCount: 16, perTestMs: 250, throughputPerSec: 4, timeSavingsRatio: 160, timeSavingsRange: { low: 80, high: 240 } },
-    baseline: { available: false, generatedTests: 16, manualTests: 0, durationMannWhitney: null, quality: { generated: { testCount: 16, assertionDensity: 1.2, brittleLocatorRatio: 0.125, locatorDistribution: { role: 8, label: 6, css: 2 } }, baseline: null } },
+    baseline: {
+      available: false, generatedTests: 16, manualTests: 0, durationMannWhitney: null,
+      quality: { generated: { testCount: 16, assertionDensity: 1.2, brittleLocatorRatio: 0.125, locatorDistribution: { role: 8, label: 6, css: 2 } }, baseline: null },
+      baselineReliability: null,
+      baselineMutation: null,
+      verdict: { rows: [], comparableDimensions: 0, generatedWins: 0, baselineWins: 0, ties: 0, overall: 'n/a' },
+    },
     ...overrides,
   };
 }

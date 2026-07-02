@@ -33,11 +33,13 @@ export type TestCase =
       role: string;
       page: PageModel;
       interaction: {
-        type: 'link' | 'button';
+        type: 'link' | 'button' | 'select';
         label: string;
         locator: Locator;
         ordinal: number;
         href?: string;
+        /** For type === 'select': the option value to select (a representative non-empty option). */
+        optionValue?: string;
       };
     }
   | {
@@ -248,6 +250,32 @@ function interactionCasesForPage(role: string, page: PageModel, canonicalPageUrl
       },
     });
   }
+
+  // Orphan select controls (e.g. sort dropdowns in SPAs). Emit one interaction per select,
+  // choosing a representative non-empty option (last option with a non-empty value).
+  for (const control of page.controls ?? []) {
+    const label = `${control.locator.strategy}:${control.locator.value}`;
+    const key = `select:${label}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const options = control.options ?? [];
+    const representative = [...options].reverse().find((opt) => opt.value !== '') ?? options[0];
+    cases.push({
+      kind: 'interaction',
+      tier: 'positive',
+      title: `${role} ${canonicalPageUrl} select ${label} -> handled`,
+      role,
+      page,
+      interaction: {
+        type: 'select',
+        label,
+        locator: control.locator,
+        ordinal: 0,
+        optionValue: representative?.value,
+      },
+    });
+  }
+
   return cases;
 }
 
