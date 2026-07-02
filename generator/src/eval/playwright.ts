@@ -7,7 +7,8 @@ import type { SuiteRun, TestOutcome, TestStatus } from '../metrics.js';
 
 export type RunOptions = {
   cwd?: string;
-  project?: string | null;
+  /** Playwright project names; the CLI accepts repeated --project flags. */
+  projects?: string[] | null;
   grep?: string | null;
   paths?: string[];
   config?: string | null;
@@ -63,7 +64,7 @@ export async function runPlaywrightJson(options: RunOptions = {}): Promise<Suite
   try {
     const args = ['test', '--reporter=json'];
     if (options.config) args.push(`--config=${options.config}`);
-    if (options.project) args.push(`--project=${options.project}`);
+    for (const project of options.projects ?? []) args.push(`--project=${project}`);
     if (options.grep) args.push(`--grep=${options.grep}`);
     if (options.paths?.length) args.push(...options.paths);
     await spawnPlaywright(bin, args, cwd, outputFile);
@@ -90,10 +91,14 @@ function spawnPlaywright(bin: string, args: string[], cwd: string, jsonOutput: s
 
 async function resolvePlaywrightBinary(cwd: string): Promise<string> {
   const here = dirname(fileURLToPath(import.meta.url));
+  // Prefer the project-local installation: the specs and playwright.config.ts resolve
+  // @playwright/test from the project's node_modules, and mixing a runner binary from a different
+  // installation (the generator's copy) makes Playwright reject every test file with
+  // "did not expect test() to be called here".
   const candidates = [
-    resolve(here, '..', '..', 'node_modules', '.bin', 'playwright'),
     resolve(cwd, 'node_modules', '.bin', 'playwright'),
     resolve(process.cwd(), 'node_modules', '.bin', 'playwright'),
+    resolve(here, '..', '..', 'node_modules', '.bin', 'playwright'),
   ];
   for (const candidate of candidates) {
     try {

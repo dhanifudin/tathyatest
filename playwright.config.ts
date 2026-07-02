@@ -11,8 +11,11 @@ type TathyaConfig = { baseUrl?: string; auth?: { roles?: RoleConfig[] } };
 await ensureDisplay();
 
 function loadConfig(): TathyaConfig {
-  if (!existsSync('tathya.config.yaml')) return {};
-  const parsed = YAML.parse(readFileSync('tathya.config.yaml', 'utf8')) as TathyaConfig;
+  // TATHYA_CONFIG lets `tt eval` (and `tt --config … run`) point one execution at a per-stack
+  // config without swapping the default file on disk.
+  const configPath = process.env.TATHYA_CONFIG ?? 'tathya.config.yaml';
+  if (!existsSync(configPath)) return {};
+  const parsed = YAML.parse(readFileSync(configPath, 'utf8')) as TathyaConfig;
   return { ...parsed, baseUrl: parsed.baseUrl ? normalizeBaseUrl(parsed.baseUrl) : parsed.baseUrl };
 }
 
@@ -76,6 +79,10 @@ export default defineConfig({
       env: {
         ...process.env,
         LD_LIBRARY_PATH: process.env.LD_LIBRARY_PATH ?? '',
+        // Playwright's bundled WebKit does not look in the system GIO module path, leaving it
+        // without a TLS backend ("TLS support is not available" on https targets). Point it at
+        // the host's glib-networking modules; harmless when the directory does not exist.
+        GIO_MODULE_DIR: process.env.GIO_MODULE_DIR ?? '/usr/lib/gio/modules',
       },
     },
     trace: 'on-first-retry',

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assertRenderedLoginSucceeded, normalizeInternalURL, renderedCrawlSeeds, shouldExtractCrawlPage } from '../src/extract/rendered.js';
+import { assertRenderedLoginSucceeded, isMeaningfulErrorPage, normalizeInternalURL, renderedCrawlSeeds, shouldExtractCrawlPage } from '../src/extract/rendered.js';
 
 const baseConfig = {
   auth: {
@@ -34,8 +34,19 @@ describe('rendered crawl URL normalization', () => {
 
   it('extracts an already-loaded rendered landing page without requiring a navigation response', () => {
     expect(shouldExtractCrawlPage(null, '/inventory.html', '/inventory.html')).toBe(true);
-    expect(shouldExtractCrawlPage(false, '/inventory.html', '/inventory.html')).toBe(false);
+    // SPA hosts serve deep links with a 404 status while the client router renders the page.
+    expect(shouldExtractCrawlPage(false, '/cart.html', '/cart.html')).toBe(true);
+    expect(shouldExtractCrawlPage(false, '/inventory.html', '/redirected.html')).toBe(false);
     expect(shouldExtractCrawlPage(true, '/inventory.html', '/redirected.html')).toBe(true);
+  });
+
+  it('filters genuine error pages by their lack of interactive content', () => {
+    const empty = { forms: [], buttons: [], links: [], controls: [] };
+    const rich = { ...empty, buttons: [{ text: 'Add to cart', locator: { strategy: 'css' as const, value: 'button' } }] };
+    expect(isMeaningfulErrorPage(false, empty)).toBe(true);   // Laravel 404 page
+    expect(isMeaningfulErrorPage(false, rich)).toBe(false);   // SPA page behind a 404 status
+    expect(isMeaningfulErrorPage(true, empty)).toBe(false);   // ok responses are always kept
+    expect(isMeaningfulErrorPage(null, empty)).toBe(false);   // already-on-page extraction
   });
 
   it('fails clearly when login remains on the login page with controls visible', async () => {

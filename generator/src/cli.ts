@@ -15,17 +15,23 @@ const program = new Command();
 
 program.name('tt').description('TathyaTest CLI').version('0.1.0');
 
+program.option('-c, --config <path>', 'path to the tathya config YAML', 'tathya.config.yaml');
+
+function loadCliConfig(): ReturnType<typeof loadConfig> {
+  return loadConfig(program.opts<{ config: string }>().config);
+}
+
 program.command('init').description('write tathya.config.yaml').action(async () => {
   await runInit();
 });
 
 program.command('crawl').description('crawl configured app once per role').action(async () => {
-  const config = await loadConfig();
+  const config = await loadCliConfig();
   await runCrawl(config);
 });
 
 program.command('generate').description('generate Playwright specs').action(async () => {
-  const config = await loadConfig();
+  const config = await loadCliConfig();
   await ensureCrawls(config);
   await generateFromCrawls(config);
 });
@@ -35,7 +41,7 @@ program.command('run').description('run generated Playwright specs').action(asyn
 });
 
 program.command('all').description('crawl, generate, and run').action(async () => {
-  const config = await loadConfig();
+  const config = await loadCliConfig();
   await ensureCrawls(config, { crawlRunner: runCrawl });
   await generateFromCrawls(config);
   await runPlaywright();
@@ -49,7 +55,7 @@ program.command('eval')
   .option('--no-coverage', 'skip SUT code-coverage collection')
   .option('--no-baseline', 'skip the manual baseline comparison')
   .action(async (options: { stack?: string; repeat?: number; faults?: boolean; coverage?: boolean; baseline?: boolean }) => {
-    const config = await loadConfig();
+    const config = await loadCliConfig();
     await runEvaluation(config, {
       stack: options.stack ?? null,
       repeat: options.repeat ?? null,
@@ -70,7 +76,8 @@ function runPlaywright(): Promise<void> {
       .then((bin) => {
         const child = spawn(bin, ['test', '--reporter=list'], {
           stdio: 'inherit',
-          env: withPlaywrightNodePath(),
+          // Root playwright.config.ts + global setup honour TATHYA_CONFIG (see --config option).
+          env: { ...withPlaywrightNodePath(), TATHYA_CONFIG: program.opts<{ config: string }>().config },
         });
         child.on('error', reject);
         child.on('exit', (code) => {
@@ -84,9 +91,10 @@ function runPlaywright(): Promise<void> {
 
 async function resolvePlaywrightBinary(): Promise<string> {
   const here = dirname(fileURLToPath(import.meta.url));
+  // Prefer the project-local installation — see eval/playwright.ts resolvePlaywrightBinary.
   const candidates = [
-    resolve(here, '..', 'node_modules', '.bin', 'playwright'),
     resolve(process.cwd(), 'node_modules', '.bin', 'playwright'),
+    resolve(here, '..', 'node_modules', '.bin', 'playwright'),
   ];
 
   for (const candidate of candidates) {
@@ -113,7 +121,7 @@ function withPlaywrightNodePath(): NodeJS.ProcessEnv {
 }
 
 async function generateFromCrawls(config: Awaited<ReturnType<typeof loadConfig>>): Promise<void> {
-  const crawls = await loadCrawls();
+  const crawls = await loadCrawls('crawl', config.auth.roles.map((role) => role.name));
   const matrix = buildAccessMatrix(crawls);
   await emit(mapTestCases(crawls, matrix, config), config);
 }

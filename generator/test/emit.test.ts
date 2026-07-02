@@ -348,6 +348,59 @@ describe('emitTs', () => {
     }
   });
 
+  it('emits rbac blocked specs with redirect-away and direct-denial assertions', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'tt-emit-rbac-'));
+    try {
+      const localConfig: TathyaConfig = {
+        ...config,
+        output: { ...config.output, dir },
+      };
+      const cases: TestCase[] = [
+        {
+          kind: 'rbac',
+          tier: 'positive',
+          title: 'admin can visit /admin/users -> allowed',
+          role: 'admin',
+          route: '/admin/users',
+          expectAllowed: true,
+        },
+        {
+          kind: 'rbac',
+          tier: 'negative',
+          title: 'user cannot visit /admin/users?page=2 -> blocked',
+          role: 'user',
+          route: '/admin/users?page=2',
+          expectAllowed: false,
+        },
+        {
+          kind: 'rbac',
+          tier: 'positive',
+          title: 'standard_user can visit /cart.html -> allowed',
+          role: 'standard_user',
+          route: '/cart.html',
+          expectAllowed: true,
+        },
+      ];
+
+      await emitTs(cases, localConfig);
+      const rbacSpec = await readFile(join(dir, 'rbac', 'rbac.spec.ts'), 'utf8');
+
+      // Allowed: healthy status short-circuits; an SPA deep link served with an error status
+      // falls back to a content-based oracle on the same route.
+      expect(rbacSpec).toContain('expect(new URL(page.url()).pathname).toBe("/admin/users");');
+      expect(rbacSpec).toContain('expect(new URL(page.url()).pathname).toBe("/cart.html");');
+      expect(rbacSpec).toContain("expect(await page.locator('a, button, form, select, input').count()).toBeGreaterThan(0);");
+      // Blocked: redirect-away denial asserts the final pathname (query stripped) differs...
+      expect(rbacSpec).toContain('expect(new URL(page.url()).pathname).not.toBe("/admin/users");');
+      // ...direct denial asserts a 4xx status (302 resolves through goto, so it is excluded)...
+      expect(rbacSpec).toContain('expect([401, 403, 404]).toContain(status);');
+      // ...and all paths assert a graceful body.
+      expect(rbacSpec).toContain("not.toContainText(/500|server error|exception/i);");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it('emits pagination specs in their own folder', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'tt-emit-pagination-'));
     try {

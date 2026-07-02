@@ -79,6 +79,26 @@ Penelitian terkait regresi web juga menekankan keseimbangan antara otomasi dan m
 
 RBAC membutuhkan strategi pengujian yang memisahkan perspektif pengguna. Model RBAC klasik menempatkan role sebagai perantara antara pengguna dan permission sehingga administrasi hak akses tidak melekat langsung pada individu \cite{ferraiolo1992rbac,sandhu1996rbac}. Literatur tentang autentikasi dan otorisasi juga menegaskan perbedaan antara verifikasi identitas dan keputusan akses, serta menempatkan RBAC sebagai salah satu model otorisasi yang umum digunakan \cite{margam2026auth}. Implikasinya, test generator perlu mengamati aplikasi dari beberapa role dan membandingkan permukaan akses yang ditemukan. Prinsip ini menjadi dasar crawling per role pada TathyaTest.
 
+Dibandingkan perkakas pembangkitan uji berbasis GUI yang mapan, posisi TathyaTest paling dekat dengan keluarga crawler-based generation. Crawljax mengeksplorasi aplikasi Ajax melalui analisis dinamis perubahan state antarmuka dan membangun state-flow graph \cite{mesbah2012crawljax}, sedangkan TESTAR menghasilkan aksi uji scriptless dari GUI pada saat eksekusi tanpa artefak test yang dipelihara \cite{vos2015testar}. Tabel~\ref{tab:tools} membandingkan kapabilitas yang relevan: berbeda dari keduanya, TathyaTest mengeksekusi crawling per role untuk menurunkan matriks akses RBAC, memetakan constraint field menjadi variasi positive/negative/edge yang bertingkat, dan mengemisi artefak Playwright yang dapat dipelihara (spesifikasi + manifest) dengan oracle berbasis state validasi---bukan sekadar penjelajahan atau deteksi crash.
+
+\begin{table}[!t]
+\caption{Perbandingan kapabilitas dengan perkakas pembangkitan uji GUI}
+\label{tab:tools}
+\centering
+\begin{tabularx}{\linewidth}{p{0.26\linewidth} p{0.16\linewidth} p{0.16\linewidth} X}
+\toprule
+Kapabilitas & Crawljax \cite{mesbah2012crawljax} & TESTAR \cite{vos2015testar} & TathyaTest \\
+\midrule
+Sumber model & state-flow graph & GUI runtime & DOM per role \\
+Multi-role / RBAC & tidak & tidak & ya (matriks akses) \\
+Tier negative/edge dari constraint & tidak & tidak & ya \\
+Oracle & invarian generik & crash/freeze & state validasi + error DOM \\
+Artefak yang dipelihara & crawl model & tidak ada & spesifikasi Playwright + manifest \\
+Data uji & manual/plugin & acak & faker runtime (seedable) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
 Makalah ini menempatkan kontribusi pada integrasi pipeline, bukan pada klaim bahwa satu teknik baru menyelesaikan seluruh masalah test generation. Bukti literatur terbaru menunjukkan adanya komponen yang relevan: observasi UI, pembangkitan uji, regresi, locator abstraction, flakiness, RBAC, dan E2E generation berbasis fitur \cite{sunman2022automated,romano2021uiflaky,hashemi2022jsflaky,pei2023traf,alian2024autoe2e,junior2025genia}. TathyaTest menggabungkan komponen tersebut melalui crawling per role, kontrak model elemen, pembangkitan variasi data, dan emisi spesifikasi Playwright. Dengan posisi ini, TathyaTest diperlakukan sebagai fondasi baseline regresi dan functional availability check yang masih memerlukan evaluasi empiris lanjutan.
 
 \section{Metodologi Penelitian}
@@ -271,9 +291,25 @@ Nilai utama TathyaTest berada pada penyusunan baseline QA dari aplikasi yang sed
 
 Keterbatasan utama TathyaTest tetap berasal dari sumber bukti yang digunakan, yaitu DOM dan konfigurasi. Crawler hanya dapat mengekstraksi informasi yang tampak pada DOM atau dapat diturunkan dari atribut HTML, sehingga aturan validasi server yang kompleks, seperti closure validation atau aturan bisnis khusus, tidak selalu dapat diekstraksi otomatis. Kualitas locator juga bergantung pada kualitas markup aplikasi target. Pada sisi evaluasi, cakupan cabang dilaporkan sebagai proksi berbasis baris kendali (bukan cakupan cabang penuh), baseline manual masih berukuran kecil, dan katalog cacat bersifat representatif, bukan exhaustive.
 
-Penambahan SauceDemo sebagai subjek ketiga memperluas klaim generalisabilitas melampaui dua mekanisme rendering Laravel, tetapi juga memperkenalkan ancaman validitas tambahan: (i) subjek eksternal tidak dikontrol peneliti sehingga EQ2 (cakupan SUT) dan EQ3 (deteksi cacat) tidak berlaku---hasil evaluasi bersifat asimetris antar-subjek; (ii) baseline EQ5 SauceDemo bersumber dari suite pihak ketiga yang ditulis dengan pola dan kualitas berbeda dari baseline manual peneliti; (iii) ketersediaan layanan \texttt{saucedemo.com} tidak dijamin pada setiap eksekusi \texttt{tt eval}. Keterbatasan ini diakui secara eksplisit dan tidak mengurangi nilai komparatif pada EQ1 dan EQ4, yang sepenuhnya dikendalikan oleh artefak lokal (crawl model dan manifest).
-
 Keterbatasan tersebut menentukan cara membaca kontribusi makalah. Bukti yang tersedia cukup untuk menilai efektivitas deteksi cacat, cakupan, dan efisiensi pada dua mekanisme rendering, tetapi generalisasi ke semua konteks aplikasi web memerlukan replikasi pada lebih banyak aplikasi dan katalog cacat yang lebih kaya. Oleh karena itu, makalah ini menempatkan TathyaTest sebagai prototipe dengan evaluasi empiris yang dapat direplikasi, dan sebagai fondasi penelitian lanjutan.
+
+\subsection{Ancaman terhadap Validitas}
+
+\subsubsection{Validitas internal}
+Cacat yang disemai diaktifkan deterministik melalui \texttt{FaultRegistry} tanpa menambal kode, dan setiap test diawali reset state (\texttt{POST /\_\_testing/reset}) sehingga hasil tidak terkontaminasi antar-test. Meski demikian, eksekusi terhadap peramban nyata tetap rentan flakiness lingkungan; ancaman ini dimitigasi dengan $R$ pengulangan, pelaporan flake rate, dan seed faker tetap agar variasi data tidak menjadi faktor perancu. Untuk fault run, pembatasan eksekusi pada test yang relevan (disaring lewat manifest) tidak mengubah semantik mutation score karena hanya test relevan yang dihitung sebagai pembunuh mutan.
+
+\subsubsection{Validitas eksternal}
+Dua subjek internal dibangun di atas satu kerangka kerja (Laravel) sehingga generalisasi utamanya berlaku pada aplikasi MVC dengan pola serupa. Subjek ketiga (SauceDemo, React SPA eksternal) memperluas cakupan arsitektur, tetapi memperkenalkan asimetri: EQ2 dan EQ3 tidak berlaku karena server tidak dapat diinstrumentasi, dan ketersediaan \texttt{saucedemo.com} tidak dijamin pada setiap eksekusi. Baseline EQ5 SauceDemo berasal dari tiga suite pihak ketiga yang ditulis dengan pola dan kualitas beragam---justru karena independen, suite tersebut memperkuat validitas eksternal perbandingan, namun tidak dirancang untuk cakupan yang sebanding satu-ke-satu dengan suite yang dihasilkan.
+
+\subsubsection{Validitas konstruk}
+Cakupan cabang dilaporkan sebagai proksi berbasis baris kendali, bukan cakupan cabang penuh; klaim terkait EQ2 dibaca dalam batasan tersebut. Mutation score bergantung pada representativitas katalog cacat---katalog disusun untuk mencakup lima kelas regresi fungsional yang umum (validasi, otorisasi, CRUD, pagination, autentikasi), bukan sebagai enumerasi lengkap. Rasio penghematan waktu bertumpu pada asumsi biaya manual per kasus yang dilabeli eksplisit; asumsi ini disajikan dengan analisis sensitivitas dan tidak diperlakukan sebagai hasil empiris.
+
+\subsubsection{Validitas kesimpulan}
+Perbandingan generated-vs-baseline menggunakan uji non-parametrik Mann--Whitney $U$ dengan ukuran efek rank-biserial pada taraf signifikansi $\alpha=0{,}05$, dan seluruh rerata dilaporkan dengan selang kepercayaan 95\% (Student-$t$, $n=R$). Ukuran baseline manual yang kecil membatasi kekuatan statistik uji; oleh karena itu ukuran efek dilaporkan bersama nilai-$p$ eksak agar pembaca dapat menilai magnitudo, bukan hanya signifikansi.
+
+\subsection{Reproducibility dan Ketersediaan Artefak}
+
+Seluruh evaluasi dapat direplikasi dengan satu perintah per subjek (\texttt{tt eval}); konfigurasi teladan disertakan dalam repositori (\texttt{tathya.config.example.yaml} dan varian per-stack), data runtime dibangkitkan dengan seed faker tetap (\texttt{seed: 42}), dan ketiga baseline publik SauceDemo dipin pada SHA komit yang tercatat di \texttt{SOURCES.md} sebagai submodule git. Kedua studi kasus Laravel, katalog cacat (\texttt{eval/faults.ts}), modul metrik murni (\texttt{metrics.ts}, \texttt{stats.ts}), serta laporan \texttt{metrics/report.\{json,md\}} tersedia dalam repositori yang sama, sehingga rantai bukti dari crawl hingga angka pada tabel hasil dapat ditelusuri penuh.
 
 \section{Kesimpulan dan Pekerjaan Lanjutan}
 

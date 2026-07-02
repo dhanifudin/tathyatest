@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import YAML from 'yaml';
-import { crawlOutputSchema, ensureCrawls, shouldRefreshCrawls } from '../src/crawl.js';
+import { crawlOutputSchema, ensureCrawls, loadCrawls, shouldRefreshCrawls } from '../src/crawl.js';
 import type { TathyaConfig } from '../src/config.js';
 
 const config: TathyaConfig = {
@@ -16,7 +16,8 @@ const config: TathyaConfig = {
     roles: [{ name: 'admin', username: 'admin@example.com', password: 'password' }],
   },
   crawl: { maxDepth: 3, maxPages: 100, include: [], exclude: [] },
-  data: { fields: {}, defaults: {}, unique: [], duplicates: {}, requiredFields: [], confirmFields: [] },
+  data: { fields: {}, defaults: {}, unique: [], duplicates: {}, requiredFields: [], confirmFields: [], faker: { locale: 'en', seed: null } },
+  evaluation: { outDir: 'metrics', repeat: 1, manualBaselineSecPerCase: 300, baselineDir: 'tests/manual', faultProject: null, stacks: [], faults: { enabled: true, classes: ['validation', 'authz', 'crud', 'pagination', 'auth'] } },
 };
 
 describe('crawlOutputSchema', () => {
@@ -66,6 +67,46 @@ describe('crawlOutputSchema', () => {
     expect(parsed.pages[0].controls).toHaveLength(1);
     expect(parsed.pages[0].controls?.[0].kind).toBe('select');
     expect(parsed.pages[0].controls?.[0].options?.[0].value).toBe('az');
+  });
+});
+
+describe('loadCrawls role filtering', () => {
+  const snapshot = (role: string, baseUrl: string) => JSON.stringify({
+    baseUrl,
+    engine: 'rendered',
+    role,
+    crawledAt: '2026-06-27T00:00:00.000Z',
+    pages: [],
+  });
+
+  it('ignores crawl files for roles outside the configured set', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'tt-load-crawls-'));
+    try {
+      // Stale snapshot from a previously evaluated subject with different roles.
+      await writeFile(join(dir, 'admin.json'), snapshot('admin', 'http://127.0.0.1:8000'));
+      await writeFile(join(dir, 'standard_user.json'), snapshot('standard_user', 'https://www.saucedemo.com'));
+
+      const crawls = await loadCrawls(dir, ['standard_user']);
+
+      expect(crawls).toHaveLength(1);
+      expect(crawls[0].role).toBe('standard_user');
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('loads every crawl file when no role filter is given', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'tt-load-crawls-'));
+    try {
+      await writeFile(join(dir, 'admin.json'), snapshot('admin', 'http://127.0.0.1:8000'));
+      await writeFile(join(dir, 'user.json'), snapshot('user', 'http://127.0.0.1:8000'));
+
+      const crawls = await loadCrawls(dir);
+
+      expect(crawls.map((crawl) => crawl.role)).toEqual(['admin', 'user']);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 });
 

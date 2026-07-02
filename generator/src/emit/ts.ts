@@ -57,9 +57,40 @@ function formSpec(cases: TestCase[], config: TathyaConfig): string {
   await resetAndLogin(page, ${JSON.stringify(testCase.role)});
   await page.goto(${JSON.stringify(testCase.page.url)});
 ${fillFormSource(testCase)}
-  await ${locatorSource(testCase.form.submit.locator)}${testCase.variant.name === 'delete' ? '.first()' : ''}.click();
+${submitClickSource(testCase)}
   ${formAssertion(testCase, config)}
 });`).join('\n\n') + '\n';
+}
+
+/**
+ * Click the form's submit control, scoped to the owning form when it can be identified by its
+ * action attribute. Pages with one form per table row (toggle/delete) repeat the same accessible
+ * button name, so an unscoped getByRole click violates strict mode; scoping by action keeps the
+ * click on the intended form. Falls back to `.first()` for forms without a usable action
+ * attribute (e.g. SPA forms that submit via JS).
+ */
+function submitClickSource(testCase: Extract<TestCase, { kind: 'form' }>): string {
+  const lines: string[] = [];
+  if (testCase.variant.name === 'delete') {
+    // Accept a potential confirm() dialog; Playwright dismisses dialogs by default, which would
+    // silently cancel the destructive action.
+    lines.push(`  page.once('dialog', (dialog) => { dialog.accept().catch(() => undefined); });`);
+  }
+  lines.push(
+    `  const formScope = page.locator(${JSON.stringify(formActionSelector(testCase.form.action))});`,
+    `  const submitControl = (await formScope.count()) > 0 ? ${locatorSource(testCase.form.submit.locator, 'formScope.first()')} : ${locatorSource(testCase.form.submit.locator)}.first();`,
+    // Mirrors the interaction-spec convention: controls hidden behind collapsed menus/dropdowns
+    // (e.g. a logout form inside a nav dropdown) are skipped, not failed.
+    `  test.skip(!(await submitControl.isVisible().catch(() => false)), 'submit control is not visible');`,
+    `  await submitControl.click();`,
+  );
+  return lines.join('\n');
+}
+
+// Attribute suffix match: the crawler normalizes form.action to pathname+search while the DOM
+// attribute may be an absolute URL or a relative path.
+function formActionSelector(action: string): string {
+  return `form[action$="${action.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"]`;
 }
 
 function interactionSpec(cases: TestCase[], config: TathyaConfig): string {
@@ -102,12 +133,43 @@ function paginationSpec(cases: TestCase[], config: TathyaConfig): string {
 
 function rbacSpec(cases: TestCase[], config: TathyaConfig): string {
   const rbacCases = cases.filter((testCase) => testCase.kind === 'rbac');
-  return header() + roleLoginHelpers(config) + rbacCases.map((testCase) => `test(${JSON.stringify(testCase.title)}, async ({ page }) => {
+  return header() + roleLoginHelpers(config) + rbacCases.map((testCase) => {
+    if (testCase.expectAllowed) {
+      // Allowed = a healthy (< 400) document response, OR — because SPA hosts serve deep links
+      // with an error status while the client router still renders the page — staying on the
+      // route with interactive content rendered. A genuine error page (e.g. Laravel's 404, which
+      // renders nothing interactive) fails both arms; the graceful body check catches debug 500s.
+      const routePath = new URL(testCase.route, 'http://placeholder.local').pathname;
+      return `test(${JSON.stringify(testCase.title)}, async ({ page }) => {
   test.skip(!test.info().project.name.startsWith(${JSON.stringify(`${testCase.role}-`)}), 'role-specific test');
   await resetAndLogin(page, ${JSON.stringify(testCase.role)});
   const response = await page.goto(${JSON.stringify(testCase.route)});
-  ${testCase.expectAllowed ? "expect(response?.status() ?? 200).toBeLessThan(400);" : "expect([401, 403, 404, 302]).toContain(response?.status() ?? 302);"}
-});`).join('\n\n') + '\n';
+  const status = response?.status() ?? 200;
+  if (status >= 400) {
+    await page.waitForLoadState('networkidle').catch(() => undefined);
+    expect(new URL(page.url()).pathname).toBe(${JSON.stringify(routePath)});
+    expect(await page.locator('a, button, form, select, input').count()).toBeGreaterThan(0);
+  }
+  await expect(page.locator('body')).not.toContainText(/500|server error|exception/i);
+});`;
+    }
+    // Blocked route: `page.goto` resolves redirect chains, so a redirect-away denial ends with a
+    // 2xx on a DIFFERENT path. Assert either a direct denial status (>= 400) or that the browser
+    // never landed on the blocked path — plus a graceful (no-500) body either way.
+    const blockedPath = new URL(testCase.route, 'http://placeholder.local').pathname;
+    return `test(${JSON.stringify(testCase.title)}, async ({ page }) => {
+  test.skip(!test.info().project.name.startsWith(${JSON.stringify(`${testCase.role}-`)}), 'role-specific test');
+  await resetAndLogin(page, ${JSON.stringify(testCase.role)});
+  const response = await page.goto(${JSON.stringify(testCase.route)});
+  const status = response?.status() ?? 200;
+  if (status < 400) {
+    expect(new URL(page.url()).pathname).not.toBe(${JSON.stringify(blockedPath)});
+  } else {
+    expect([401, 403, 404]).toContain(status);
+  }
+  await expect(page.locator('body')).not.toContainText(/500|server error|exception/i);
+});`;
+  }).join('\n\n') + '\n';
 }
 
 function roleLoginHelpers(config: TathyaConfig): string {
@@ -401,14 +463,16 @@ function shouldForceInvalidOption(testCase: Extract<TestCase, { kind: 'form' }>,
 
 function formAssertion(testCase: Extract<TestCase, { kind: 'form' }>, config: TathyaConfig): string {
   if (testCase.form.crudOp === 'delete' && testCase.variant.name === 'delete') {
-    const currentCount = testCase.page.tables[0]?.rowCount ?? 0;
+    // The deleted entity's form action is unique per row, so its disappearance proves the delete
+    // took effect. Row counting is deliberately avoided: on paginated listings the page size stays
+    // constant after a delete, and hard-coding the redirect URL would leak app-specific paths.
     return [
-      `await expect(page.locator('table tbody tr')).toHaveCount(${Math.max(currentCount - 1, 0)});`,
-      `await expect(page).toHaveURL(/\\/todos(?:[?#].*)?$/);`,
-    ].join('\n');
+      `await expect(page.locator(${JSON.stringify(formActionSelector(testCase.form.action))})).toHaveCount(0);`,
+      `await expect(page.locator('body')).not.toContainText(/500|server error|exception/i);`,
+    ].join('\n  ');
   }
   if (testCase.variant.outcome === 'error' && testCase.targetField) {
-    return errorAssertionSource(testCase.form, testCase.targetField, config.oracle.errorSelector, testCase.page.url).replaceAll('\n', '\n  ');
+    return errorAssertionSource(testCase.form, testCase.targetField, config.oracle.errorSelector, testCase.page.url, testCase.variant.name).replaceAll('\n', '\n  ');
   }
   if (testCase.variant.outcome === 'graceful') return gracefulAssertionSource();
   const representative = representativeTextField(testCase);

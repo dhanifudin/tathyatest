@@ -19,6 +19,8 @@ test-results/
 *.toc
 
 tathya.config.yaml
+tathya.blade.config.yaml
+tathya.inertia-react.config.yaml
 tt-crawler
 
 crawl/*.json

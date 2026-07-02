@@ -38,7 +38,7 @@ data:
   unique:
     - contact_email
   duplicates:
-    contact_email: admin.todo@example.com
+    contact_email: admin.todo.01@example.com
   requiredFields: []
   confirmFields:
     - contact_email_confirmation

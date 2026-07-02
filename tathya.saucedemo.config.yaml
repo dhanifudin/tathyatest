@@ -51,7 +51,7 @@ data:
     locale: en
     seed: null
 evaluation:
-  outDir: metrics
+  outDir: metrics-saucedemo   # separate from the Laravel stacks so reports do not clobber
   repeat: 5
   manualBaselineSecPerCase: 300
   baselineDir: tests/baseline-public/saucedemo

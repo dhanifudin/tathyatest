@@ -4,25 +4,30 @@ function q(value: string): string {
   return JSON.stringify(value);
 }
 
-export function locatorSource(locator: Locator): string {
+/**
+ * Render a Playwright locator expression for `locator`, rooted at `scope` — `page` by default,
+ * or any expression that evaluates to a Playwright Locator (the getBy and locator methods exist
+ * on both). Scoping disambiguates repeated per-row controls (e.g. one submit per table row).
+ */
+export function locatorSource(locator: Locator, scope = 'page'): string {
   switch (locator.strategy) {
     case 'testid':
-      return `page.getByTestId(${q(locator.value)})`;
+      return `${scope}.getByTestId(${q(locator.value)})`;
     case 'role': {
       const [role, ...nameParts] = locator.value.split(':');
       const name = nameParts.join(':');
-      return name ? `page.getByRole(${q(role)}, { name: ${q(name)} })` : `page.getByRole(${q(role)})`;
+      return name ? `${scope}.getByRole(${q(role)}, { name: ${q(name)} })` : `${scope}.getByRole(${q(role)})`;
     }
     case 'label':
-      return `page.getByLabel(${q(locator.value)}, { exact: true })`;
+      return `${scope}.getByLabel(${q(locator.value)}, { exact: true })`;
     case 'placeholder':
-      return `page.getByPlaceholder(${q(locator.value)})`;
+      return `${scope}.getByPlaceholder(${q(locator.value)})`;
     case 'id':
-      return `page.locator(${q(`#${locator.value}`)})`;
+      return `${scope}.locator(${q(`#${locator.value}`)})`;
     case 'name':
-      return `page.locator(${q(`[name="${cssEscape(locator.value)}"]`)})`;
+      return `${scope}.locator(${q(`[name="${cssEscape(locator.value)}"]`)})`;
     case 'css':
-      return `page.locator(${q(locator.value)})`;
+      return `${scope}.locator(${q(locator.value)})`;
   }
 }
 

@@ -157,6 +157,74 @@ describe('mapTestCases', () => {
     expect(blank?.values.status).toEqual({ kind: 'literal', value: '' });
   });
 
+  it('skips browser-unfalsifiable variants on native forms but keeps them on novalidate forms', () => {
+    const field = (label: string) => ({
+      name: 'title',
+      type: 'text',
+      label,
+      required: true,
+      constraints: { minlength: null, maxlength: 255, min: null, max: null, step: null, pattern: null, inputmode: null, accept: null },
+      options: null,
+      nameHints: [],
+      locator: { strategy: 'label' as const, value: label },
+    });
+    const selectField = {
+      name: 'status',
+      type: 'select',
+      label: 'Status',
+      required: true,
+      constraints: { minlength: null, maxlength: null, min: null, max: null, step: null, pattern: null, inputmode: null, accept: null },
+      options: [{ value: 'open', label: 'Open' }, { value: 'done', label: 'Done' }],
+      nameHints: [],
+      locator: { strategy: 'label' as const, value: 'Status' },
+    };
+    const crawl: CrawlOutput = {
+      baseUrl: config.baseUrl,
+      engine: 'rendered',
+      role: 'admin',
+      crawledAt: '2026-06-15T00:00:00.000Z',
+      pages: [
+        {
+          url: '/todos',
+          title: 'Todos',
+          forms: [
+            {
+              action: '/todos',
+              method: 'GET',
+              crudOp: 'unknown',
+              noValidate: false,
+              fields: [field('Native title'), { ...selectField, label: 'Native status', locator: { strategy: 'label', value: 'Native status' } }],
+              submit: { text: 'Apply', locator: { strategy: 'role', value: 'button:Apply' } },
+            },
+            {
+              action: '/todos/nv',
+              method: 'POST',
+              crudOp: 'create',
+              noValidate: true,
+              fields: [field('NV title'), { ...selectField, label: 'NV status', locator: { strategy: 'label', value: 'NV status' } }],
+              submit: { text: 'Create', locator: { strategy: 'role', value: 'button:Create' } },
+            },
+          ],
+          links: [],
+          buttons: [],
+          tables: [],
+        },
+      ],
+    };
+
+    const cases = mapTestCases([crawl], new Map(), config);
+    const variantNamesFor = (action: string) => cases
+      .filter((testCase) => testCase.kind === 'form' && testCase.form.action === action)
+      .map((testCase) => testCase.variant.name);
+
+    // Native form: fill() never dirties the field, so these violations cannot flip validity.valid.
+    expect(variantNamesFor('/todos')).not.toContain('maxlength-plus-one');
+    expect(variantNamesFor('/todos')).not.toContain('invalid-option');
+    // Novalidate form: the server sees the raw values and must render a visible error.
+    expect(variantNamesFor('/todos/nv')).toContain('maxlength-plus-one');
+    expect(variantNamesFor('/todos/nv')).toContain('invalid-option');
+  });
+
   it('maps non-CRUD forms and page interactions', () => {
     const crawl: CrawlOutput = {
       baseUrl: config.baseUrl,

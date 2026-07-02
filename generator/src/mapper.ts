@@ -140,6 +140,14 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
             })) {
               if (variant.kind === 'positive') continue;
               if (form.crudOp === 'update' && variant.name === 'duplicate') continue;
+              // On native (non-novalidate) forms these violations are unfalsifiable end-to-end:
+              // constraint validation only fires for user-dirty values, so a programmatic fill of
+              // an over-long value or an injected select option never flips validity.valid; a
+              // confirmation mismatch is server-side semantics (both fields stay individually
+              // valid); and whether the server round-trips a visible error is unknowable at
+              // generation time.
+              const nativeUnfalsifiable = ['maxlength-plus-one', 'invalid-option', 'confirmation-mismatch'];
+              if (!form.noValidate && nativeUnfalsifiable.includes(variant.name)) continue;
               if (!shouldIncludeCoverage(config.coverage, variant.kind)) continue;
               const values = { ...baseValues };
               if (variant.omit) delete values[field.name];

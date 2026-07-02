@@ -56,6 +56,9 @@ async function crawlRole(page: Page, config: TathyaConfig, role: string, landing
     // Give SPAs time to hydrate before extracting controls.
     await page.waitForLoadState('networkidle').catch(() => undefined);
     const model = await extractPage(page);
+    // A non-ok response that rendered nothing interactive is a genuine error page (Laravel 404),
+    // not an SPA deep link served with a 404 status — drop it.
+    if (isMeaningfulErrorPage(response?.ok() ?? null, model)) continue;
     pages.push({ url: normalizePath(page.url(), config.baseUrl), ...model });
     const discovered = await discoverInternalURLs(page, config.baseUrl);
     for (const href of uniquePaths([...model.links.map((link) => link.href), ...model.forms.map((form) => form.action), ...discovered])) {
@@ -77,9 +80,22 @@ async function crawlRole(page: Page, config: TathyaConfig, role: string, landing
   };
 }
 
+/**
+ * Whether a visited URL is worth extracting. A non-ok document response does NOT disqualify a
+ * page that stayed on the requested path: SPA hosts (e.g. saucedemo.com) serve the app shell with
+ * a 404 status for deep links while the client router still renders the real page. Genuine error
+ * pages are filtered after extraction by `isMeaningfulErrorPage` (they render no interactive
+ * content).
+ */
 export function shouldExtractCrawlPage(responseOk: boolean | null, requestedPath: string, currentPath: string): boolean {
-  if (responseOk === false) return false;
   return currentPath === requestedPath || responseOk === true;
+}
+
+/** True when a non-ok response also rendered no interactive content — a real error page. */
+export function isMeaningfulErrorPage(responseOk: boolean | null, model: Pick<DomPageModel, 'forms' | 'buttons' | 'links'> & { controls?: unknown[] }): boolean {
+  if (responseOk !== false) return false;
+  const interactive = model.forms.length + model.buttons.length + model.links.length + (model.controls?.length ?? 0);
+  return interactive === 0;
 }
 
 export function renderedCrawlSeeds(config: Pick<TathyaConfig, 'auth' | 'crawl'>, landingPath: string): string[] {
@@ -272,7 +288,10 @@ async function extractPage(page: Page): Promise<DomPageModel> {
               locator: locatorFor(field),
             };
           });
-        const submit = form.querySelector<HTMLButtonElement | HTMLInputElement>('button[type="submit"], input[type="submit"], button:not([type])');
+        // Prefer explicitly-typed submit controls; a typeless <button> is implicitly a submit but
+        // is often a cancel/back control (e.g. SauceDemo checkout), so it is only a fallback.
+        const submit = form.querySelector<HTMLButtonElement | HTMLInputElement>('button[type="submit"], input[type="submit"]')
+          ?? form.querySelector<HTMLButtonElement>('button:not([type])');
         const action = new URL(form.action || location.href, location.href);
         return {
           action: `${action.pathname}${action.search}`,

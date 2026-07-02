@@ -36,7 +36,11 @@ function resolveStacks(config: TathyaConfig, only?: string | null): StackConfig[
 
 async function runStack(stack: StackConfig, rootConfig: TathyaConfig, options: EvalOptions) {
   const originalCwd = cwd();
+  const originalTathyaConfig = process.env.TATHYA_CONFIG;
   chdir(resolve(originalCwd, stack.dir));
+  // Point the spawned Playwright runs (root playwright.config.ts + global setup read this) at the
+  // stack's config so baseURL, roles, and storage states match the stack under evaluation.
+  process.env.TATHYA_CONFIG = stack.config;
   try {
     const config = await loadConfig(stack.config);
     const repeat = options.repeat ?? rootConfig.evaluation.repeat;
@@ -45,14 +49,15 @@ async function runStack(stack: StackConfig, rootConfig: TathyaConfig, options: E
     if (collectCoverage) await control(stack.baseUrl, 'POST', '/__testing/coverage/reset');
 
     const crawlMs = await timed(() => runCrawl(config));
+    const roleNames = config.auth.roles.map((role) => role.name);
     let cases: ReturnType<typeof mapTestCases> = [];
     const generateMs = await timed(async () => {
-      const crawls = await loadCrawls();
+      const crawls = await loadCrawls('crawl', roleNames);
       const matrix = buildAccessMatrix(crawls);
       cases = mapTestCases(crawls, matrix, config);
       await emit(cases, config);
     });
-    const crawls = await loadCrawls();
+    const crawls = await loadCrawls('crawl', roleNames);
     const matrix = buildAccessMatrix(crawls);
     const manifest = buildManifest(cases);
 
@@ -69,7 +74,7 @@ async function runStack(stack: StackConfig, rootConfig: TathyaConfig, options: E
     const sutCoverage = collectCoverage ? await fetchCoverage(stack.baseUrl) : null;
     // Skip fault injection for external stacks (stack.faults === false) or when disabled by flag.
     const runFaultsEnabled = stack.faults !== false && options.faults !== false && rootConfig.evaluation.faults.enabled;
-    const faultRuns = runFaultsEnabled ? await runFaults(stack, rootConfig, manifest) : [];
+    const faultRuns = runFaultsEnabled ? await runFaults(stack, rootConfig, config, manifest) : [];
     const baselineFaultRuns = runFaultsEnabled ? await runBaselineFaults(stack, rootConfig, config) : [];
 
     const input: MetricsInput = {
@@ -80,6 +85,8 @@ async function runStack(stack: StackConfig, rootConfig: TathyaConfig, options: E
     };
     return computeMetrics(input);
   } finally {
+    if (originalTathyaConfig === undefined) delete process.env.TATHYA_CONFIG;
+    else process.env.TATHYA_CONFIG = originalTathyaConfig;
     chdir(originalCwd);
   }
 }
@@ -139,18 +146,33 @@ async function hasSpecs(dir: string): Promise<boolean> {
   }
 }
 
-async function runFaults(stack: StackConfig, rootConfig: TathyaConfig, manifest: ReturnType<typeof buildManifest>): Promise<FaultRun[]> {
+async function runFaults(stack: StackConfig, rootConfig: TathyaConfig, config: TathyaConfig, manifest: ReturnType<typeof buildManifest>): Promise<FaultRun[]> {
   const byTitle = new Map(manifest.map((entry) => [entry.title, entry] as const));
   const faults = faultsForClasses(rootConfig.evaluation.faults.classes);
-  const project = rootConfig.evaluation.faultProject;
+  // faultProject names a browser (e.g. chromium); with per-role projects the real project names
+  // are `${role}-${browser}`, and every role must still run so role-dependent faults (authz) hit
+  // their relevant tests.
+  const faultProject = rootConfig.evaluation.faultProject;
+  const roleNames = config.auth.roles.map((role) => role.name);
+  const projects = faultProject
+    ? (roleNames.length > 0 ? roleNames.map((role) => `${role}-${faultProject}`) : [faultProject])
+    : undefined;
   const faultRuns: FaultRun[] = [];
   for (const fault of faults) {
+    // Only the tests the fault is relevant to count towards its mutation score, so restrict the
+    // run to those titles instead of executing the whole suite once per fault.
+    const relevantEntries = manifest.filter((entry) => fault.relevant(entry));
+    if (relevantEntries.length === 0) {
+      faultRuns.push({ id: fault.id, faultClass: fault.faultClass, outcomes: [] });
+      continue;
+    }
     const set = await control(stack.baseUrl, 'POST', '/__testing/fault', { id: fault.id });
     if (!set) {
       console.warn(`[eval] could not activate fault ${fault.id}; skipping`);
       continue;
     }
-    const suite = await runPlaywrightJson({ cwd: '.', project });
+    const grep = relevantEntries.map((entry) => escapeRegExp(entry.title)).join('|');
+    const suite = await runPlaywrightJson({ cwd: '.', projects, grep });
     const relevant = suite.outcomes.filter((outcome) => {
       const entry = byTitle.get(outcome.title);
       return entry ? fault.relevant(entry) : false;
@@ -159,6 +181,10 @@ async function runFaults(stack: StackConfig, rootConfig: TathyaConfig, manifest:
   }
   await control(stack.baseUrl, 'POST', '/__testing/fault/clear');
   return faultRuns;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 async function fetchCoverage(baseUrl: string): Promise<SutCoverage | null> {

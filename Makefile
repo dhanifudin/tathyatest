@@ -54,6 +54,15 @@ verify: install generator-test tt-help
 
 baseline-init:
 	git submodule update --init --recursive
+	@# Install each public suite's deps, then strip its nested playwright copies: two
+	@# @playwright/test installations in one run break test discovery ("Requiring
+	@# @playwright/test second time"); specs must resolve the repo-root copy.
+	@for d in tests/baseline-public/saucedemo/*/; do \
+		if [ -f "$$d/package.json" ]; then \
+			(cd "$$d" && npm install --no-audit --no-fund); \
+			rm -rf "$$d/node_modules/@playwright" "$$d/node_modules/playwright"; \
+		fi; \
+	done
 
 clean:
 	rm -rf $(GENERATOR_DIR)/dist

@@ -33,7 +33,7 @@ export default function TodoForm({
     const contactEmail = todo?.contact_email ?? '';
 
     return (
-        <form method="POST" action={action} className="space-y-4">
+        <form method="POST" action={action} noValidate className="space-y-4">
             <input type="hidden" name="_token" value={csrfToken} />
             {methodOverride && (
                 <input type="hidden" name="_method" value={methodOverride} />

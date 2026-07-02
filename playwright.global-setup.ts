@@ -47,8 +47,10 @@ async function inferLoginControlsOnPage(page: Page) {
 }
 
 export function loadConfig(): TathyaConfig | null {
-  if (!existsSync('tathya.config.yaml')) return null;
-  const parsed = YAML.parse(readFileSync('tathya.config.yaml', 'utf8')) as TathyaConfig;
+  // Keep in sync with playwright.config.ts: TATHYA_CONFIG overrides the default config path.
+  const configPath = process.env.TATHYA_CONFIG ?? 'tathya.config.yaml';
+  if (!existsSync(configPath)) return null;
+  const parsed = YAML.parse(readFileSync(configPath, 'utf8')) as TathyaConfig;
   return { ...parsed, baseUrl: normalizeBaseUrl(parsed.baseUrl) };
 }
 

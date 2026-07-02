@@ -76,7 +76,9 @@ hand-edited.
       shim.
 - [x] Generated CRUD specs now harden duplicate setup data, forced invalid select injection, and
       multi-field confirmation coordination at runtime.
-- [ ] RBAC tests assert status/redirect state but do not yet assert richer redirect/403 UI behavior.
+- [x] RBAC tests assert status/redirect state and richer denial behavior: blocked routes assert
+      either a direct 4xx or that the browser never landed on the blocked path, plus a graceful
+      (no-500) body.
 - [ ] WebKit headless WPE launch resolves libraries after wrapper patching, but still cannot create a
       WPE EGL display on this host; use GTK WebKit under Xvfb for now.
 

@@ -9,6 +9,12 @@
  */
 import { defineConfig, devices } from '@playwright/test';
 
+// The aferminboada suite validates these with zod at import time. SauceDemo's demo credentials
+// are public, so defaulting them here is safe and keeps the wrapper self-contained.
+process.env.BASE_URL ??= 'https://www.saucedemo.com';
+process.env.SAUCE_USERNAME ??= 'standard_user';
+process.env.SAUCE_PASSWORD ??= 'secret_sauce';
+
 export default defineConfig({
   testDir: '.',
   testMatch: [
