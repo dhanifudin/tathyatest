@@ -17,7 +17,11 @@ async function login(page: import('@playwright/test').Page, creds: { email: stri
   await page.goto('/login');
   await page.fill('input[name="email"]', creds.email);
   await page.fill('input[name="password"]', creds.password);
-  await Promise.all([page.waitForURL((url) => !url.pathname.endsWith('/login')), page.click('button[type="submit"]')]);
+  // Breeze React buttons carry no explicit type attribute, so target them by accessible name.
+  await Promise.all([
+    page.waitForURL((url) => !url.pathname.endsWith('/login')),
+    page.getByRole('button', { name: /log in/i }).click(),
+  ]);
 }
 
 test('admin can log in and reach the dashboard', async ({ page }) => {
@@ -31,7 +35,7 @@ test('login rejects a wrong password', async ({ page }) => {
   await page.goto('/login');
   await page.fill('input[name="email"]', admin.email);
   await page.fill('input[name="password"]', 'not-the-password');
-  await page.click('button[type="submit"]');
+  await page.getByRole('button', { name: /log in/i }).click();
   await expect(page.locator('.text-red-600, [role=alert]').first()).toBeVisible();
 });
 
@@ -44,7 +48,7 @@ test('admin can create a todo', async ({ page }) => {
   await page.fill('input[name="contact_email"]', email);
   await page.fill('input[name="contact_email_confirmation"]', email);
   await page.selectOption('select[name="status"]', 'open');
-  await page.click('button[type="submit"]');
+  await page.getByRole('button', { name: /create/i }).click();
   await expect(page.getByText(title).first()).toBeVisible();
 });
 
@@ -52,7 +56,7 @@ test('creating a todo with an empty title shows an error', async ({ page }) => {
   await login(page, admin);
   await page.goto('/todos/create');
   await page.fill('input[name="contact_email"]', `manual.${Date.now()}@example.com`);
-  await page.click('button[type="submit"]');
+  await page.getByRole('button', { name: /create/i }).click();
   await expect(page.locator('.text-red-600, [role=alert]').first()).toBeVisible();
 });
 
