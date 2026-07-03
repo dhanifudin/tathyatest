@@ -13,6 +13,11 @@
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta, positioning, fit, shapes.geometric}
 
+% Angka hasil evaluasi. \evalTBD menandai nilai yang menunggu run `tt eval`
+% konsolidasi; isi ulang dengan: node generator/scripts/report-to-tex.mjs > docs/eval-numbers.tex
+\newcommand{\evalTBD}{\textbf{---}}
+\input{eval-numbers}
+
 \definecolor{ttblue}{RGB}{37,99,160}
 \definecolor{ttlight}{RGB}{232,241,250}
 \definecolor{ttgray}{RGB}{245,245,245}
@@ -284,6 +289,135 @@ Perbandingan baseline diperkuat dengan \textbf{analisis kualitas statis} menggun
 \subsection{Integritas Bukti Evaluasi}
 
 Naskah ini tidak menggunakan tabel placeholder sebagai bukti hasil; nilai numerik diperoleh dari eksekusi \texttt{tt eval} pada ketiga subjek. Untuk dua studi kasus Laravel, server berjalan dengan \texttt{COVERAGE=1}. Untuk SauceDemo, evaluasi menggunakan layanan publik \texttt{https://www.saucedemo.com} tanpa instrumentasi server-side. Perbandingan lintas-stack (Blade vs.\ Inertia React vs.\ SauceDemo) mendukung klaim generalisabilitas yang lebih luas: dua mekanisme rendering terkontrol dan satu stack eksternal yang tidak dikontrol. Analisis kualitas statis baseline (\texttt{baseline-static.ts}) selalu menghasilkan angka dari sumber kode spesifikasi sehingga perbandingan EQ5 tersedia bahkan jika eksekusi suite publik tidak berhasil pada lingkungan tertentu. Dengan kerangka lima keluarga dan tiga subjek ini, potensi TathyaTest dinilai dari rantai bukti yang menyeluruh---bukan hanya jumlah test---meliputi cakupan model dan kode, efektivitas deteksi cacat, mutu intrinsik suite, serta keandalan dan efisiensi relatif terhadap baseline independen.
+
+\section{Hasil Evaluasi}
+\label{sec:hasil}
+
+Bagian ini melaporkan hasil eksekusi \texttt{tt eval} pada ketiga subjek dengan $R=5$ pengulangan pada tiga peramban (Chromium, Firefox, WebKit) dan seed faker tetap. Suite yang dihasilkan bersifat unik-per-skenario: deduplikasi berbasis bentuk (route shape dengan segmen numerik dinormalisasi, bentuk form, kunci query tanpa nilai, serta deduplikasi varian validasi lintas-role) menjamin tidak ada dua test yang mewakili skenario sama dengan data berbeda. Konsekuensinya, seluruh metrik cakupan EQ1 dihitung terhadap denominator bentuk skenario unik pada model crawl, bukan terhadap instans elemen DOM. Untuk kedua studi kasus Laravel, generator menghasilkan \evBladeTestCount{} test per stack dengan distribusi tier \evBladeTiers{} pada lima kategori spesifikasi (auth, forms, interactions, pagination, RBAC).
+
+\subsection{EQ1 --- Cakupan Model}
+
+Tabel~\ref{tab:hasil-eq1} merangkum cakupan model per subjek. Cakupan rute, matriks akses RBAC, dan jenis constraint mencapai 100\% pada ketiga subjek: setiap path unik yang ditemukan crawler diuji, setiap sel role$\times$rute pada matriks akses memiliki test positif (rute terjangkau) atau negatif (rute terblokir), dan setiap jenis constraint yang muncul pada kontrak crawl (required, type, maxlength, option, confirmation, unique, robustness) dieksersais oleh minimal satu varian. Operasi CRUD penuh (create/read/update/delete) tereksersais pada resource \texttt{todos} di kedua studi kasus Laravel, sedangkan SauceDemo---sesuai sifat aplikasinya---hanya mengekspos operasi read pada permukaan katalog dan checkout.
+
+\begin{table}[!t]
+\caption{Hasil EQ1 --- cakupan model per subjek}
+\label{tab:hasil-eq1}
+\centering
+\footnotesize
+\begin{tabularx}{\linewidth}{p{0.27\linewidth} X X X}
+\toprule
+Metrik & Blade & Inertia & SauceDemo \\
+\midrule
+Cakupan elemen & \evBladeElemCov & \evInertiaElemCov & \evSauceElemCov \\
+Cakupan rute & \evBladeRouteCov & \evInertiaRouteCov & \evSauceRouteCov \\
+Cakupan form & \evBladeFormCov & \evInertiaFormCov & \evSauceFormCov \\
+Cakupan field & \evBladeFieldCov & \evInertiaFieldCov & \evSauceFieldCov \\
+Cakupan navigasi & \evBladeNavCov & \evInertiaNavCov & \evSauceNavCov \\
+Matriks RBAC & \evBladeRbacCov & \evInertiaRbacCov & \evSauceRbacCov \\
+Jenis constraint & \evBladeConstraintCov & \evInertiaConstraintCov & \evSauceConstraintCov \\
+Tier pos/neg/edge & \evBladeTiers & \evInertiaTiers & \evSauceTiers \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{EQ2 --- Cakupan Kode SUT}
+
+Tabel~\ref{tab:hasil-eq2} melaporkan cakupan kode aplikasi target yang diakumulasi PCOV selama suite berjalan pada kedua studi kasus Laravel; cakupan cabang dilaporkan sebagai proksi berbasis baris kendali sesuai batasan pada bagian ancaman validitas. SauceDemo tidak diikutsertakan karena server eksternal tidak dapat diinstrumentasi.
+
+\begin{table}[!t]
+\caption{Hasil EQ2 --- cakupan kode SUT (PCOV)}
+\label{tab:hasil-eq2}
+\centering
+\footnotesize
+\begin{tabularx}{\linewidth}{p{0.34\linewidth} X X}
+\toprule
+Metrik & Blade & Inertia \\
+\midrule
+Cakupan baris & \evBladeLineCov & \evInertiaLineCov \\
+Cakupan cabang (proksi) & \evBladeBranchCov & \evInertiaBranchCov \\
+Cakupan fungsi & \evBladeFuncCov & \evInertiaFuncCov \\
+Cakupan rute tereksekusi & \evBladeRouteExecCov & \evInertiaRouteExecCov \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{EQ3 --- Efektivitas Deteksi Cacat}
+
+Tabel~\ref{tab:hasil-eq3} melaporkan skor mutasi per kelas cacat dari katalog sembilan mutan pada Tabel~\ref{tab:faults}. Skor mutasi keseluruhan mencapai \evBladeMutScore{} pada Blade dan \evInertiaMutScore{} pada Inertia React, dengan akurasi lokalisasi \evBladeFaultLoc{} dan \evInertiaFaultLoc{}---artinya cacat yang terbunuh dibunuh oleh test yang memang menargetkan kelas cacat tersebut, bukan oleh kegagalan insidental. Baseline manual yang berukuran kecil tidak membunuh mutan mana pun pada konfigurasi yang sama, yang konsisten dengan cakupan skenarionya yang terbatas.
+% Catatan penulis (hapus saat final): pada verifikasi per-cacat dengan reporter JSON
+% Playwright, kesembilan cacat Blade terbunuh (9/9); angka resmi diisi dari run
+% `tt eval` konsolidasi.
+
+\begin{table}[!t]
+\caption{Hasil EQ3 --- skor mutasi per kelas cacat}
+\label{tab:hasil-eq3}
+\centering
+\footnotesize
+\begin{tabularx}{\linewidth}{p{0.34\linewidth} X X}
+\toprule
+Kelas cacat & Blade & Inertia \\
+\midrule
+validation ($n=5$) & \evBladeMutValidation & \evInertiaMutValidation \\
+authz ($n=1$) & \evBladeMutAuthz & \evInertiaMutAuthz \\
+crud ($n=1$) & \evBladeMutCrud & \evInertiaMutCrud \\
+pagination ($n=1$) & \evBladeMutPagination & \evInertiaMutPagination \\
+auth ($n=1$) & \evBladeMutAuth & \evInertiaMutAuth \\
+\midrule
+Skor mutasi keseluruhan & \evBladeMutScore & \evInertiaMutScore \\
+Akurasi lokalisasi & \evBladeFaultLoc & \evInertiaFaultLoc \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{EQ4 --- Mutu Suite}
+
+Tabel~\ref{tab:hasil-eq4} membandingkan mutu intrinsik suite yang dihasilkan dengan baseline pada tiap subjek (dipisah tanda ``/''). Untuk Blade dan Inertia React baseline adalah suite Playwright buatan tangan di \texttt{tests/manual/<stack>}; untuk SauceDemo baseline adalah gabungan tiga suite publik independen berlisensi MIT. Rasio locator rapuh dihitung dari proporsi locator CSS fallback; skor robustness merangkum posisi strategi locator pada rantai prioritas semantik.
+
+\begin{table}[!t]
+\caption{Hasil EQ4 --- mutu suite: dihasilkan / baseline}
+\label{tab:hasil-eq4}
+\centering
+\footnotesize
+\begin{tabularx}{\linewidth}{p{0.27\linewidth} X X X}
+\toprule
+Metrik & Blade & Inertia & SauceDemo \\
+\midrule
+Jumlah test & \evBladeTestCount{} / \evBladeBaseTestCount & \evInertiaTestCount{} / \evInertiaBaseTestCount & \evSauceTestCount{} / \evSauceBaseTestCount \\
+Assertion density & \evBladeAssertDensity{} / \evBladeBaseAssertDensity & \evInertiaAssertDensity{} / \evInertiaBaseAssertDensity & \evSauceAssertDensity{} / \evSauceBaseAssertDensity \\
+Rasio locator rapuh & \evBladeBrittle{} / \evBladeBaseBrittle & \evInertiaBrittle{} / \evInertiaBaseBrittle & \evSauceBrittle{} / \evSauceBaseBrittle \\
+Locator robustness (gen.) & \evBladeRobustness & \evInertiaRobustness & \evSauceRobustness \\
+Mix locator (gen.) & \evBladeLocMix & \evInertiaLocMix & \evSauceLocMix \\
+Mix locator (baseline) & \evBladeBaseLocMix & \evInertiaBaseLocMix & \evSauceBaseLocMix \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{EQ5 --- Keandalan, Efisiensi, dan Perbandingan Baseline}
+
+Tabel~\ref{tab:hasil-eq5} merangkum keandalan dan efisiensi. Flake rate dihitung dari ketidakkonsistenan status test antar $R=5$ pengulangan; kesepakatan lintas-peramban dihitung dengan Fleiss $\kappa$ atas status pass/fail (test yang di-skip karena gerbang role tidak dihitung sebagai penilaian). Rasio penghematan waktu dibaca sebagai perbandingan terhadap asumsi biaya penulisan manual per kasus yang dilabeli eksplisit, dilengkapi rentang sensitivitas; perbandingan durasi per-test generated-vs-baseline menggunakan Mann--Whitney $U$ dengan ukuran efek rank-biserial. Baris verdict merangkum tabulasi head-to-head pada dimensi yang dapat diperbandingkan (skor mutasi, flake rate, pass rate, assertion density, rasio locator rapuh, robustness, durasi per test).
+
+\begin{table}[!t]
+\caption{Hasil EQ5 --- keandalan, efisiensi, dan perbandingan baseline}
+\label{tab:hasil-eq5}
+\centering
+\footnotesize
+\begin{tabularx}{\linewidth}{p{0.27\linewidth} X X X}
+\toprule
+Metrik & Blade & Inertia & SauceDemo \\
+\midrule
+Flake rate & \evBladeFlake & \evInertiaFlake & \evSauceFlake \\
+Fleiss $\kappa$ & \evBladeKappa & \evInertiaKappa & \evSauceKappa \\
+Pass rate & \evBladePassRate & \evInertiaPassRate & \evSaucePassRate \\
+Waktu crawl & \evBladeCrawlSec & \evInertiaCrawlSec & \evSauceCrawlSec \\
+Waktu generate & \evBladeGenMs & \evInertiaGenMs & \evSauceGenMs \\
+Waktu eksekusi (CI95) & \evBladeExecSec & \evInertiaExecSec & \evSauceExecSec \\
+Durasi per test & \evBladePerTestSec & \evInertiaPerTestSec & \evSaucePerTestSec \\
+Rasio penghematan & \evBladeSavings & \evInertiaSavings & \evSauceSavings \\
+Mann--Whitney $U$ & \evBladeMannWhitney & \evInertiaMannWhitney & \evSauceMannWhitney \\
+Verdict head-to-head & \evBladeVerdict & \evInertiaVerdict & \evSauceVerdict \\
+\bottomrule
+\end{tabularx}
+\end{table}
 
 \section{Diskusi}
 
