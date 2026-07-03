@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mapTestCases } from '../src/mapper.js';
+import { mapTestCases, navScenarioKeysForPage } from '../src/mapper.js';
 import type { CrawlOutput } from '../src/crawl.js';
 import type { TathyaConfig } from '../src/config.js';
 import type { AccessMatrix } from '../src/rbac.js';
@@ -223,6 +223,53 @@ describe('mapTestCases', () => {
     // Novalidate form: the server sees the raw values and must render a visible error.
     expect(variantNamesFor('/todos/nv')).toContain('maxlength-plus-one');
     expect(variantNamesFor('/todos/nv')).toContain('invalid-option');
+  });
+
+  it('keeps one representative per route shape for pages and blocked routes', () => {
+    const editPage = (id: number) => ({
+      url: `/todos/${id}/edit`,
+      title: `Edit ${id}`,
+      forms: [],
+      links: [{ href: '/todos', text: 'Back', locator: { strategy: 'role' as const, value: 'link:Back' } }],
+      buttons: [],
+      tables: [],
+    });
+    const crawl: CrawlOutput = {
+      baseUrl: config.baseUrl,
+      engine: 'rendered',
+      role: 'admin',
+      crawledAt: '2026-06-15T00:00:00.000Z',
+      pages: [editPage(1), editPage(2), editPage(3)],
+    };
+    const matrix: AccessMatrix = new Map([
+      ['/todos/1/edit', { route: '/todos/1/edit', reachableBy: ['admin'] }],
+      ['/todos/2/edit', { route: '/todos/2/edit', reachableBy: ['admin'] }],
+      ['/admin/users', { route: '/admin/users', reachableBy: ['admin'] }],
+    ]);
+    const twoRoleConfig: TathyaConfig = {
+      ...config,
+      auth: {
+        ...config.auth,
+        roles: [
+          { name: 'admin', username: 'admin@example.com', password: 'password' },
+          { name: 'user', username: 'user@example.com', password: 'password' },
+        ],
+      },
+    };
+
+    const cases = mapTestCases([crawl], matrix, twoRoleConfig);
+    const allowed = cases.filter((testCase) => testCase.kind === 'rbac' && testCase.expectAllowed);
+    const blocked = cases.filter((testCase) => testCase.kind === 'rbac' && !testCase.expectAllowed);
+    const interactions = cases.filter((testCase) => testCase.kind === 'interaction');
+
+    // /todos/1..3/edit collapse to one representative page: one allowed case, one interaction set.
+    expect(allowed.map((testCase) => testCase.route)).toEqual(['/todos/1/edit']);
+    expect(interactions).toHaveLength(1);
+    // Blocked: /todos/{1,2}/edit are ONE ownership scenario for "user"; /admin/users is another.
+    expect(blocked.map((testCase) => `${testCase.role}:${testCase.route}`).sort()).toEqual([
+      'user:/admin/users',
+      'user:/todos/1/edit',
+    ]);
   });
 
   it('maps non-CRUD forms and page interactions', () => {
@@ -551,9 +598,9 @@ describe('mapTestCases', () => {
     const pagination = cases.filter((testCase) => testCase.kind === 'pagination');
     const interactions = cases.filter((testCase) => testCase.kind === 'interaction');
 
+    // One representative per action: page 3 collapses into the page-2 numbered-jump scenario.
     expect(pagination.map((testCase) => testCase.title)).toEqual([
       'admin /products pagination page 2 -> handled',
-      'admin /products pagination page 3 -> handled',
       'admin /products pagination first -> handled',
       'admin /products pagination previous -> handled',
       'admin /products pagination next -> handled',
@@ -561,6 +608,176 @@ describe('mapTestCases', () => {
     ]);
     expect(new Set(pagination.map((testCase) => testCase.title)).size).toBe(pagination.length);
     expect(interactions).toHaveLength(0);
+  });
+
+  it('keeps one interaction per link target shape across rows and source pages', () => {
+    const link = (href: string, text: string) => ({ href, text, locator: { strategy: 'role' as const, value: `link:${text}` } });
+    const page = (url: string, links: ReturnType<typeof link>[]) => ({ url, title: url, forms: [], links, buttons: [], tables: [] });
+    const crawl: CrawlOutput = {
+      baseUrl: config.baseUrl,
+      engine: 'rendered',
+      role: 'admin',
+      crawledAt: '2026-06-15T00:00:00.000Z',
+      pages: [
+        page('/todos', [link('/todos/1/edit', 'Edit'), link('/todos/2/edit', 'Edit'), link('/dashboard', 'Dashboard')]),
+        page('/dashboard', [link('/dashboard', 'Dashboard'), link('/todos', 'Todos'), link('/todos?status=done', 'Done')]),
+      ],
+    };
+
+    const cases = mapTestCases([crawl], new Map(), config);
+    const interactions = cases.filter((testCase) => testCase.kind === 'interaction');
+
+    // Row edit links are one scenario (/todos/:id/edit); the navbar Dashboard link tested
+    // once for the role, not once per source page; the ?status filter link stays distinct
+    // from the bare /todos target because its query KEY differs.
+    expect(interactions.map((testCase) => testCase.title)).toEqual([
+      'admin /todos link /todos/1/edit -> handled',
+      'admin /todos link /dashboard -> handled',
+      'admin /dashboard link /todos -> handled',
+      'admin /dashboard link /todos?status=done -> handled',
+    ]);
+  });
+
+  it('keeps navScenarioKeysForPage in lockstep with emitted nav cases', () => {
+    const page: CrawlOutput['pages'][number] = {
+      url: '/todos',
+      title: 'Todos',
+      forms: [
+        {
+          action: '/todos',
+          method: 'GET',
+          crudOp: 'unknown',
+          noValidate: false,
+          fields: [],
+          submit: { text: 'Apply', locator: { strategy: 'role', value: 'button:Apply' } },
+        },
+      ],
+      links: [
+        { href: '/todos/1/edit', text: 'Edit', locator: { strategy: 'role', value: 'link:Edit' } },
+        { href: '/todos/2/edit', text: 'Edit', locator: { strategy: 'role', value: 'link:Edit' } },
+        { href: '/dashboard', text: 'Dashboard', locator: { strategy: 'role', value: 'link:Dashboard' } },
+        { href: '/todos?page=2', text: 'Next', locator: { strategy: 'role', value: 'link:Next' } },
+        { href: '/todos?page=3', text: '3', locator: { strategy: 'role', value: 'link:3' } },
+      ],
+      buttons: [
+        { text: 'Apply', locator: { strategy: 'role', value: 'button:Apply' } },
+        { text: 'Open menu', locator: { strategy: 'role', value: 'button:Open menu' } },
+      ],
+      tables: [],
+      controls: [
+        {
+          kind: 'select',
+          text: null,
+          options: [{ value: 'az', label: 'A-Z' }],
+          locator: { strategy: 'testid', value: 'sort' },
+        },
+      ],
+    };
+    const crawl: CrawlOutput = {
+      baseUrl: config.baseUrl,
+      engine: 'rendered',
+      role: 'admin',
+      crawledAt: '2026-06-15T00:00:00.000Z',
+      pages: [page],
+    };
+
+    const cases = mapTestCases([crawl], new Map(), config);
+    const navCases = cases.filter((testCase) => testCase.kind === 'interaction' || testCase.kind === 'pagination');
+    const scenarioKeys = new Set(navScenarioKeysForPage(page, config.baseUrl));
+
+    // The metrics denominator (scenario keys) must equal what the mapper emits, or the
+    // element-coverage family drifts from the generator's dedup semantics.
+    expect(scenarioKeys.size).toBe(navCases.length);
+  });
+
+  it('emits validation variants once across roles but keeps positives per role', () => {
+    const twoRoleConfig: TathyaConfig = {
+      ...config,
+      auth: {
+        ...config.auth,
+        roles: [
+          { name: 'admin', username: 'admin@example.com', password: 'password' },
+          { name: 'user', username: 'user@example.com', password: 'password' },
+        ],
+      },
+    };
+    const crawlFor = (role: string): CrawlOutput => ({
+      baseUrl: config.baseUrl,
+      engine: 'rendered',
+      role,
+      crawledAt: '2026-06-15T00:00:00.000Z',
+      pages: [
+        {
+          url: '/todos/create',
+          title: 'Create Todo',
+          forms: [
+            {
+              action: '/todos',
+              method: 'POST',
+              crudOp: 'create',
+              noValidate: true,
+              fields: [
+                {
+                  name: 'title',
+                  type: 'text',
+                  label: 'Title',
+                  required: true,
+                  constraints: { minlength: null, maxlength: 255, min: null, max: null, step: null, pattern: null, inputmode: null, accept: null },
+                  options: null,
+                  nameHints: [],
+                  locator: { strategy: 'label', value: 'Title' },
+                },
+              ],
+              submit: { text: 'Create', locator: { strategy: 'role', value: 'button:Create' } },
+            },
+          ],
+          links: [],
+          buttons: [],
+          tables: [],
+        },
+      ],
+    });
+
+    const cases = mapTestCases([crawlFor('admin'), crawlFor('user')], new Map(), twoRoleConfig);
+    const forms = cases.filter((testCase) => testCase.kind === 'form');
+    const positives = forms.filter((testCase) => testCase.variant.name === 'valid');
+    const requiredEmpty = forms.filter((testCase) => testCase.variant.name === 'required-empty');
+
+    // The happy path proves each role can perform the CRUD op; the validation variant is
+    // role-independent server logic — one scenario, owned by the first role to reach it.
+    expect(positives.map((testCase) => testCase.role)).toEqual(['admin', 'user']);
+    expect(requiredEmpty.map((testCase) => testCase.role)).toEqual(['admin']);
+  });
+
+  it('does not treat the current-page paginator link as a pagination scenario', () => {
+    const crawl: CrawlOutput = {
+      baseUrl: config.baseUrl,
+      engine: 'rendered',
+      role: 'admin',
+      crawledAt: '2026-06-15T00:00:00.000Z',
+      pages: [
+        {
+          url: '/todos',
+          title: 'Todos',
+          forms: [],
+          // React paginators link the current page too ("1" -> /todos?page=1 while on /todos);
+          // the numbered-jump representative must be a link that actually navigates.
+          links: [
+            { href: '/todos?page=1', text: '1', locator: { strategy: 'role', value: 'link:1' } },
+            { href: '/todos?page=2', text: '2', locator: { strategy: 'role', value: 'link:2' } },
+          ],
+          buttons: [],
+          tables: [],
+        },
+      ],
+    };
+
+    const cases = mapTestCases([crawl], new Map(), config);
+    const pagination = cases.filter((testCase) => testCase.kind === 'pagination');
+
+    expect(pagination.map((testCase) => testCase.title)).toEqual([
+      'admin /todos pagination page 2 -> handled',
+    ]);
   });
 
   it('emits select interaction cases from orphan controls and picks a representative option', () => {
@@ -645,7 +862,7 @@ describe('mapTestCases', () => {
     expect(rbacAllowed).toHaveLength(1);
     expect(rbacAllowed[0].route).toBe('/inventory.html');
     expect(interactions.map((testCase) => testCase.title)).toEqual([
-      'admin /inventory.html link /inventory.html -> handled',
+      'admin /inventory.html link /inventory.html?item=1 -> handled',
       'admin /inventory.html button Add to cart -> handled',
     ]);
     expect(interactions).toHaveLength(2);

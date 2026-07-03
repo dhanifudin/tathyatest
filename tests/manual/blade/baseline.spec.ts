@@ -13,6 +13,8 @@ const user = { email: 'user@example.com', password: 'password' };
 
 async function login(page: import('@playwright/test').Page, creds: { email: string; password: string }) {
   await page.request.post('/__testing/reset');
+  // The role projects pre-authenticate via storageState; drop that session so /login renders.
+  await page.context().clearCookies();
   await page.goto('/login');
   await page.fill('input[name="email"]', creds.email);
   await page.fill('input[name="password"]', creds.password);
@@ -26,6 +28,7 @@ test('admin can log in and reach the dashboard', async ({ page }) => {
 
 test('login rejects a wrong password', async ({ page }) => {
   await page.request.post('/__testing/reset');
+  await page.context().clearCookies();
   await page.goto('/login');
   await page.fill('input[name="email"]', admin.email);
   await page.fill('input[name="password"]', 'not-the-password');
@@ -37,9 +40,10 @@ test('admin can create a todo', async ({ page }) => {
   await login(page, admin);
   await page.goto('/todos/create');
   const title = `Manual baseline ${Date.now()}`;
+  const email = `manual.${Date.now()}@example.com`;
   await page.fill('input[name="title"]', title);
-  await page.fill('input[name="contact_email"]', `manual.${Date.now()}@example.com`);
-  await page.fill('input[name="contact_email_confirmation"]', `manual.${Date.now()}@example.com`);
+  await page.fill('input[name="contact_email"]', email);
+  await page.fill('input[name="contact_email_confirmation"]', email);
   await page.selectOption('select[name="status"]', 'open');
   await page.click('button[type="submit"]');
   await expect(page.getByText(title).first()).toBeVisible();

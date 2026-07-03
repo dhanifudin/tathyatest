@@ -24,3 +24,15 @@ function normalizeRoute(url: string): string {
   const queryStart = url.search(/[?#]/);
   return queryStart === -1 ? url : url.slice(0, queryStart);
 }
+
+/**
+ * Collapse route parameters so URLs that differ only in an id are the same scenario:
+ * `/todos/7/edit` → `/todos/:id/edit`. Used to deduplicate emitted test cases and to compute
+ * coverage denominators at scenario granularity rather than per concrete row.
+ */
+export function routeShape(path: string): string {
+  return normalizeRoute(path)
+    .split('/')
+    .map((part) => /^\d+$/.test(part) ? ':id' : part)
+    .join('/');
+}

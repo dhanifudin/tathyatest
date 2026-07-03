@@ -32,7 +32,9 @@ class CoverageCollector
         }
 
         \pcov\stop();
-        $collected = \pcov\collect(\pcov\inclusive);
+        // \pcov\inclusive collects ONLY the files in its filter argument — with no filter it
+        // always returns nothing. Collect everything; mergeExecuted() filters to app_path().
+        $collected = \pcov\collect(\pcov\all);
         \pcov\clear();
         self::mergeExecuted($collected);
 

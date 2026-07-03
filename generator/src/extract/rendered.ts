@@ -61,7 +61,10 @@ async function crawlRole(page: Page, config: TathyaConfig, role: string, landing
     if (isMeaningfulErrorPage(response?.ok() ?? null, model)) continue;
     pages.push({ url: normalizePath(page.url(), config.baseUrl), ...model });
     const discovered = await discoverInternalURLs(page, config.baseUrl);
-    for (const href of uniquePaths([...model.links.map((link) => link.href), ...model.forms.map((form) => form.action), ...discovered])) {
+    // Only GET form actions are navigable; visiting a POST-only action with page.goto triggers
+    // MethodNotAllowed (405) error pages on the target app.
+    const getFormActions = model.forms.filter((form) => form.method === 'GET').map((form) => form.action);
+    for (const href of uniquePaths([...model.links.map((link) => link.href), ...getFormActions, ...discovered])) {
       if (!seen.has(href) && !excluded(href, config)) queue.push(href);
     }
     depth = Math.max(depth, path.split('/').filter(Boolean).length);
@@ -91,11 +94,16 @@ export function shouldExtractCrawlPage(responseOk: boolean | null, requestedPath
   return currentPath === requestedPath || responseOk === true;
 }
 
-/** True when a non-ok response also rendered no interactive content — a real error page. */
-export function isMeaningfulErrorPage(responseOk: boolean | null, model: Pick<DomPageModel, 'forms' | 'buttons' | 'links'> & { controls?: unknown[] }): boolean {
+/**
+ * True when a non-ok response also rendered no navigable app content — a real error page.
+ * Buttons are deliberately excluded from the signal: framework debug pages (e.g. Laravel's 405
+ * page with APP_DEBUG=true) render copy/share buttons, while genuine app pages reachable through
+ * navigation expose same-origin links, forms, or selects.
+ */
+export function isMeaningfulErrorPage(responseOk: boolean | null, model: Pick<DomPageModel, 'forms' | 'links'> & { controls?: unknown[] }): boolean {
   if (responseOk !== false) return false;
-  const interactive = model.forms.length + model.buttons.length + model.links.length + (model.controls?.length ?? 0);
-  return interactive === 0;
+  const navigable = model.forms.length + model.links.length + (model.controls?.length ?? 0);
+  return navigable === 0;
 }
 
 export function renderedCrawlSeeds(config: Pick<TathyaConfig, 'auth' | 'crawl'>, landingPath: string): string[] {
@@ -160,8 +168,14 @@ async function discoverInternalURLs(page: Page, baseUrl: string): Promise<string
       if (normalized) values.push(normalized);
     };
     document.querySelectorAll<HTMLAnchorElement>('a[href]').forEach((element) => add(element.getAttribute('href')));
-    document.querySelectorAll<HTMLFormElement>('form[action]').forEach((element) => add(element.getAttribute('action')));
-    document.querySelectorAll<HTMLButtonElement | HTMLInputElement>('button[formaction], input[formaction]').forEach((element) => add(element.getAttribute('formaction')));
+    // Only GET actions are navigable; visiting POST-only actions via page.goto yields 405s.
+    document.querySelectorAll<HTMLFormElement>('form[action]').forEach((element) => {
+      if ((element.getAttribute('method') ?? 'get').toLowerCase() === 'get') add(element.getAttribute('action'));
+    });
+    document.querySelectorAll<HTMLButtonElement | HTMLInputElement>('button[formaction], input[formaction]').forEach((element) => {
+      const method = (element.getAttribute('formmethod') ?? element.form?.getAttribute('method') ?? 'get').toLowerCase();
+      if (method === 'get') add(element.getAttribute('formaction'));
+    });
     for (const attr of ['data-href', 'data-url', 'data-route', 'data-to']) {
       document.querySelectorAll(`[${attr}]`).forEach((element) => add(element.getAttribute(attr)));
     }
@@ -267,6 +281,15 @@ async function extractPage(page: Page): Promise<DomPageModel> {
       if ((form.method || 'GET').toUpperCase() === 'POST') return 'create';
       return 'unknown';
     };
+    // CSS visibility at the crawl viewport: responsive layouts ship duplicates (a mobile
+    // paginator plus a desktop one) and the mapper must prefer the control a desktop test
+    // can actually click.
+    const visibleOf = (el: Element): boolean => {
+      const html = el as HTMLElement;
+      if (typeof html.checkVisibility === 'function') return html.checkVisibility();
+      const rect = html.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0 && window.getComputedStyle(html).visibility !== 'hidden';
+    };
     return {
       title: document.title,
       forms: Array.from(document.querySelectorAll('form')).map((form) => {
@@ -306,7 +329,7 @@ async function extractPage(page: Page): Promise<DomPageModel> {
         };
       }),
       links: Array.from(document.querySelectorAll<HTMLAnchorElement>('a[href]'))
-        .map((link) => ({ href: normalizeHref(link.href), text: text(link), locator: locatorFor(link, 'link') }))
+        .map((link) => ({ href: normalizeHref(link.href), text: text(link), locator: locatorFor(link, 'link'), visible: visibleOf(link) }))
         .filter((link) => link.href),
       // Capture all button-like controls: <button>, <input type=button|submit|reset|image>,
       // and elements with role=button|menuitem|tab that aren't already a button/input/a.
@@ -314,21 +337,21 @@ async function extractPage(page: Page): Promise<DomPageModel> {
       // locators via formSubmitLocators so these are harmless duplicates that get filtered out.
       buttons: (() => {
         const seen = new Set<Element>();
-        const result: { text: string; locator: { strategy: string; value: string } }[] = [];
+        const result: { text: string; locator: { strategy: string; value: string }; visible: boolean }[] = [];
         for (const el of Array.from(document.querySelectorAll<HTMLButtonElement>('button'))) {
           seen.add(el);
-          result.push({ text: text(el), locator: locatorFor(el, 'button') });
+          result.push({ text: text(el), locator: locatorFor(el, 'button'), visible: visibleOf(el) });
         }
         for (const el of Array.from(document.querySelectorAll<HTMLInputElement>('input[type=button],input[type=submit],input[type=reset],input[type=image]'))) {
           if (seen.has(el)) continue;
           seen.add(el);
           const label = attr(el, 'value') ?? attr(el, 'aria-label') ?? '';
-          result.push({ text: label, locator: locatorFor(el, 'button') });
+          result.push({ text: label, locator: locatorFor(el, 'button'), visible: visibleOf(el) });
         }
         for (const el of Array.from(document.querySelectorAll<Element>('[role=button],[role=menuitem],[role=tab]'))) {
           if (seen.has(el) || el.tagName === 'A' || el.tagName === 'BUTTON' || el.tagName === 'INPUT') continue;
           seen.add(el);
-          result.push({ text: text(el), locator: locatorFor(el, 'button') });
+          result.push({ text: text(el), locator: locatorFor(el, 'button'), visible: visibleOf(el) });
         }
         return result;
       })(),

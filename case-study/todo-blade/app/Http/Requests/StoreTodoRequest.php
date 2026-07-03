@@ -32,7 +32,10 @@ class StoreTodoRequest extends FormRequest
     protected function applyFaults(array $rules): array
     {
         if (FaultRegistry::is('validation_title_required')) {
-            $rules['title'] = self::without($rules['title'], ['required']);
+            // Dropping `required` alone is unobservable: the empty string arrives as null
+            // (ConvertEmptyStringsToNull) and the remaining `string` rule still rejects it.
+            // The realistic regression makes the field optional.
+            $rules['title'] = array_merge(['nullable'], self::without($rules['title'], ['required']));
         }
         if (FaultRegistry::is('validation_email_format')) {
             $rules['contact_email'] = self::without($rules['contact_email'], ['email']);

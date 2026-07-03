@@ -40,13 +40,16 @@ describe('rendered crawl URL normalization', () => {
     expect(shouldExtractCrawlPage(true, '/inventory.html', '/redirected.html')).toBe(true);
   });
 
-  it('filters genuine error pages by their lack of interactive content', () => {
-    const empty = { forms: [], buttons: [], links: [], controls: [] };
-    const rich = { ...empty, buttons: [{ text: 'Add to cart', locator: { strategy: 'css' as const, value: 'button' } }] };
-    expect(isMeaningfulErrorPage(false, empty)).toBe(true);   // Laravel 404 page
-    expect(isMeaningfulErrorPage(false, rich)).toBe(false);   // SPA page behind a 404 status
-    expect(isMeaningfulErrorPage(true, empty)).toBe(false);   // ok responses are always kept
-    expect(isMeaningfulErrorPage(null, empty)).toBe(false);   // already-on-page extraction
+  it('filters genuine error pages by their lack of navigable content', () => {
+    const empty = { forms: [], links: [], controls: [] };
+    const withLinks = { ...empty, links: [{ href: '/cart.html', text: 'Cart', locator: { strategy: 'role' as const, value: 'link:Cart' } }] };
+    expect(isMeaningfulErrorPage(false, empty)).toBe(true);       // Laravel 404 page
+    expect(isMeaningfulErrorPage(false, withLinks)).toBe(false);  // SPA page behind a 404 status
+    expect(isMeaningfulErrorPage(true, empty)).toBe(false);       // ok responses are always kept
+    expect(isMeaningfulErrorPage(null, empty)).toBe(false);       // already-on-page extraction
+    // Debug error pages (e.g. Laravel 405 with APP_DEBUG=true) render buttons but no
+    // same-origin links/forms — they must still be filtered, so buttons carry no signal.
+    expect(isMeaningfulErrorPage(false, empty)).toBe(true);
   });
 
   it('fails clearly when login remains on the login page with controls visible', async () => {

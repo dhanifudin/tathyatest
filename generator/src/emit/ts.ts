@@ -475,22 +475,31 @@ function formAssertion(testCase: Extract<TestCase, { kind: 'form' }>, config: Ta
     return errorAssertionSource(testCase.form, testCase.targetField, config.oracle.errorSelector, testCase.page.url, testCase.variant.name).replaceAll('\n', '\n  ');
   }
   if (testCase.variant.outcome === 'graceful') return gracefulAssertionSource();
-  const representative = representativeTextField(testCase);
-  if (representative && (testCase.form.crudOp === 'create' || testCase.form.crudOp === 'update')) {
-    return `await expect(page.getByText(${fieldVar(representative)}).first()).toBeVisible();`;
+  const representative = representativeTextValue(testCase);
+  // Only the canonical happy path asserts the echoed value: other success-outcome variants
+  // (maxlength-exact, optional-omitted) submit values a list view may legitimately truncate.
+  if (representative && testCase.variant.name === 'valid' && (testCase.form.crudOp === 'create' || testCase.form.crudOp === 'update')) {
+    return `await expect(page.getByText(${representative}).first()).toBeVisible();`;
   }
   return "await expect(page.locator('body')).not.toContainText(/500|server error|exception/i);";
 }
 
-// First short free-text field (type 'text' or 'search') whose valid value is faker-generated.
-// Its emitted const is the value the app should echo back after a successful create/update, so we
-// assert it is visible. Textarea fields are excluded because their content is rarely rendered in
-// list/summary views; the fallback body assertion is used instead.
-function representativeTextField(testCase: Extract<TestCase, { kind: 'form' }>): string | null {
+// The submitted value the app should echo back after a successful create/update — asserting it
+// is what makes the positive oracle prove persistence (a redirect alone also happens when the
+// server silently drops the write). Prefer a faker-generated text field (unique by
+// construction); fall back to a config-pinned literal text value. Textarea fields are excluded
+// because their content is rarely rendered in list/summary views.
+function representativeTextValue(testCase: Extract<TestCase, { kind: 'form' }>): string | null {
   for (const field of testCase.form.fields) {
     const fieldValue = testCase.values[field.name];
     if (fieldValue?.kind === 'runtime' && ['text', 'search'].includes(field.type)) {
-      return field.name;
+      return fieldVar(field.name);
+    }
+  }
+  for (const field of testCase.form.fields) {
+    const fieldValue = testCase.values[field.name];
+    if (fieldValue?.kind === 'literal' && fieldValue.value.trim().length >= 3 && ['text', 'search'].includes(field.type)) {
+      return JSON.stringify(fieldValue.value);
     }
   }
   return null;

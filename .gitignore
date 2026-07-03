@@ -26,6 +26,9 @@ tt-crawler
 crawl/*.json
 tests/generated/**/*.spec.ts
 tests/generated/**/*.spec.js
+tests/generated/manifest.json
+metrics/
+metrics-saucedemo/
 storageState/*.json
 
 case-study/*/vendor/
@@ -38,6 +41,7 @@ case-study/*/bootstrap/cache/*
 case-study/*/storage/framework/cache/*
 case-study/*/storage/framework/sessions/*
 case-study/*/storage/framework/views/*
+case-study/*/storage/framework/pcov-ini/
 case-study/*/storage/logs/*
 !case-study/*/storage/framework/cache/.gitkeep
 !case-study/*/storage/framework/sessions/.gitkeep

@@ -68,7 +68,9 @@ const roleProjects = roles.length > 0
     ];
 
 export default defineConfig({
-  testDir: './tests/generated',
+  // TATHYA_TESTDIR lets `tt eval` retarget one run at the manual baseline suite while keeping
+  // the same projects/storageState; the default is the generated suite.
+  testDir: process.env.TATHYA_TESTDIR ?? './tests/generated',
   globalSetup: './playwright.global-setup.ts',
   timeout: 60_000,
   workers: 1,

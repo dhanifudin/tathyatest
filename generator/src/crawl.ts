@@ -54,9 +54,12 @@ export type PageModel = {
   url: string;
   title: string;
   forms: Form[];
-  links: { href: string; text: string; locator: Locator }[];
+  /** `visible` reflects CSS visibility at crawl viewport (responsive duplicates: a mobile
+   * paginator link is present but hidden on desktop). Optional for back-compat; absent
+   * means unknown and is treated as visible. */
+  links: { href: string; text: string; locator: Locator; visible?: boolean }[];
   /** Button-like controls: <button>, <input type=button|submit|reset|image>, [role=button|menuitem|tab]. */
-  buttons: { text: string; locator: Locator }[];
+  buttons: { text: string; locator: Locator; visible?: boolean }[];
   tables: { headers: string[]; rowCount: number }[];
   /** Non-form interactive controls (orphan selects, etc.). Optional for back-compat with old crawl
    * JSON; zod `.default([])` ensures parsed output always has it. Runtime code must use `?? []`. */
@@ -112,8 +115,8 @@ export const crawlOutputSchema: z.ZodType<CrawlOutput, z.ZodTypeDef, unknown> = 
       })),
       submit: z.object({ text: z.string().nullable(), locator: locatorSchema }),
     })),
-    links: z.array(z.object({ href: z.string(), text: z.string(), locator: locatorSchema })),
-    buttons: z.array(z.object({ text: z.string(), locator: locatorSchema })),
+    links: z.array(z.object({ href: z.string(), text: z.string(), locator: locatorSchema, visible: z.boolean().optional() })),
+    buttons: z.array(z.object({ text: z.string(), locator: locatorSchema, visible: z.boolean().optional() })),
     tables: z.array(z.object({ headers: z.array(z.string()), rowCount: z.number() })),
     controls: z.array(z.object({
       kind: z.literal('select'),

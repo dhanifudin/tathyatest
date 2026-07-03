@@ -1,7 +1,7 @@
 import type { CrawlOutput, Field, Form, Locator, PageModel } from './crawl.js';
 import type { TathyaConfig } from './config.js';
 import { shouldIncludeCoverage } from './config.js';
-import type { AccessMatrix } from './rbac.js';
+import { routeShape, type AccessMatrix } from './rbac.js';
 import { variantsForField, validFieldValue, type FieldValue, type FieldVariant } from './fieldgen.js';
 
 export type TestCaseKind = 'auth' | 'form' | 'interaction' | 'pagination' | 'rbac';
@@ -91,13 +91,20 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
     }
   }
 
+  // Variant (negative/edge) cases probe server-side validation, which is role-independent:
+  // the same form shape reached by two roles is ONE validation scenario, owned by the first
+  // role that reaches it. Positives stay per role — the acting role is part of the scenario.
+  const seenVariants = new Set<string>();
   for (const crawl of crawls) {
     const seenPages = new Set<string>();
     const seenFieldlessForms = new Set<string>();
     const seenFieldForms = new Set<string>();
+    const seenInteractions = new Set<string>();
     for (const page of crawl.pages) {
       const canonicalPageUrl = canonicalPath(page.url);
-      const pageKey = `${crawl.role}:${canonicalPageUrl}`;
+      // Dedupe by route SHAPE: /todos/7/edit and /todos/8/edit are the same scenario with a
+      // different row id — one representative page per role covers it.
+      const pageKey = `${crawl.role}:${routeShape(canonicalPageUrl)}`;
       if (seenPages.has(pageKey)) continue;
       seenPages.add(pageKey);
       cases.push({
@@ -149,6 +156,9 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
               const nativeUnfalsifiable = ['maxlength-plus-one', 'invalid-option', 'confirmation-mismatch'];
               if (!form.noValidate && nativeUnfalsifiable.includes(variant.name)) continue;
               if (!shouldIncludeCoverage(config.coverage, variant.kind)) continue;
+              const variantKey = `${routeShape(canonicalPageUrl)}:${formShapeKey(form)}:${field.name}:${variant.name}`;
+              if (seenVariants.has(variantKey)) continue;
+              seenVariants.add(variantKey);
               const values = { ...baseValues };
               if (variant.omit) delete values[field.name];
               else values[field.name] = { kind: 'literal', value: variant.value };
@@ -180,7 +190,7 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
         }
       }
       cases.push(...paginationCasesForPage(crawl.role, page, canonicalPageUrl, crawl.baseUrl));
-      cases.push(...interactionCasesForPage(crawl.role, page, canonicalPageUrl, crawl.baseUrl));
+      cases.push(...interactionCasesForPage(crawl.role, page, canonicalPageUrl, crawl.baseUrl, seenInteractions));
     }
   }
 
@@ -191,7 +201,9 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
       const route = canonicalPath(entry.route);
       for (const role of roles) {
         if (!entry.reachableBy.includes(role)) {
-          const key = `${role}:${route}`;
+          // One blocked case per route shape per role: /todos/1/edit .. /todos/12/edit blocked
+          // for "user" is a single ownership scenario, not twelve.
+          const key = `${role}:${routeShape(route)}`;
           if (seenBlockedRoutes.has(key)) continue;
           seenBlockedRoutes.add(key);
           cases.push({
@@ -210,15 +222,50 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
   return cases;
 }
 
-function interactionCasesForPage(role: string, page: PageModel, canonicalPageUrl: string, baseUrl: string): TestCase[] {
-  const cases: TestCase[] = [];
-  const seen = new Set<string>();
+/**
+ * The nav scenario keys (interaction + pagination) this page contributes, at the same
+ * granularity the mapper dedupes by. metrics.ts uses these as the element-coverage
+ * denominator so the one-representative-per-scenario emission can still reach full
+ * coverage. Kept in lockstep with interactionCasesForPage/paginationCasesForPage by a
+ * unit test.
+ */
+export function navScenarioKeysForPage(page: PageModel, baseUrl: string): string[] {
+  const keys: string[] = [];
+  const pageShape = routeShape(canonicalPath(page.url));
   const formSubmitLocators = new Set(page.forms.map((form) => locatorKey(form.submit.locator)));
-
   for (const link of page.links) {
-    const target = canonicalPath(link.href);
+    const action = paginationActionForControl(link.text, link.locator.value, link.href, page.url, baseUrl);
+    keys.push(action ? `pagination:${pageShape}:${action}` : `link:${targetShapeKey(link.href, baseUrl)}`);
+  }
+  for (const button of page.buttons) {
+    if (formSubmitLocators.has(locatorKey(button.locator))) continue;
+    const action = paginationActionForControl(button.text, button.locator.value, undefined, page.url, baseUrl);
+    keys.push(action ? `pagination:${pageShape}:${action}` : `button:${button.text || locatorKey(button.locator)}`);
+  }
+  for (const control of page.controls ?? []) {
+    keys.push(`select:${locatorKey(control.locator)}`);
+  }
+  return keys;
+}
+
+// The seen-set is shared across a role's pages: the navbar link on every page, or ten
+// per-row edit links, are one navigation scenario each — keyed by target shape (numeric
+// segments -> :id, query VALUES dropped but query KEYS kept, so /todos?status=... filter
+// links stay distinct from bare /todos).
+function interactionCasesForPage(role: string, page: PageModel, canonicalPageUrl: string, baseUrl: string, seen: Set<string>): TestCase[] {
+  const cases: TestCase[] = [];
+  const formSubmitLocators = new Set(page.forms.map((form) => locatorKey(form.submit.locator)));
+  // Visible-first (stable sort): when a hidden responsive duplicate shares a scenario key
+  // with a visible control, the visible one becomes the representative.
+  const orderedLinks = [...page.links].sort((a, b) => Number(b.visible !== false) - Number(a.visible !== false));
+  const orderedButtons = [...page.buttons].sort((a, b) => Number(b.visible !== false) - Number(a.visible !== false));
+
+  for (const link of orderedLinks) {
+    // Title carries the query too: /todos and /todos?status=done are distinct scenarios
+    // (different dedup keys) and must not share a title.
+    const target = resolveHrefPathAndSearch(link.href, baseUrl);
     if (isPaginationCandidate(link.text, link.locator.value, link.href, page.url, baseUrl)) continue;
-    const key = `link:${target}`;
+    const key = `link:${targetShapeKey(link.href, baseUrl)}`;
     if (seen.has(key)) continue;
     seen.add(key);
     cases.push({
@@ -237,7 +284,7 @@ function interactionCasesForPage(role: string, page: PageModel, canonicalPageUrl
     });
   }
 
-  for (const button of page.buttons) {
+  for (const button of orderedButtons) {
     const label = button.text || `${button.locator.strategy}:${button.locator.value}`;
     if (formSubmitLocators.has(locatorKey(button.locator))) continue;
     if (isPaginationCandidate(button.text, button.locator.value, undefined, page.url, baseUrl)) continue;
@@ -339,44 +386,44 @@ function paginationCasesForPage(role: string, page: PageModel, canonicalPageUrl:
     | { type: 'link'; label: string; locator: Locator; href: string; action: PaginationAction }
     | { type: 'button'; label: string; locator: Locator; action: PaginationAction };
 
-  const candidates: PaginationCandidate[] = [
+  const candidates: (PaginationCandidate & { visible: boolean })[] = [
     ...page.links.map((link) => ({
       type: 'link' as const,
       label: controlLabel(link.text, link.locator.value),
       locator: link.locator,
       href: link.href,
       action: paginationActionForControl(link.text, link.locator.value, link.href, page.url, baseUrl),
+      visible: link.visible !== false,
     })),
     ...page.buttons.map((button) => ({
       type: 'button' as const,
       label: controlLabel(button.text, button.locator.value),
       locator: button.locator,
       action: paginationActionForControl(button.text, button.locator.value, undefined, page.url, baseUrl),
+      visible: button.visible !== false,
     })),
   ];
 
-  const paginationControls: PaginationControl[] = candidates.flatMap((control) =>
-    control.action ? [{ ...control, action: control.action }] as PaginationControl[] : [],
-  );
-  const titleCounts = countBy(paginationControls.map((control) => paginationTitleBase(role, canonicalPageUrl, control.action, control.label)));
-  const titleOrdinals = new Map<string, number>();
+  // Visible-first (stable): responsive layouts ship a hidden mobile paginator next to the
+  // desktop one; the representative control per action must be clickable at test viewport.
+  const paginationControls: PaginationControl[] = candidates
+    .sort((a, b) => Number(b.visible) - Number(a.visible))
+    .flatMap((control) =>
+      control.action ? [{ ...control, action: control.action }] as PaginationControl[] : [],
+    );
+  // One representative per action: jumping to page 2 and page 3 is the same numbered-jump
+  // scenario, and mobile/desktop duplicates of the same arrow collapse too.
   const seen = new Set<string>();
   const cases: TestCase[] = [];
 
   for (const control of paginationControls) {
-    const targetKey = control.type === 'link'
-      ? resolveHrefPathAndSearch(control.href, baseUrl)
-      : `${control.type}:${control.locator.strategy}:${control.locator.value}`;
-    const dedupeKey = `${control.action}:${control.label}:${targetKey}`;
-    if (seen.has(dedupeKey)) continue;
-    seen.add(dedupeKey);
+    if (seen.has(control.action)) continue;
+    seen.add(control.action);
     const titleBase = paginationTitleBase(role, canonicalPageUrl, control.action, control.label);
-    const ordinal = (titleOrdinals.get(titleBase) ?? 0) + 1;
-    titleOrdinals.set(titleBase, ordinal);
     cases.push({
       kind: 'pagination',
       tier: 'positive',
-      title: titleCounts.get(titleBase)! > 1 ? `${titleBase} #${ordinal} -> handled` : `${titleBase} -> handled`,
+      title: `${titleBase} -> handled`,
       role,
       page,
       pagination: {
@@ -412,12 +459,6 @@ function canonicalPath(path: string): string {
   }
 }
 
-function routeShape(path: string): string {
-  return canonicalPath(path)
-    .split('/')
-    .map((part) => /^\d+$/.test(part) ? ':id' : part)
-    .join('/');
-}
 
 function paginationTitleBase(role: string, canonicalPageUrl: string, action: 'first' | 'previous' | 'next' | 'last' | 'page', label: string): string {
   return action === 'page'
@@ -439,7 +480,9 @@ function paginationActionForControl(
   const label = normalizePaginationLabel(text || fallback);
   const target = href ? resolveHrefPathAndSearch(href, baseUrl) : null;
   const current = resolveHrefPathAndSearch(currentPageUrl, baseUrl);
-  if (target && current && target === current) return null;
+  // ?page=1 is the default page: a "1" link on /todos points at the page we are already on
+  // (some paginators link the current page too) and exercises nothing.
+  if (target && current && stripDefaultPageQuery(target) === stripDefaultPageQuery(current)) return null;
   if (isPreviousLabel(label)) return 'previous';
   if (isNextLabel(label)) return 'next';
   if (isFirstLabel(label)) return 'first';
@@ -454,7 +497,10 @@ function isPaginationCandidate(text: string | null, fallback: string, href: stri
 }
 
 function normalizePaginationLabel(text: string): string {
-  return normalizeTitleText(text).toLowerCase();
+  // Paginators decorate word labels with arrows ("Next »", "« Previous"); strip the
+  // decoration so the action classifies, but keep pure-symbol labels ("«") intact.
+  const label = normalizeTitleText(text).toLowerCase();
+  return /[a-z0-9]/.test(label) ? label.replace(/[«»‹›←→<>]/g, '').trim() : label;
 }
 
 function isPreviousLabel(label: string): boolean {
@@ -477,11 +523,27 @@ function isPageLabel(label: string): boolean {
   return /^page\s+\d+$/i.test(label) || /^\d+$/.test(label);
 }
 
+function stripDefaultPageQuery(pathAndSearch: string): string {
+  const [pathname = '/', search = ''] = pathAndSearch.split('?', 2);
+  const params = new URLSearchParams(search);
+  for (const key of [...params.keys()]) {
+    if (/^(page|p|pageNo|pageNum|pageNumber)$/i.test(key) && params.get(key) === '1') params.delete(key);
+  }
+  const query = params.toString();
+  return query ? `${pathname}?${query}` : pathname;
+}
+
 function hasPaginationQuery(targetPathAndSearch: string): boolean {
   const query = targetPathAndSearch.split('?', 2)[1] ?? '';
   if (!query) return false;
   const params = new URLSearchParams(query);
   return [...params.keys()].some((key) => /^(page|p|pageNo|pageNum|pageNumber|offset|start|cursor|after|before|limit)$/i.test(key));
+}
+
+function targetShapeKey(href: string, baseUrl: string): string {
+  const [pathname = '/', search = ''] = resolveHrefPathAndSearch(href, baseUrl).split('?', 2);
+  const queryKeys = [...new Set([...new URLSearchParams(search).keys()])].sort();
+  return queryKeys.length > 0 ? `${routeShape(pathname)}?${queryKeys.join(',')}` : routeShape(pathname);
 }
 
 function resolveHrefPathAndSearch(path: string, baseUrl: string): string {

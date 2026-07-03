@@ -12,6 +12,8 @@ export type RunOptions = {
   grep?: string | null;
   paths?: string[];
   config?: string | null;
+  /** Extra env vars for the Playwright process (e.g. TATHYA_TESTDIR for baseline runs). */
+  env?: Record<string, string>;
 };
 
 // --- Pure parser: Playwright JSON reporter output -> normalized SuiteRun -----------------------
@@ -67,7 +69,7 @@ export async function runPlaywrightJson(options: RunOptions = {}): Promise<Suite
     for (const project of options.projects ?? []) args.push(`--project=${project}`);
     if (options.grep) args.push(`--grep=${options.grep}`);
     if (options.paths?.length) args.push(...options.paths);
-    await spawnPlaywright(bin, args, cwd, outputFile);
+    await spawnPlaywright(bin, args, cwd, outputFile, options.env);
     const raw = await readFile(outputFile, 'utf8');
     return parsePlaywrightJson(JSON.parse(raw));
   } finally {
@@ -75,12 +77,12 @@ export async function runPlaywrightJson(options: RunOptions = {}): Promise<Suite
   }
 }
 
-function spawnPlaywright(bin: string, args: string[], cwd: string, jsonOutput: string): Promise<void> {
+function spawnPlaywright(bin: string, args: string[], cwd: string, jsonOutput: string, extraEnv?: Record<string, string>): Promise<void> {
   return new Promise((resolveRun, reject) => {
     const child = spawn(bin, args, {
       cwd,
       stdio: ['ignore', 'ignore', 'inherit'],
-      env: { ...withPlaywrightNodePath(cwd), PLAYWRIGHT_JSON_OUTPUT_NAME: jsonOutput },
+      env: { ...withPlaywrightNodePath(cwd), PLAYWRIGHT_JSON_OUTPUT_NAME: jsonOutput, ...extraEnv },
     });
     child.on('error', reject);
     // Playwright exits non-zero when tests fail; that is expected during fault injection. We rely

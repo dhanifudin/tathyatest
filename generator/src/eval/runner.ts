@@ -103,7 +103,9 @@ async function runBaseline(config: TathyaConfig, repeat: number): Promise<SuiteR
     if (hasConfig) {
       runs.push(await runPlaywrightJson({ cwd: '.', config: standaloneConfig }));
     } else {
-      runs.push(await runPlaywrightJson({ cwd: '.', paths: [dir] }));
+      // The root config's testDir points at tests/generated; retarget it or the baseline
+      // path filter matches zero tests and the run is silently empty.
+      runs.push(await runPlaywrightJson({ cwd: '.', env: { TATHYA_TESTDIR: dir } }));
     }
   }
   return runs;
@@ -129,7 +131,7 @@ async function runBaselineFaults(stack: StackConfig, rootConfig: TathyaConfig, c
     }
     const suite = hasConfig
       ? await runPlaywrightJson({ cwd: '.', config: standaloneConfig })
-      : await runPlaywrightJson({ cwd: '.', paths: [dir] });
+      : await runPlaywrightJson({ cwd: '.', env: { TATHYA_TESTDIR: dir } });
     faultRuns.push({ id: fault.id, faultClass: fault.faultClass, outcomes: suite.outcomes });
   }
   await control(stack.baseUrl, 'POST', '/__testing/fault/clear');

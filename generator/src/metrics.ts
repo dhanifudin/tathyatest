@@ -1,6 +1,7 @@
 import type { CrawlOutput, Field, Form } from './crawl.js';
 import type { TathyaConfig } from './config.js';
-import type { AccessMatrix } from './rbac.js';
+import { routeShape, type AccessMatrix } from './rbac.js';
+import { navScenarioKeysForPage } from './mapper.js';
 import type { FaultClass, ManifestEntry } from './manifest.js';
 import { confidenceInterval95, fleissKappa, mannWhitneyU, type ConfidenceInterval, type MannWhitneyResult } from './stats.js';
 import type { BaselineStaticAnalysis } from './eval/baseline-static.js';
@@ -157,14 +158,21 @@ function coverageMetrics(input: MetricsInput): CoverageMetrics {
   const totalRoutes = new Set<string>();
   const totalForms = new Set<string>();
   const totalFields = new Set<string>();
-  let totalNav = 0;
+  const navScenarios = new Set<string>();
   const crudByResource: Record<string, CrudExercised> = {};
   const presentConstraints = new Set<string>();
 
   for (const crawl of crawls) {
+    const seenPageShapes = new Set<string>();
     for (const page of crawl.pages) {
       const route = canonicalPath(page.url);
-      totalRoutes.add(route);
+      // Route coverage is counted at scenario granularity (route shape): the mapper emits one
+      // representative test per shape, so per-row concrete routes would undercount forever.
+      totalRoutes.add(routeShape(route));
+      // Nav scenarios come from the same representative page per shape the mapper processes;
+      // duplicate pages (other row ids, other page numbers) offer no new scenarios.
+      const firstOfShape = !seenPageShapes.has(routeShape(route));
+      seenPageShapes.add(routeShape(route));
       markResource(crudByResource, route, 'read');
       for (const form of page.forms) {
         const formKey = formKeyOf(route, form);
@@ -179,15 +187,26 @@ function coverageMetrics(input: MetricsInput): CoverageMetrics {
           markResource(crudByResource, canonicalPath(form.action), form.crudOp);
         }
       }
-      totalNav += page.links.length + page.buttons.length;
+      // Nav is counted per unique scenario (per role), mirroring the mapper's dedup keys:
+      // ten row-edit links or the navbar on every page are one scenario each.
+      if (firstOfShape) {
+        for (const key of navScenarioKeysForPage(page, crawl.baseUrl)) {
+          navScenarios.add(`${crawl.role}|${key}`);
+        }
+      }
     }
   }
 
-  const coveredRoutes = new Set(manifest.map((entry) => entry.route).filter((route): route is string => route !== null));
+  const coveredRoutes = new Set(
+    manifest
+      .map((entry) => entry.route)
+      .filter((route): route is string => route !== null)
+      .map((route) => routeShape(canonicalPath(route))),
+  );
   const coveredForms = new Set(
     manifest
       .filter((entry) => entry.category === 'crud' && entry.targetForm && entry.route)
-      .map((entry) => `${entry.route}|${entry.targetForm}`),
+      .map((entry) => `${routeShape(canonicalPath(entry.route ?? '/'))}|${entry.targetForm}`),
   );
   // A field is covered when its form is exercised at all (the positive case fills every field).
   const coveredFormKeys = new Set([...totalForms].filter((key) => [...coveredForms].some((covered) => keysAlign(covered, key))));
@@ -197,7 +216,7 @@ function coverageMetrics(input: MetricsInput): CoverageMetrics {
   const routes = ratio(intersectionSize(totalRoutes, coveredRoutes), totalRoutes.size);
   const forms = ratio(coveredFormKeys.size, totalForms.size);
   const fields = ratio(coveredFieldCount, totalFields.size);
-  const nav = ratio(Math.min(navTests, totalNav), totalNav);
+  const nav = ratio(Math.min(navTests, navScenarios.size), navScenarios.size);
 
   const elementCovered = routes.covered + forms.covered + fields.covered + nav.covered;
   const elementTotal = routes.total + forms.total + fields.total + nav.total;
@@ -224,18 +243,20 @@ function coverageMetrics(input: MetricsInput): CoverageMetrics {
 
 function rbacMatrixCoverage(matrix: AccessMatrix, manifest: ManifestEntry[], config: TathyaConfig): Ratio {
   const roles = config.auth.roles.map((role) => role.name);
+  // Matrix cells are counted per route SHAPE so the one-representative-per-shape emission of the
+  // mapper can still reach full coverage (12 per-row edit routes are one cell, not twelve).
   const asserted = new Set(
     manifest
-      .filter((entry) => entry.category === 'rbac' && entry.route)
-      .map((entry) => `${entry.role}:${entry.route}`),
+      .filter((entry): entry is ManifestEntry & { route: string } => entry.category === 'rbac' && entry.route !== null)
+      .map((entry) => `${entry.role}:${routeShape(canonicalPath(entry.route))}`),
   );
+  const shapes = new Set([...matrix.values()].map((entry) => routeShape(canonicalPath(entry.route))));
   let total = 0;
   let covered = 0;
-  for (const entry of matrix.values()) {
-    const route = canonicalPath(entry.route);
+  for (const shape of shapes) {
     for (const role of roles) {
       total += 1;
-      if (asserted.has(`${role}:${route}`)) covered += 1;
+      if (asserted.has(`${role}:${shape}`)) covered += 1;
     }
   }
   return ratio(covered, total);
@@ -383,9 +404,13 @@ export function reliabilityOf(runs: SuiteRun[]): ReliabilityMetrics {
 }
 
 function crossBrowserAgreement(run: SuiteRun): number {
-  const statuses: TestStatus[] = ['passed', 'failed', 'skipped'];
+  // A skip is not a verdict: with per-role projects every test is "skipped" by the other
+  // roles' projects, which would register as systematic disagreement (negative kappa).
+  // Raters are the browser projects that actually ran the test.
+  const statuses: TestStatus[] = ['passed', 'failed'];
   const byTitle = new Map<string, number[]>();
   for (const outcome of run.outcomes) {
+    if (outcome.status === 'skipped') continue;
     const counts = byTitle.get(outcome.title) ?? statuses.map(() => 0);
     counts[statuses.indexOf(outcome.status)] += 1;
     byTitle.set(outcome.title, counts);
@@ -558,14 +583,16 @@ function intersectionSize(total: Set<string>, covered: Set<string>): number {
 }
 
 function keysAlign(coveredRouteForm: string, formKey: string): boolean {
-  // coveredRouteForm = `${route}|${method}:${action}`; formKey = `${route}|${method}|${action}|fields`.
+  // coveredRouteForm = `${routeShape}|${method}:${action}`; formKey = `${routeShape}|${method}|${actionShape}|fields`.
   const [route, methodAction] = coveredRouteForm.split('|', 2);
   const [method, action] = (methodAction ?? '').split(':', 2);
-  return formKey.startsWith(`${route}|${method}|${action}|`);
+  return formKey.startsWith(`${route}|${method}|${routeShape(action ?? '/')}|`);
 }
 
+// Form/field coverage is counted at scenario granularity (route + action shapes), matching
+// the mapper's one-representative-per-shape emission — see the totalRoutes comment above.
 function formKeyOf(route: string, form: Form): string {
-  return `${route}|${form.method}|${canonicalPath(form.action)}|${form.fields.map((field) => field.name).join(',')}`;
+  return `${routeShape(route)}|${form.method}|${routeShape(canonicalPath(form.action))}|${form.fields.map((field) => field.name).join(',')}`;
 }
 
 function constraintKindsOfField(field: Field, config: TathyaConfig): string[] {
