@@ -5,9 +5,11 @@
 \usepackage[T1]{fontenc}
 \usepackage{cite}
 \usepackage{url}
+\def\UrlBreaks{\do\/\do\-\do\_}
 \usepackage{array}
 \usepackage{booktabs}
-\usepackage{tabularx}
+\usepackage{tabularray}
+\UseTblrLibrary{booktabs}
 \usepackage{graphicx}
 \usepackage{xcolor}
 \usepackage{tikz}
@@ -60,7 +62,7 @@ Berdasarkan kesenjangan tersebut, penelitian ini mengusulkan TathyaTest, sebuah 
 Pengukuran tersebut dirumuskan ke dalam tiga pertanyaan penelitian yang seluruhnya dijawab oleh data pada Bagian~\ref{sec:hasil}.
 
 \begin{itemize}
-    \item \textbf{RQ1 (cakupan):} Sejauh mana test suite yang dibangkitkan dari observasi DOM terautentikasi menutupi permukaan fungsional aplikasi, baik pada tingkat model elemen maupun kode aplikasi target (system under test, SUT)?
+    \item \textbf{RQ1 (cakupan):} Sejauh mana test suite yang dibangkitkan dari observasi DOM terautentikasi mencakup permukaan fungsional aplikasi, yaitu himpunan fungsi yang terekspos melalui antarmuka, baik pada tingkat model elemen maupun kode aplikasi target (system under test, SUT)?
     \item \textbf{RQ2 (deteksi fault):} Seberapa efektif suite tersebut, termasuk test RBAC yang diturunkan dari matriks akses per role, dalam mendeteksi regresi fungsional yang di-seed?
     \item \textbf{RQ3 (perbandingan):} Bagaimana kualitas intrinsik, keandalan, dan efisiensi suite yang dibangkitkan dibandingkan baseline manual dan suite publik independen?
 \end{itemize}
@@ -82,7 +84,7 @@ Dalam perspektif quality assurance, generator uji perlu dievaluasi sebagai bagia
 
 Penelitian terkait regresi web juga menekankan keseimbangan antara otomasi dan maintainability. Abadeh \cite{abadeh2021webregression} mengusulkan framework evolusioner untuk auto-regression testing aplikasi web, sedangkan studi test automation maturity menunjukkan bahwa keberhasilan otomasi dipengaruhi oleh kualitas skrip, stabilitas test, lingkungan eksekusi, dan integrasi CI \cite{wang2022maturity,wang2022quality}. Studi terbaru tentang page object generation berbasis model besar juga menunjukkan bahwa abstraksi locator tetap menjadi isu penting pada web testing modern \cite{karagoz2026pageobject}. Karena itu, TathyaTest perlu menyertakan indikator kualitas artefak seperti assertion density, rasio locator rapuh (\textit{brittle-locator ratio}), dan distribusi strategi locator agar suite yang dihasilkan dapat ditelaah sebelum klaim efektivitas yang lebih luas dibuat.
 
-RBAC membutuhkan strategi pengujian yang memisahkan perspektif pengguna. Model RBAC klasik menempatkan role sebagai perantara antara pengguna dan permission sehingga administrasi hak akses tidak melekat langsung pada individu \cite{ferraiolo1992rbac,sandhu1996rbac}. Literatur tentang autentikasi dan otorisasi juga menegaskan perbedaan antara verifikasi identitas dan keputusan akses, serta menempatkan RBAC sebagai salah satu model otorisasi yang umum digunakan \cite{margam2026auth}. Implikasinya, test generator perlu mengamati aplikasi dari beberapa role dan membandingkan permukaan akses yang ditemukan. Prinsip ini menjadi dasar crawling per role pada TathyaTest.
+RBAC membutuhkan strategi pengujian yang memisahkan perspektif pengguna. Model RBAC klasik menempatkan role sebagai perantara antara pengguna dan permission sehingga administrasi hak akses tidak melekat langsung pada individu \cite{ferraiolo1992rbac,sandhu1996rbac}. Literatur tentang autentikasi dan otorisasi juga menegaskan perbedaan antara verifikasi identitas dan keputusan akses, serta menempatkan RBAC sebagai salah satu model otorisasi yang umum digunakan \cite{margam2026auth}. Implikasinya, test generator perlu mengamati aplikasi dari beberapa role dan membandingkan cakupan akses yang teramati. Prinsip ini menjadi dasar crawling per role pada TathyaTest.
 
 Dibandingkan perkakas pembangkitan uji berbasis GUI yang mapan, posisi TathyaTest paling dekat dengan kategori crawler-based generation. Crawljax mengeksplorasi aplikasi Ajax melalui analisis dinamis perubahan state antarmuka dan membangun state-flow graph \cite{mesbah2012crawljax}, sedangkan TESTAR menghasilkan aksi uji scriptless dari GUI pada saat eksekusi tanpa artefak test yang dipelihara \cite{vos2015testar}. Tabel~\ref{tab:tools} membandingkan kapabilitas yang relevan: berbeda dari keduanya, TathyaTest mengeksekusi crawling per role untuk menurunkan matriks akses RBAC, memetakan constraint field menjadi variasi positive/negative/edge yang bertingkat, dan menghasilkan artefak Playwright yang dapat dipelihara (spesifikasi beserta manifesnya) dengan oracle berbasis state validasi, bukan sekadar penjelajahan atau deteksi crash.
 
@@ -90,7 +92,8 @@ Dibandingkan perkakas pembangkitan uji berbasis GUI yang mapan, posisi TathyaTes
 \caption{Perbandingan kapabilitas dengan perkakas pembangkitan uji GUI}
 \label{tab:tools}
 \centering
-\begin{tabularx}{\linewidth}{p{0.26\linewidth} p{0.16\linewidth} p{0.16\linewidth} X}
+\footnotesize
+\begin{tblr}{width=\linewidth, colspec={X[1.4,l] X[1,l] X[1,l] X[1.3,l]}}
 \toprule
 Kapabilitas & Crawljax \cite{mesbah2012crawljax} & TESTAR \cite{vos2015testar} & TathyaTest \\
 \midrule
@@ -98,10 +101,10 @@ Sumber model & state-flow graph & GUI runtime & DOM per role \\
 Multi-role / RBAC & tidak & tidak & ya (matriks akses) \\
 Tier negative/edge dari constraint & tidak & tidak & ya \\
 Oracle & invarian generik & crash/freeze & state validasi + error DOM \\
-Artefak yang dipelihara & crawl model & tidak ada & spesifikasi Playwright + manifest \\
-Data uji & manual/plugin & acak & faker runtime (seedable) \\
+Artefak yang dipelihara & crawl model & tidak ada & spesifikasi Playwright + manifes \\
+Data uji & manual atau plugin & acak & faker runtime (seedable) \\
 \bottomrule
-\end{tabularx}
+\end{tblr}
 \end{table}
 
 Penelitian ini menempatkan kontribusi pada integrasi pipeline, bukan pada klaim bahwa satu teknik baru menyelesaikan seluruh masalah test generation. Bukti literatur terbaru menunjukkan adanya komponen yang relevan: observasi UI, pembangkitan uji, regresi, locator abstraction, flakiness, RBAC, dan E2E generation berbasis fitur \cite{sunman2022automated,romano2021uiflaky,hashemi2022jsflaky,pei2023traf,alian2024autoe2e,junior2025genia}. TathyaTest menggabungkan komponen tersebut melalui crawling per role, kontrak model elemen, pembangkitan variasi data, dan penulisan spesifikasi Playwright. Dengan posisi ini, TathyaTest diperlakukan sebagai fondasi baseline regresi dan functional availability check; efektivitasnya dievaluasi secara empiris pada tiga subjek dalam penelitian ini, sementara generalisasi yang lebih luas tetap memerlukan replikasi lanjutan.
@@ -169,7 +172,8 @@ Generator tidak mensintesis halaman maupun aksi di luar hasil observasi. Generat
 \caption{Penentuan target test dari kontrak crawl}
 \label{tab:target-selection}
 \centering
-\begin{tabularx}{\linewidth}{p{0.21\linewidth}p{0.27\linewidth}X}
+\footnotesize
+\begin{tblr}{width=\linewidth, colspec={X[0.8,l] X[1.1,l] X[2.2,l]}}
 \toprule
 Target & Sumber pada crawl & Aturan seleksi dan test yang dihasilkan \\
 \midrule
@@ -180,7 +184,7 @@ Varian field & constraint field dan petunjuk data & nilai required, format, panj
 Interaction & link dan button & kontrol non-submit dideduplikasi berdasarkan target kanonis atau label, lalu diperiksa navigasinya \\
 Pagination & label link/button atau query key & kontrol next, previous, first, last, dan nomor halaman menjadi test perilaku pagination \\
 \bottomrule
-\end{tabularx}
+\end{tblr}
 \end{table}
 
 Oracle assertion dirancang untuk memeriksa state, bukan teks pesan yang rapuh. Untuk form dengan \texttt{novalidate}, sistem mengecek indikator error pada DOM dan memastikan halaman kembali ke konteks form. Untuk validasi native HTML5, sistem mengecek validity state atau selector \texttt{:invalid}. Interaction dan pagination tidak dianggap membuktikan kebenaran bisnis; keduanya memeriksa bahwa aksi DOM dapat dijalankan tanpa error server yang tampak. Dengan demikian, target test TathyaTest adalah permukaan fungsi yang terekspos oleh DOM terautentikasi, bukan seluruh fungsi tersembunyi aplikasi.
@@ -189,7 +193,7 @@ Oracle assertion dirancang untuk memeriksa state, bukan teks pesan yang rapuh. U
 
 Untuk RBAC, sebuah rute dianggap reachable oleh role tertentu jika rute tersebut muncul pada hasil crawl role tersebut. Perbedaan antar kontrak crawl tiap role membentuk kandidat positive dan negative authorization test: rute yang terlihat bagi admin tetapi tidak bagi user menjadi target blocked-route untuk user. Pendekatan ini mengurangi kebutuhan mendeklarasikan semua permission secara manual, tetapi tetap terbatas pada rute yang terlihat melalui DOM atau seed eksplisit tester.
 
-Dalam konteks functional availability, test yang dihasilkan menjadi kandidat synthetic check yang lebih dekat dengan pengalaman pengguna daripada HTTP uptime. Alur login, akses role, CRUD, validasi form, search/filter, pagination, dan perubahan state dapat diperiksa melalui browser nyata. Klaim ini tetap dibatasi: TathyaTest menyediakan baseline dari permukaan aplikasi yang berhasil di-crawl, bukan jaminan kelengkapan cakupan maupun superioritas deteksi fault.
+Dalam konteks functional availability, test yang dihasilkan menjadi kandidat synthetic check yang lebih dekat dengan pengalaman pengguna daripada HTTP uptime. Alur login, akses role, CRUD, validasi form, search/filter, pagination, dan perubahan state dapat diperiksa melalui browser nyata. Klaim ini tetap dibatasi: TathyaTest menyediakan baseline dari bagian aplikasi yang berhasil di-crawl, bukan jaminan kelengkapan cakupan maupun superioritas deteksi fault.
 
 \subsection{Implementasi Prototipe}
 
@@ -220,7 +224,7 @@ Skenario evaluasi harus mencerminkan fungsi yang secara langsung dialami penggun
 \caption{Skenario evaluasi fungsional}
 \label{tab:scenarios}
 \centering
-\begin{tabularx}{\linewidth}{p{0.12\linewidth}X X}
+\begin{tblr}{width=\linewidth, colspec={Q[l] X[1.5,l] X[1,l]}}
 \toprule
 ID & Skenario & Tujuan \\
 \midrule
@@ -235,18 +239,19 @@ S8 & Pagination todo & Navigasi data \\
 S9 & Toggle done/undone & Aksi perubahan state \\
 S10 & Delete todo & Aksi destruktif \\
 \bottomrule
-\end{tabularx}
+\end{tblr}
 \end{table}
 
 \subsubsection{Kelompok Metrik dan Injeksi Fault}
 
-Metrik dikelompokkan menjadi lima kelompok yang masing-masing menjawab satu EQ, seperti dirangkum pada Tabel~\ref{tab:metrics}. Kelompok A (cakupan model) dan D (kualitas suite) bersifat statis dan dihitung dari manifes pembangkitan serta kontrak crawl. Kelompok B (cakupan kode SUT) memerlukan instrumentasi sisi PHP: middleware berbasis PCOV mengakumulasi baris yang tereksekusi saat suite berjalan, lalu dipadankan dengan analisis statis berbasis token untuk memperoleh cakupan baris, fungsi, proksi cabang, dan cakupan rute eksak. Kelompok C (deteksi fault) merupakan metrik utama penelitian ini. Kelompok E (keandalan, efisiensi, baseline) memanfaatkan pengulangan terkontrol dengan seed faker tetap agar variasi data tidak mencemari sinyal flakiness.
+Metrik dikelompokkan menjadi lima kelompok yang masing-masing menjawab satu EQ, seperti dirangkum pada Tabel~\ref{tab:metrics}. Kelompok A (cakupan model) dan D (kualitas suite) bersifat statis dan dihitung dari manifes pembangkitan serta kontrak crawl. Kelompok B (cakupan kode SUT) memerlukan instrumentasi sisi PHP: middleware berbasis PCOV mengakumulasi baris yang tereksekusi saat suite berjalan, lalu dipadankan dengan analisis statis berbasis token untuk memperoleh cakupan baris, fungsi, proksi cabang, dan cakupan rute eksak. Kelompok C (deteksi fault) merupakan metrik utama penelitian ini. Kelompok E (keandalan, efisiensi, baseline) memanfaatkan pengulangan terkontrol dengan seed faker tetap agar variasi data tidak mengaburkan sinyal flakiness.
 
 \begin{table}[!t]
 \caption{Lima kelompok metrik evaluasi TathyaTest}
 \label{tab:metrics}
 \centering
-\begin{tabularx}{\linewidth}{p{0.06\linewidth} p{0.06\linewidth} p{0.22\linewidth} X}
+\footnotesize
+\begin{tblr}{width=\linewidth, colspec={Q[l] Q[l] X[0.9,l] X[2.2,l]}}
 \toprule
 EQ & RQ & Kelompok metrik & Makna operasional \\
 \midrule
@@ -254,9 +259,9 @@ EQ1 & RQ1 & Model coverage & cakupan elemen, rute, operasi CRUD, sel matriks RBA
 EQ2 & RQ1 & SUT code coverage & cakupan baris, fungsi, proksi cabang (PCOV), dan rute aplikasi yang dijangkau \\
 EQ3 & RQ2 & Fault detection & mutation score per kelas fault dan akurasi lokalisasi fault \\
 EQ4 & RQ3 & Test-suite quality & assertion density, distribusi strategi locator, rasio locator rapuh, skor robustness \\
-EQ5 & RQ3 & Reliability/efficiency & flake rate, kesepakatan lintas-browser (Fleiss $\kappa$), waktu fase, throughput, rasio penghematan, perbandingan baseline \\
+EQ5 & RQ3 & Reliability\slash efficiency & flake rate, kesepakatan lintas-browser (Fleiss $\kappa$), waktu fase, throughput, rasio penghematan, perbandingan baseline \\
 \bottomrule
-\end{tabularx}
+\end{tblr}
 \end{table}
 
 Deteksi fault (EQ3) dinilai melalui fault seeding bergaya mutation testing~\cite{jia2011mutation,papadakis2019mutation}. Katalog fault (Tabel~\ref{tab:faults}) berisi mutant yang dapat dibalik dan diaktifkan secara deterministik melalui registri fault sisi server tanpa mem-patch kode. Untuk tiap fault, evaluator mengaktifkannya melalui endpoint kontrol khusus evaluasi, menjalankan test yang relevan (disaring lewat manifes), dan mencatat fault sebagai \emph{killed} bila minimal satu test relevan gagal. Mutation score dihitung sebagai rasio fault yang killed terhadap total fault, secara keseluruhan dan per kelas. Akurasi lokalisasi mengukur proporsi fault yang killed oleh test yang memang menargetkan kelas fault tersebut, sehingga membedakan deteksi insidental dari deteksi yang tepat sasaran.
@@ -265,7 +270,8 @@ Deteksi fault (EQ3) dinilai melalui fault seeding bergaya mutation testing~\cite
 \caption{Katalog fault yang di-seed}
 \label{tab:faults}
 \centering
-\begin{tabularx}{\linewidth}{p{0.20\linewidth} X}
+\footnotesize
+\begin{tblr}{width=\linewidth, colspec={X[0.6,l] X[2.4,l]}}
 \toprule
 Kelas & Contoh mutant yang diaktifkan \\
 \midrule
@@ -275,32 +281,52 @@ crud & melewati persistensi create/update \\
 pagination & menggagalkan permintaan di luar halaman pertama \\
 auth & menerima sembarang password saat login \\
 \bottomrule
-\end{tabularx}
+\end{tblr}
 \end{table}
 
 \subsubsection{Metode Statistik dan Baseline}
 
 Agar klaim dapat dipertahankan, setiap pengukuran waktu dan flakiness diulang $R$ kali dan dilaporkan sebagai rerata dengan interval kepercayaan 95\% (distribusi Student-$t$). Kesepakatan status lintas-browser (Chromium, Firefox, WebKit) diukur dengan Fleiss $\kappa$~\cite{fleiss1971kappa}. Suite yang dihasilkan dibandingkan dengan baseline menggunakan uji non-parametrik Mann--Whitney $U$~\cite{mann1947whitney} beserta ukuran efek rank-biserial, mengikuti panduan pengujian statistik untuk algoritma acak pada rekayasa perangkat lunak~\cite{arcuri2014statistical}. Rasio penghematan waktu dihitung terhadap asumsi biaya manual per kasus yang dinyatakan secara eksplisit beserta rentang sensitivitasnya, sehingga asumsi tidak disalahartikan sebagai hasil empiris.
 
-Perbandingan baseline diperkuat dengan \textbf{analisis kualitas statis} atas sumber spesifikasi: jumlah test, assertion density, rasio locator rapuh, dan distribusi strategi locator dihitung baik untuk suite yang dihasilkan TathyaTest (dari manifes pembangkitan) maupun untuk baseline. Untuk dua studi kasus Laravel, baseline adalah suite Playwright manual yang disertakan dalam repositori. Untuk SauceDemo, baseline adalah tiga suite independen berlisensi MIT dari GitHub yang di-pin pada commit tertentu dengan provenance tercatat: suite ashutoshfolane/playwright-saucedemo~\cite{baseline2026ashutoshfolane}, aferminboada/portfolio-playwright-typescript-e2e-tests-pageObjetModel-saucedemo~\cite{baseline2026aferminboada}, dan renanpacheco21/automation\_sauceDemo\_playwright~\cite{baseline2025renanpacheco}. Penggunaan baseline pihak ketiga yang independen memperkuat validitas eksternal perbandingan EQ5, karena baseline tidak ditulis oleh peneliti yang sama dengan yang merancang TathyaTest.
+Perbandingan baseline diperkuat dengan \textbf{analisis kualitas statis} atas sumber spesifikasi: jumlah test, assertion density, rasio locator rapuh, dan distribusi strategi locator dihitung baik untuk suite yang dihasilkan TathyaTest (dari manifes pembangkitan) maupun untuk baseline. Untuk dua studi kasus Laravel, baseline adalah suite Playwright manual yang disertakan dalam repositori. Untuk SauceDemo, baseline adalah tiga suite independen dari GitHub yang dirinci pada Tabel~\ref{tab:baseline-publik}; ketiganya berlisensi MIT dan di-pin pada commit tertentu sehingga perbandingan dapat direplikasi. Penggunaan baseline pihak ketiga yang independen memperkuat validitas eksternal perbandingan EQ5, karena baseline tidak ditulis oleh peneliti yang sama dengan yang merancang TathyaTest.
+
+\begin{table}[!t]
+\caption{Suite baseline publik SauceDemo}
+\label{tab:baseline-publik}
+\centering
+\footnotesize
+\begin{talltblr}[
+  note{a}={\url{https://github.com/ashutoshfolane/playwright-saucedemo}},
+  note{b}={\url{https://github.com/aferminboada/portfolio-playwright-typescript-e2e-tests-pageObjetModel-saucedemo}},
+  note{c}={\url{https://github.com/renanpacheco21/automation_sauceDemo_playwright}},
+]{width=\linewidth, colspec={X[1.5,l] X[1.2,l] Q[c] Q[c]}}
+\toprule
+Suite & Penulis & Lisensi & Commit \\
+\midrule
+playwright-saucedemo\TblrNote{a} & Ashutosh Folane & MIT & \texttt{0925c3c} \\
+portfolio-playwright saucedemo (POM)\TblrNote{b} & Alejandro Fermin Boada & MIT & \texttt{5b72fe5} \\
+automation sauceDemo playwright\TblrNote{c} & Renan Pacheco & MIT & \texttt{51764d4} \\
+\bottomrule
+\end{talltblr}
+\end{table}
 
 Seluruh nilai numerik pada Bagian~\ref{sec:hasil} diperoleh langsung dari eksekusi modul evaluasi pada ketiga subjek dan dapat ditelusuri ke laporan evaluasi terstruktur. Untuk dua studi kasus Laravel, server berjalan dengan instrumentasi coverage aktif; untuk SauceDemo, evaluasi memakai layanan publik \texttt{https://www.saucedemo.com} tanpa instrumentasi server-side. Dengan kerangka lima kelompok metrik dan tiga subjek ini, TathyaTest dinilai dari rantai bukti yang menyeluruh, bukan hanya dari jumlah test: cakupan model dan kode, efektivitas deteksi fault, kualitas intrinsik suite, serta keandalan dan efisiensi relatif terhadap baseline independen.
 
 \section{Hasil dan Pembahasan}
 \label{sec:hasil}
 
-Bagian ini melaporkan hasil evaluasi pada ketiga subjek dengan $R=5$ pengulangan pada tiga browser (Chromium, Firefox, WebKit) dan seed faker tetap; lima subbagian pertama menyajikan hasil per EQ, kemudian pembahasan mencakup ringkasan temuan, implikasi, keterbatasan, ancaman validitas, dan ketersediaan artefak. Suite yang dihasilkan bersifat unik-per-skenario: deduplikasi berbasis bentuk (route shape dengan segmen numerik dinormalisasi, bentuk form, kunci query tanpa nilai, serta deduplikasi varian validasi lintas-role) menjamin tidak ada dua test yang mewakili skenario sama dengan data berbeda. Konsekuensinya, seluruh metrik cakupan EQ1 dihitung terhadap jumlah bentuk skenario unik pada model crawl, bukan terhadap jumlah instans elemen DOM. Untuk kedua studi kasus Laravel, generator menghasilkan \evBladeTestCount{} test per stack dengan distribusi tier \evBladeTiers{} pada lima kategori spesifikasi (auth, forms, interactions, pagination, RBAC).
+Bagian ini melaporkan hasil evaluasi pada ketiga subjek dengan $R=5$ pengulangan pada tiga browser (Chromium, Firefox, WebKit) dan seed faker tetap; lima subbagian pertama menyajikan hasil per EQ, kemudian pembahasan mencakup ringkasan temuan, implikasi, keterbatasan, ancaman validitas, dan ketersediaan artefak. Suite yang dihasilkan bersifat unik per skenario: deduplikasi berbasis bentuk (route shape dengan segmen numerik dinormalisasi, bentuk form, kunci query tanpa nilai, serta deduplikasi varian validasi lintas-role) menjamin tidak ada dua test yang mewakili skenario sama dengan data berbeda. Konsekuensinya, seluruh metrik cakupan EQ1 dihitung terhadap jumlah bentuk skenario unik pada model crawl, bukan terhadap jumlah instans elemen DOM. Untuk kedua studi kasus Laravel, generator menghasilkan \evBladeTestCount{} test per stack dengan distribusi tier \evBladeTiers{} pada lima kategori spesifikasi (auth, forms, interactions, pagination, RBAC).
 
 \subsection{EQ1: Cakupan Model}
 
-Suite yang dibangkitkan menutupi seluruh permukaan model yang teramati: cakupan elemen mencapai \evBladeElemCov{} pada Blade, \evInertiaElemCov{} pada Inertia React, dan \evSauceElemCov{} pada SauceDemo, dengan cakupan rute, matriks akses RBAC, dan jenis constraint 100\% pada ketiga subjek (Tabel~\ref{tab:hasil-eq1}). Angka tersebut berarti setiap path unik yang ditemukan crawler diuji, setiap sel role$\times$rute pada matriks akses memiliki test positif (rute terjangkau) atau negatif (rute terblokir), dan setiap jenis constraint yang muncul pada kontrak crawl (required, type, maxlength, option, confirmation, unique, robustness) diuji oleh minimal satu varian. Operasi CRUD penuh teruji pada resource \texttt{todos} di kedua studi kasus Laravel, sedangkan SauceDemo, sesuai sifat aplikasinya, hanya mengekspos operasi read pada permukaan katalog dan checkout. Perlu ditegaskan bahwa basis penghitungan metrik ini adalah model crawl yang dibangun TathyaTest sendiri, sehingga nilai 100\% dibaca sebagai kelengkapan internal terhadap permukaan yang teramati; ukuran eksternalnya diberikan oleh cakupan kode pada EQ2. Dalam batasan tersebut, paruh pertama RQ1 terjawab: tidak ada permukaan teramati yang lolos dari pembangkitan.
+Suite yang dibangkitkan mencakup seluruh permukaan model yang teramati: cakupan elemen mencapai \evBladeElemCov{} pada Blade, \evInertiaElemCov{} pada Inertia React, dan \evSauceElemCov{} pada SauceDemo, dengan cakupan rute, matriks akses RBAC, dan jenis constraint 100\% pada ketiga subjek (Tabel~\ref{tab:hasil-eq1}). Angka tersebut berarti setiap path unik yang ditemukan crawler diuji, setiap sel role$\times$rute pada matriks akses memiliki test positif (rute terjangkau) atau negatif (rute terblokir), dan setiap jenis constraint yang muncul pada kontrak crawl (required, type, maxlength, option, confirmation, unique, robustness) diuji oleh minimal satu varian. Operasi CRUD penuh teruji pada resource \texttt{todos} di kedua studi kasus Laravel, sedangkan SauceDemo, sesuai sifat aplikasinya, hanya mengekspos operasi read pada halaman katalog dan checkout. Perlu ditegaskan bahwa basis penghitungan metrik ini adalah model crawl yang dibangun TathyaTest sendiri, sehingga nilai 100\% dipahami sebagai kelengkapan internal terhadap permukaan yang teramati; ukuran eksternalnya diberikan oleh cakupan kode pada EQ2. Dalam batasan tersebut, paruh pertama RQ1 terjawab: tidak ada permukaan teramati yang lolos dari pembangkitan.
 
 \begin{table}[!t]
 \caption{Hasil EQ1: cakupan model per subjek}
 \label{tab:hasil-eq1}
 \centering
 \footnotesize
-\begin{tabularx}{\linewidth}{p{0.27\linewidth} X X X}
+\begin{tblr}{width=\linewidth, colspec={X[1.1,l] X[1,l] X[1,l] X[1,l]}}
 \toprule
 Metrik & Blade & Inertia & SauceDemo \\
 \midrule
@@ -313,19 +339,19 @@ Matriks RBAC & \evBladeRbacCov & \evInertiaRbacCov & \evSauceRbacCov \\
 Jenis constraint & \evBladeConstraintCov & \evInertiaConstraintCov & \evSauceConstraintCov \\
 Tier pos/neg/edge & \evBladeTiers & \evInertiaTiers & \evSauceTiers \\
 \bottomrule
-\end{tabularx}
+\end{tblr}
 \end{table}
 
 \subsection{EQ2: Cakupan Kode SUT}
 
-Pada tingkat kode, suite yang sama menjangkau \evBladeRouteExecCov{} rute aplikasi (Blade maupun Inertia React) dengan cakupan fungsi \evBladeFuncCov{} dan \evInertiaFuncCov{} serta cakupan baris \evBladeLineCov{} dan \evInertiaLineCov{} (Tabel~\ref{tab:hasil-eq2}; cakupan cabang dilaporkan sebagai proksi berbasis baris control-flow sesuai batasan pada bagian ancaman validitas). Kesenjangan antara cakupan rute yang tinggi dan cakupan baris yang moderat merupakan karakteristik pengujian E2E berbasis permukaan: seluruh controller, form request, dan jalur validasi utama tereksekusi, sementara cabang penanganan kondisi yang tidak terekspos DOM tidak tersentuh. SauceDemo tidak diikutsertakan karena server eksternal tidak dapat diinstrumentasi. Bersama EQ1, temuan ini melengkapi jawaban RQ1: cakupan permukaan yang penuh diterjemahkan menjadi jangkauan kode sisi server yang substansial namun tidak menyeluruh.
+Pada tingkat kode, suite yang sama menjangkau \evBladeRouteExecCov{} rute aplikasi (Blade maupun Inertia React) dengan cakupan fungsi \evBladeFuncCov{} dan \evInertiaFuncCov{} serta cakupan baris \evBladeLineCov{} dan \evInertiaLineCov{} (Tabel~\ref{tab:hasil-eq2}; cakupan cabang dilaporkan sebagai proksi berbasis baris control-flow sesuai batasan pada bagian ancaman validitas). Kesenjangan antara cakupan rute yang tinggi dan cakupan baris yang moderat merupakan karakteristik pengujian E2E yang bekerja dari antarmuka: seluruh controller, form request, dan jalur validasi utama tereksekusi, sementara cabang penanganan kondisi yang tidak terekspos DOM tidak tersentuh. SauceDemo tidak diikutsertakan karena server eksternal tidak dapat diinstrumentasi. Bersama EQ1, temuan ini melengkapi jawaban RQ1: cakupan permukaan yang penuh diterjemahkan menjadi jangkauan kode sisi server yang substansial namun tidak menyeluruh.
 
 \begin{table}[!t]
 \caption{Hasil EQ2: cakupan kode SUT (PCOV)}
 \label{tab:hasil-eq2}
 \centering
 \footnotesize
-\begin{tabularx}{\linewidth}{p{0.34\linewidth} X X}
+\begin{tblr}{width=\linewidth, colspec={X[1.3,l] X[1,l] X[1,l]}}
 \toprule
 Metrik & Blade & Inertia \\
 \midrule
@@ -334,7 +360,7 @@ Cakupan cabang (proksi) & \evBladeBranchCov & \evInertiaBranchCov \\
 Cakupan fungsi & \evBladeFuncCov & \evInertiaFuncCov \\
 Cakupan rute tereksekusi & \evBladeRouteExecCov & \evInertiaRouteExecCov \\
 \bottomrule
-\end{tabularx}
+\end{tblr}
 \end{table}
 
 \subsection{EQ3: Efektivitas Deteksi Fault}
@@ -346,7 +372,7 @@ Seluruh sembilan mutant pada katalog terdeteksi: mutation score mencapai \evBlad
 \label{tab:hasil-eq3}
 \centering
 \footnotesize
-\begin{tabularx}{\linewidth}{p{0.34\linewidth} X X}
+\begin{tblr}{width=\linewidth, colspec={X[1.3,l] X[1,l] X[1,l]}}
 \toprule
 Kelas fault & Blade & Inertia \\
 \midrule
@@ -359,19 +385,19 @@ auth ($n=1$) & \evBladeMutAuth & \evInertiaMutAuth \\
 Mutation score keseluruhan & \evBladeMutScore & \evInertiaMutScore \\
 Akurasi lokalisasi & \evBladeFaultLoc & \evInertiaFaultLoc \\
 \bottomrule
-\end{tabularx}
+\end{tblr}
 \end{table}
 
 \subsection{EQ4: Kualitas Suite}
 
-Kualitas intrinsik suite yang dibangkitkan setara dengan baseline manual dan jauh lebih terjaga daripada suite publik: assertion density \evBladeAssertDensity{} berbanding \evBladeBaseAssertDensity{} pada Blade, dan rasio locator rapuh \evSauceBrittle{} berbanding \evSauceBaseBrittle{} terhadap gabungan tiga suite publik SauceDemo (Tabel~\ref{tab:hasil-eq4}, nilai dihasilkan/baseline dipisah tanda ``/''). Selisih rasio locator rapuh yang mencolok pada SauceDemo bersumber langsung dari rantai prioritas locator semantik: generator memilih role, label, dan placeholder sebelum jatuh ke CSS, sementara mayoritas suite publik bertumpu pada selector CSS. Rasio locator rapuh dihitung dari proporsi locator CSS fallback, dan skor robustness merangkum posisi strategi locator pada rantai prioritas; baseline Blade/Inertia React adalah suite manual yang disertakan dalam repositori, baseline SauceDemo adalah tiga suite publik berlisensi MIT. Dimensi kualitas ini menjadi komponen pertama jawaban RQ3.
+Kualitas intrinsik suite yang dibangkitkan setara dengan baseline manual dan jauh lebih terjaga daripada suite publik: assertion density \evBladeAssertDensity{} berbanding \evBladeBaseAssertDensity{} pada Blade, dan rasio locator rapuh \evSauceBrittle{} berbanding \evSauceBaseBrittle{} terhadap gabungan tiga suite publik SauceDemo (Tabel~\ref{tab:hasil-eq4}, nilai dihasilkan/baseline dipisah tanda ``/''). Selisih rasio locator rapuh yang mencolok pada SauceDemo bersumber langsung dari rantai prioritas locator semantik: generator memilih role, label, dan placeholder sebelum beralih ke CSS, sementara mayoritas suite publik bertumpu pada selector CSS. Rasio locator rapuh dihitung dari proporsi locator CSS fallback, dan skor robustness merangkum posisi strategi locator pada rantai prioritas; baseline Blade/Inertia React adalah suite manual yang disertakan dalam repositori, baseline SauceDemo adalah tiga suite publik berlisensi MIT. Dimensi kualitas ini menjadi komponen pertama jawaban RQ3.
 
 \begin{table}[!t]
 \caption{Hasil EQ4: kualitas suite: dihasilkan / baseline}
 \label{tab:hasil-eq4}
 \centering
 \footnotesize
-\begin{tabularx}{\linewidth}{p{0.27\linewidth} X X X}
+\begin{tblr}{width=\linewidth, colspec={X[1.1,l] X[1,l] X[1,l] X[1,l]}}
 \toprule
 Metrik & Blade & Inertia & SauceDemo \\
 \midrule
@@ -382,19 +408,19 @@ Locator robustness (gen.) & \evBladeRobustness & \evInertiaRobustness & \evSauce
 Mix locator (gen.) & \evBladeLocMix & \evInertiaLocMix & \evSauceLocMix \\
 Mix locator (baseline) & \evBladeBaseLocMix & \evInertiaBaseLocMix & \evSauceBaseLocMix \\
 \bottomrule
-\end{tabularx}
+\end{tblr}
 \end{table}
 
 \subsection{EQ5: Keandalan, Efisiensi, dan Perbandingan Baseline}
 
-Keandalan suite tinggi pada kedua subjek terkontrol: flake rate \evBladeFlake{} pada Blade dan \evInertiaFlake{} pada Inertia React, dengan kesepakatan lintas-browser $\kappa=$ \evBladeKappa{} (Tabel~\ref{tab:hasil-eq5}). Pada subjek eksternal, flake rate \evSauceFlake{} masih dapat diterima mengingat variabilitas server publik. Durasi per test suite yang dibangkitkan lebih tinggi daripada baseline yang ringkas, dan perbedaannya signifikan secara statistik (Blade: \evBladeMannWhitney). Sebagai imbangannya, rasio penghematan waktu penyusunan mencapai \evBladeSavings{} terhadap asumsi biaya manual yang dinyatakan secara eksplisit. Secara metodologis, flake rate dihitung dari ketidakkonsistenan status antar $R=5$ pengulangan, sedangkan $\kappa$ dihitung atas status pass/fail; test yang di-skip karena pembatasan role tidak dihitung sebagai penilaian. Baris verdict merangkum tabulasi head-to-head pada tujuh dimensi yang dapat diperbandingkan. Nilai $\kappa$ yang mendekati nol pada SauceDemo perlu dibaca dalam konteks paradoks prevalensi Fleiss $\kappa$: pada distribusi status yang sangat timpang dan flakiness server eksternal, ketidaksepakatan kecil menekan $\kappa$ secara tidak proporsional. Bersama EQ4, hasil ini melengkapi jawaban RQ3: biaya eksekusi per test yang lebih tinggi ditukar dengan cakupan skenario yang jauh lebih luas dan waktu penyusunan yang jauh lebih singkat.
+Keandalan suite tinggi pada kedua subjek terkontrol: flake rate \evBladeFlake{} pada Blade dan \evInertiaFlake{} pada Inertia React, dengan kesepakatan lintas-browser $\kappa=$ \evBladeKappa{} (Tabel~\ref{tab:hasil-eq5}). Pada subjek eksternal, flake rate \evSauceFlake{} masih dapat diterima mengingat variabilitas server publik. Durasi per test suite yang dibangkitkan lebih tinggi daripada baseline yang ringkas, dan perbedaannya signifikan secara statistik (Blade: \evBladeMannWhitney). Sebagai kompensasinya, rasio penghematan waktu penyusunan mencapai \evBladeSavings{} terhadap asumsi biaya manual yang dinyatakan secara eksplisit. Secara metodologis, flake rate dihitung dari ketidakkonsistenan status antar $R=5$ pengulangan, sedangkan $\kappa$ dihitung atas status pass/fail; test yang di-skip karena pembatasan role tidak dihitung sebagai penilaian. Baris verdict merangkum tabulasi head-to-head pada tujuh dimensi yang dapat diperbandingkan. Nilai $\kappa$ yang mendekati nol pada SauceDemo perlu ditafsirkan dalam konteks paradoks prevalensi Fleiss $\kappa$: pada distribusi status yang sangat timpang dan flakiness server eksternal, ketidaksepakatan kecil menurunkan nilai $\kappa$ secara tidak proporsional. Bersama EQ4, hasil ini melengkapi jawaban RQ3: biaya eksekusi per test yang lebih tinggi ditukar dengan cakupan skenario yang jauh lebih luas dan waktu penyusunan yang jauh lebih singkat.
 
 \begin{table}[!t]
 \caption{Hasil EQ5: keandalan, efisiensi, dan perbandingan baseline}
 \label{tab:hasil-eq5}
 \centering
 \footnotesize
-\begin{tabularx}{\linewidth}{p{0.27\linewidth} X X X}
+\begin{tblr}{width=\linewidth, colspec={X[1.1,l] X[1,l] X[1,l] X[1,l]}}
 \toprule
 Metrik & Blade & Inertia & SauceDemo \\
 \midrule
@@ -409,12 +435,12 @@ Rasio penghematan & \evBladeSavings & \evInertiaSavings & \evSauceSavings \\
 Mann--Whitney $U$ & \evBladeMannWhitney & \evInertiaMannWhitney & \evSauceMannWhitney \\
 Verdict head-to-head & \evBladeVerdict & \evInertiaVerdict & \evSauceVerdict \\
 \bottomrule
-\end{tabularx}
+\end{tblr}
 \end{table}
 
 \subsection{Ringkasan Temuan}
 
-\textbf{RQ1 (cakupan).} Suite yang dibangkitkan menutupi 100\% permukaan fungsional yang teramati pada ketiga subjek, mencakup elemen, rute, form, field, navigasi, matriks RBAC, dan jenis constraint (Tabel~\ref{tab:hasil-eq1}). Pada tingkat kode, suite menjangkau \evBladeRouteExecCov{} rute aplikasi dengan cakupan baris \evBladeLineCov{} pada Blade dan \evInertiaLineCov{} pada Inertia React (Tabel~\ref{tab:hasil-eq2}). Batasnya eksplisit: nilai 100\% mengacu pada permukaan yang teramati crawler, sehingga fungsi yang tidak pernah muncul pada DOM tidak ikut dibangkitkan.
+\textbf{RQ1 (cakupan).} Suite yang dibangkitkan mencakup 100\% permukaan fungsional yang teramati pada ketiga subjek, mencakup elemen, rute, form, field, navigasi, matriks RBAC, dan jenis constraint (Tabel~\ref{tab:hasil-eq1}). Pada tingkat kode, suite menjangkau \evBladeRouteExecCov{} rute aplikasi dengan cakupan baris \evBladeLineCov{} pada Blade dan \evInertiaLineCov{} pada Inertia React (Tabel~\ref{tab:hasil-eq2}). Batasannya jelas: nilai 100\% mengacu pada permukaan yang teramati crawler, sehingga fungsi yang tidak pernah muncul pada DOM tidak ikut dibangkitkan.
 
 \textbf{RQ2 (deteksi fault).} Suite mendeteksi seluruh sembilan fault yang di-seed, dengan mutation score \evBladeMutScore{} pada Blade dan \evInertiaMutScore{} pada Inertia React serta akurasi lokalisasi \evBladeFaultLoc{} (Tabel~\ref{tab:hasil-eq3}). Fault otorisasi ikut terdeteksi oleh test RBAC yang diturunkan dari matriks akses per role. Hasil ini berlaku untuk katalog fault penelitian ini dan tidak digeneralisasi ke sembarang regresi.
 
@@ -422,9 +448,9 @@ Verdict head-to-head & \evBladeVerdict & \evInertiaVerdict & \evSauceVerdict \\
 
 \subsection{Implikasi Hasil}
 
-Hasil tersebut menempatkan nilai utama TathyaTest pada penyusunan baseline pengujian regresi langsung dari aplikasi yang sedang berjalan. Mutation score dan akurasi lokalisasi memindahkan klaim dari potensi berbasis artefak menuju efektivitas deteksi fault yang terukur, sedangkan metrik keandalan dan efisiensi menempatkan klaim tersebut relatif terhadap baseline manual melalui uji statistik. Tabulasi head-to-head memperlihatkan pola yang saling melengkapi: suite hasil generate unggul pada mutation score, assertion density, dan locator robustness, sementara baseline manual yang ringkas unggul pada durasi per test dan rasio locator rapuh. Pola ini konsisten dengan posisi TathyaTest sebagai penyedia baseline regresi berskala luas, bukan pengganti test manual yang ditulis selektif oleh insinyur QA.
+Hasil tersebut menempatkan nilai utama TathyaTest pada penyusunan baseline pengujian regresi langsung dari aplikasi yang sedang berjalan. Mutation score dan akurasi lokalisasi menggeser klaim dari potensi berbasis artefak menjadi efektivitas deteksi fault yang terukur, sedangkan metrik keandalan dan efisiensi menempatkan klaim tersebut relatif terhadap baseline manual melalui uji statistik. Tabulasi head-to-head memperlihatkan pola yang saling melengkapi: suite hasil generate unggul pada mutation score, assertion density, dan locator robustness, sementara baseline manual yang ringkas unggul pada durasi per test dan rasio locator rapuh. Pola ini konsisten dengan posisi TathyaTest sebagai penyedia baseline regresi berskala luas, bukan pengganti test manual yang ditulis selektif oleh insinyur QA.
 
-Kedua konstruk pada judul terhubung langsung dengan besaran yang diukur. Untuk pengujian regresi, setiap fault yang di-seed mensimulasikan regresi fungsional, sehingga mutation score pada EQ3 dibaca sebagai tingkat deteksi regresi; flake rate yang rendah dan $\kappa$ yang tinggi pada $R=5$ pengulangan menunjukkan kestabilan yang dibutuhkan suite regresi yang dijalankan berulang kali. Untuk functional availability, kombinasi pass rate \evBladePassRate{} sampai \evInertiaPassRate{} pada build normal tanpa fault yang aktif dan kegagalan test yang tepat sasaran pada setiap fault menunjukkan bahwa suite mampu membedakan fungsi yang tersedia dari fungsi yang rusak. Waktu eksekusi \evBladeExecSec{} untuk satu siklus penuh (tiga browser, dua role) memberi batas atas frekuensi pemeriksaan yang realistis bila suite dipakai sebagai synthetic functional check pascadeployment.
+Kedua konstruk pada judul terhubung langsung dengan besaran yang diukur. Untuk pengujian regresi, setiap fault yang di-seed mensimulasikan regresi fungsional, sehingga mutation score pada EQ3 dipahami sebagai tingkat deteksi regresi; flake rate yang rendah dan $\kappa$ yang tinggi pada $R=5$ pengulangan menunjukkan kestabilan yang dibutuhkan suite regresi yang dijalankan berulang kali. Untuk functional availability, kombinasi pass rate \evBladePassRate{} sampai \evInertiaPassRate{} pada build normal tanpa fault yang aktif dan kegagalan test yang tepat sasaran pada setiap fault menunjukkan bahwa suite mampu membedakan fungsi yang tersedia dari fungsi yang rusak. Waktu eksekusi \evBladeExecSec{} untuk satu siklus penuh (tiga browser, dua role) memberi batas atas frekuensi pemeriksaan yang realistis bila suite dipakai sebagai synthetic functional check pascadeployment.
 
 \subsection{Keterbatasan}
 
@@ -441,7 +467,7 @@ Fault yang di-seed diaktifkan secara deterministik melalui registri fault sisi s
 Dua subjek internal dibangun di atas satu kerangka kerja (Laravel) sehingga generalisasi utamanya berlaku pada aplikasi MVC dengan pola serupa. Subjek ketiga (SauceDemo, React SPA eksternal) memperluas cakupan arsitektur, tetapi memperkenalkan asimetri: EQ2 dan EQ3 tidak berlaku karena server tidak dapat diinstrumentasi, dan ketersediaan \texttt{saucedemo.com} tidak dijamin pada setiap eksekusi. Baseline EQ5 SauceDemo berasal dari tiga suite pihak ketiga yang ditulis dengan pola dan kualitas beragam. Justru karena independen, suite tersebut memperkuat validitas eksternal perbandingan, meskipun tidak dirancang untuk cakupan yang sebanding satu-ke-satu dengan suite yang dihasilkan.
 
 \subsubsection{Validitas konstruk}
-Cakupan cabang dilaporkan sebagai proksi berbasis baris control-flow, bukan cakupan cabang penuh; klaim terkait EQ2 dibaca dalam batasan tersebut. Demikian pula, cakupan model 100\% pada EQ1 diukur terhadap model crawl yang dibangun TathyaTest sendiri, sehingga merupakan ukuran kelengkapan internal, bukan cakupan seluruh fungsi aplikasi. Mutation score bergantung pada representativitas katalog fault. Katalog disusun untuk mencakup lima kelas regresi fungsional yang umum (validasi, otorisasi, CRUD, pagination, autentikasi), bukan sebagai enumerasi lengkap; katalog juga dirancang oleh penulis yang sama dengan perancang generator dan diaktifkan satu per satu, sehingga mutation score \evBladeMutScore{} dibaca sebagai kinerja terhadap katalog tersebut, bukan kemampuan deteksi untuk sembarang regresi. Rasio penghematan waktu bertumpu pada asumsi biaya manual per kasus yang dinyatakan secara eksplisit; asumsi ini disajikan dengan analisis sensitivitas dan tidak diperlakukan sebagai hasil empiris.
+Cakupan cabang dilaporkan sebagai proksi berbasis baris control-flow, bukan cakupan cabang penuh; klaim terkait EQ2 ditafsirkan dalam batasan tersebut. Demikian pula, cakupan model 100\% pada EQ1 diukur terhadap model crawl yang dibangun TathyaTest sendiri, sehingga merupakan ukuran kelengkapan internal, bukan cakupan seluruh fungsi aplikasi. Mutation score bergantung pada representativitas katalog fault. Katalog disusun untuk mencakup lima kelas regresi fungsional yang umum (validasi, otorisasi, CRUD, pagination, autentikasi), bukan sebagai enumerasi lengkap; katalog juga dirancang oleh penulis yang sama dengan perancang generator dan diaktifkan satu per satu, sehingga mutation score \evBladeMutScore{} dipahami sebagai kinerja terhadap katalog tersebut, bukan kemampuan deteksi untuk sembarang regresi. Rasio penghematan waktu bertumpu pada asumsi biaya manual per kasus yang dinyatakan secara eksplisit; asumsi ini disajikan dengan analisis sensitivitas dan tidak diperlakukan sebagai hasil empiris.
 
 \subsubsection{Validitas kesimpulan}
 Perbandingan generated-vs-baseline menggunakan uji non-parametrik Mann--Whitney $U$ dengan ukuran efek rank-biserial pada taraf signifikansi $\alpha=0{,}05$, dan seluruh rerata dilaporkan dengan interval kepercayaan 95\% (Student-$t$, $n=R$). Ukuran baseline manual yang kecil membatasi kekuatan statistik uji; oleh karena itu ukuran efek dilaporkan bersama nilai-$p$ eksak agar pembaca dapat menilai magnitudo, bukan hanya signifikansi.
@@ -454,7 +480,7 @@ Seluruh evaluasi dapat direplikasi dengan satu perintah evaluasi per subjek. Con
 
 Penelitian ini menyajikan TathyaTest, generator test case fungsional berbasis crawling untuk aplikasi web. Pipeline melakukan crawling terautentikasi per role, mengekstraksi model elemen, membentuk matriks akses RBAC, lalu menghasilkan spesifikasi Playwright beserta manifesnya dengan data runtime faker yang dapat di-seed. Efektivitasnya diukur melalui modul evaluasi dengan lima kelompok metrik dan uji statistik pada tiga subjek, yaitu dua studi kasus Laravel yang diinstrumentasi penuh dan SauceDemo sebagai subjek eksternal.
 
-Ketiga pertanyaan penelitian terjawab oleh data. Pertama, suite yang dibangkitkan menutupi seluruh permukaan fungsional yang teramati pada ketiga subjek dan menjangkau \evBladeRouteExecCov{} rute aplikasi dengan cakupan baris \evBladeLineCov{} sampai \evInertiaLineCov{}. Kedua, seluruh sembilan fault yang di-seed terdeteksi dengan mutation score \evBladeMutScore{} dan akurasi lokalisasi \evBladeFaultLoc{}, termasuk fault otorisasi yang ditangkap test RBAC yang diturunkan dari matriks akses. Ketiga, kualitas intrinsik suite setara atau melampaui baseline pada assertion density, locator robustness, dan rasio locator rapuh, dengan trade-off berupa durasi eksekusi per test yang lebih tinggi daripada baseline manual yang ringkas.
+Ketiga pertanyaan penelitian terjawab oleh data. Pertama, suite yang dibangkitkan mencakup seluruh permukaan fungsional yang teramati pada ketiga subjek dan menjangkau \evBladeRouteExecCov{} rute aplikasi dengan cakupan baris \evBladeLineCov{} sampai \evInertiaLineCov{}. Kedua, seluruh sembilan fault yang di-seed terdeteksi dengan mutation score \evBladeMutScore{} dan akurasi lokalisasi \evBladeFaultLoc{}, termasuk fault otorisasi yang ditangkap test RBAC yang diturunkan dari matriks akses. Ketiga, kualitas intrinsik suite setara atau melampaui baseline pada assertion density, locator robustness, dan rasio locator rapuh, dengan trade-off berupa durasi eksekusi per test yang lebih tinggi daripada baseline manual yang ringkas.
 
 Hasil tersebut berlaku dalam batas yang dinyatakan. Cakupan 100\% mengacu pada permukaan yang teramati crawler, dan mutation score mengacu pada katalog sembilan fault. Dalam batas itu, kontribusi penelitian ini adalah desain pipeline pembangkitan uji dan kerangka evaluasi yang dapat direplikasi, dengan generalisabilitas yang diperkuat oleh subjek lintas-stack dan baseline pihak ketiga yang independen.
 
