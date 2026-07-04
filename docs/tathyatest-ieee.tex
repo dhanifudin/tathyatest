@@ -51,7 +51,7 @@ pengujian perangkat lunak, aplikasi web, test generation, regression testing, fu
 
 Aplikasi web modern memerlukan pemeriksaan ketersediaan yang tidak berhenti pada status endpoint. Pada sistem akademik, layanan administrasi, e-commerce, dan aplikasi internal organisasi, pengguna menilai kualitas sistem dari keberhasilan login, akses halaman, pengisian formulir, dan perubahan data. Standar kualitas perangkat lunak menempatkan functional suitability, reliability, usability, security, dan maintainability sebagai karakteristik yang saling terkait, bukan sebagai dimensi yang berdiri sendiri \cite{iso25010}. Dengan demikian, uptime monitoring tetap diperlukan sebagai indikator bahwa server merespons permintaan HTTP, tetapi indikator tersebut belum memadai untuk menilai apakah fungsi aplikasi benar-benar tersedia bagi pengguna akhir.
 
-Kesenjangan tersebut muncul karena technical availability dan functional availability menjawab pertanyaan yang berbeda. Sebuah aplikasi dapat mengembalikan status HTTP 200, tetapi login gagal karena perubahan konfigurasi session, formulir gagal dikirim karena perubahan validasi, pengguna biasa dapat mengakses halaman admin karena kesalahan otorisasi, atau tombol pagination tidak berfungsi karena perubahan DOM. Standar pengujian perangkat lunak menekankan bahwa test fungsional perlu memeriksa perilaku eksternal dan \textit{oracle} yang dapat diamati, bukan hanya status internal atau respons permukaan \cite{iso29119}. Oleh sebab itu, functional availability perlu dibaca sebagai kemampuan menjalankan alur pengguna utama pada browser nyata.
+Kesenjangan tersebut muncul karena technical availability dan functional availability menjawab pertanyaan yang berbeda. Sebuah aplikasi dapat mengembalikan status HTTP 200, tetapi login gagal karena perubahan konfigurasi session, formulir gagal dikirim karena perubahan validasi, pengguna biasa dapat mengakses halaman admin karena kesalahan otorisasi, atau tombol pagination tidak berfungsi karena perubahan DOM. Standar pengujian perangkat lunak menekankan bahwa test fungsional perlu memeriksa perilaku eksternal melalui \textit{oracle} yang dapat diamati, yaitu mekanisme penentu lulus atau gagalnya sebuah test, bukan hanya melalui status internal atau respons permukaan \cite{iso29119}. Oleh sebab itu, functional availability perlu dibaca sebagai kemampuan menjalankan alur pengguna utama pada browser nyata.
 
 Pengujian end-to-end (E2E) merupakan bukti yang relevan untuk functional availability karena test dijalankan melalui browser nyata. Penelitian lima tahun terakhir menunjukkan bahwa fragmen web, informasi penggunaan, skenario terekam, dan screen transition dapat digunakan untuk membangun test dari aplikasi yang berjalan \cite{garcia2021webusage,sunman2022automated,yandrapally2023fragment,le2025screen}. Namun, otomasi browser masih menuntut keputusan manual tentang skenario, \textit{locator}, data uji, dan oracle, sementara test UI dikenal sensitif terhadap perubahan DOM, sinkronisasi asinkron, serta \textit{flakiness} \cite{romano2021uiflaky,hashemi2022jsflaky,pei2023traf}. Temuan tersebut menunjukkan bahwa generator E2E perlu menghasilkan test yang dapat dieksekusi sekaligus artefak yang kualitasnya dapat diaudit.
 
@@ -97,12 +97,12 @@ Dibandingkan perkakas pembangkitan uji berbasis GUI yang mapan, posisi TathyaTes
 \toprule
 Kapabilitas & Crawljax \cite{mesbah2012crawljax} & TESTAR \cite{vos2015testar} & TathyaTest \\
 \midrule
-Sumber model & state-flow graph & GUI runtime & DOM per role \\
+Sumber model & graf transisi state UI & eksplorasi GUI saat eksekusi & DOM terautentikasi per role \\
 Multi-role / RBAC & tidak & tidak & ya (matriks akses) \\
 Tier negative/edge dari constraint & tidak & tidak & ya \\
-Oracle & invarian generik & crash/freeze & state validasi + error DOM \\
-Artefak yang dipelihara & crawl model & tidak ada & spesifikasi Playwright + manifes \\
-Data uji & manual atau plugin & acak & faker runtime (seedable) \\
+Oracle & invarian umum halaman & hanya crash atau hang aplikasi & status validasi form dan indikator error DOM \\
+Artefak yang dipelihara & model hasil crawl & tidak ada & spesifikasi Playwright + manifes \\
+Data uji & manual atau plugin & aksi acak & faker runtime (seedable) \\
 \bottomrule
 \end{tblr}
 \end{table}
@@ -286,7 +286,7 @@ auth & menerima sembarang password saat login \\
 
 \subsubsection{Metode Statistik dan Baseline}
 
-Agar klaim dapat dipertahankan, setiap pengukuran waktu dan flakiness diulang $R$ kali dan dilaporkan sebagai rerata dengan interval kepercayaan 95\% (distribusi Student-$t$). Kesepakatan status lintas-browser (Chromium, Firefox, WebKit) diukur dengan Fleiss $\kappa$~\cite{fleiss1971kappa}. Suite yang dihasilkan dibandingkan dengan baseline menggunakan uji non-parametrik Mann--Whitney $U$~\cite{mann1947whitney} beserta ukuran efek rank-biserial, mengikuti panduan pengujian statistik untuk algoritma acak pada rekayasa perangkat lunak~\cite{arcuri2014statistical}. Rasio penghematan waktu dihitung terhadap asumsi biaya manual per kasus yang dinyatakan secara eksplisit beserta rentang sensitivitasnya, sehingga asumsi tidak disalahartikan sebagai hasil empiris.
+Agar klaim dapat dipertahankan, setiap pengukuran waktu dan flakiness diulang $R$ kali dan dilaporkan sebagai rerata dengan interval kepercayaan 95\% (distribusi Student-$t$). Kesepakatan status lintas-browser, yaitu sejauh mana Chromium, Firefox, dan WebKit memberikan status lulus/gagal yang sama untuk test yang sama, diukur dengan Fleiss $\kappa$~\cite{fleiss1971kappa}; nilai 1 menandakan seluruh verdict identik pada ketiga browser. Suite yang dihasilkan dibandingkan dengan baseline menggunakan uji non-parametrik Mann--Whitney $U$~\cite{mann1947whitney} beserta ukuran efek rank-biserial, mengikuti panduan pengujian statistik untuk algoritma acak pada rekayasa perangkat lunak~\cite{arcuri2014statistical}. Rasio penghematan waktu dihitung terhadap asumsi biaya manual per kasus yang dinyatakan secara eksplisit beserta rentang sensitivitasnya, sehingga asumsi tidak disalahartikan sebagai hasil empiris.
 
 Perbandingan baseline diperkuat dengan \textbf{analisis kualitas statis} atas sumber spesifikasi: jumlah test, assertion density, rasio locator rapuh, dan distribusi strategi locator dihitung baik untuk suite yang dihasilkan TathyaTest (dari manifes pembangkitan) maupun untuk baseline. Untuk dua studi kasus Laravel, baseline adalah suite Playwright manual yang disertakan dalam repositori. Untuk SauceDemo, baseline adalah tiga suite independen dari GitHub yang dirinci pada Tabel~\ref{tab:baseline-publik}; ketiganya berlisensi MIT dan di-pin pada commit tertentu sehingga perbandingan dapat direplikasi. Penggunaan baseline pihak ketiga yang independen memperkuat validitas eksternal perbandingan EQ5, karena baseline tidak ditulis oleh peneliti yang sama dengan yang merancang TathyaTest.
 

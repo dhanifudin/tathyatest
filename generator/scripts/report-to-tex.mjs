@@ -27,8 +27,13 @@ const subjects = [
 ];
 const laravelSubjects = subjects.slice(0, 2);
 
-// Indonesian decimal comma, LaTeX-safe.
-const id = (x, d) => x.toFixed(d).replace('.', '{,}');
+// Indonesian decimal comma, LaTeX-safe; math-mode minus for negative values.
+const id = (x, d) => {
+  const s = x.toFixed(d);
+  return (s.startsWith('-') ? `$-$${s.slice(1)}` : s).replace('.', '{,}');
+};
+// Indonesian thousand separator (dot) for large integers.
+const idInt = (x) => Math.round(x).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 const opt = (v, fn) => (v === undefined || v === null ? TBD : fn(v));
 const pctFrac = (c) => opt(c, (v) => `${id(v.ratio * 100, 1)}\\% (${v.covered}/${v.total})`);
 const pctOnly = (r) => opt(r, (v) => `${id(v * 100, 1)}\\%`);
@@ -52,7 +57,7 @@ const savings = (eff) =>
 const mannWhitney = (mw) =>
   opt(mw, (v) => {
     const p = v.pValue < 0.001 ? '$p<0{,}001$' : `$p=${id(v.pValue, 3)}$`;
-    return `$U$=${Math.round(v.u)}; ${p}; $r$=${id(v.rankBiserial, 2)}`;
+    return `$U$=${idInt(v.u)}; ${p}; $r$=${id(v.rankBiserial, 2)}`;
   });
 const verdict = (v) =>
   opt(v, (w) => {
@@ -146,7 +151,9 @@ for (const [prefix, name] of subjects) {
   const rel = s?.reliability;
   const eff = s?.efficiency;
   def(`ev${prefix}Flake`, pctOnly(rel?.flakeRate), `stacks[${name}].reliability.flakeRate`);
-  def(`ev${prefix}Kappa`, opt(rel?.crossBrowserKappa, (v) => id(v, 3)), `stacks[${name}].reliability.crossBrowserKappa`);
+  // Two decimals: with the Indonesian decimal comma, "1,000" would be visually
+  // ambiguous with the English thousand grouping.
+  def(`ev${prefix}Kappa`, opt(rel?.crossBrowserKappa, (v) => id(v, 2)), `stacks[${name}].reliability.crossBrowserKappa`);
   def(`ev${prefix}PassRate`, pctOnly(rel?.passRate), `stacks[${name}].reliability.passRate`);
   def(`ev${prefix}CrawlSec`, seconds(eff?.crawlMs), `stacks[${name}].efficiency.crawlMs`);
   def(`ev${prefix}GenMs`, opt(eff?.generateMs, (v) => `${Math.round(v)}~ms`), `stacks[${name}].efficiency.generateMs`);
