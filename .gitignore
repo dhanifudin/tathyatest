@@ -47,3 +47,6 @@ case-study/*/storage/logs/*
 !case-study/*/storage/framework/sessions/.gitkeep
 !case-study/*/storage/framework/views/.gitkeep
 !case-study/*/storage/logs/.gitkeep
+
+# Claude Code local settings
+.claude/settings.local.json
