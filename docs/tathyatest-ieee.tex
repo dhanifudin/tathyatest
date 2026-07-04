@@ -38,7 +38,7 @@ Email: penulis2@example.ac.id}
 \maketitle
 
 \begin{abstract}
-Ketersediaan fungsional aplikasi web tidak dapat disimpulkan semata-mata dari \textit{uptime monitoring}: endpoint yang merespons HTTP 200 tidak menjamin bahwa login, otorisasi berbasis peran, validasi formulir, dan operasi CRUD benar-benar dapat dijalankan oleh pengguna. Di sisi lain, penyusunan suite pengujian \textit{end-to-end} secara manual menuntut biaya awal yang tinggi dan rentan terhadap perubahan struktur DOM. Penelitian ini mengusulkan TathyaTest, sebuah \textit{pipeline} pembangkitan \textit{test case} fungsional yang mentransformasikan aplikasi web yang sedang berjalan menjadi model elemen per role, matriks akses RBAC, dan spesifikasi Playwright yang dapat dieksekusi. Prototipe melakukan \textit{crawling} terautentikasi untuk setiap role, mengekstraksi kontrak \texttt{crawl/<role>.json} sebagai antarmuka yang auditabel, menurunkan variasi data positif, negatif, dan edge dari constraint HTML, lalu mengemisi lima kategori spesifikasi (auth, forms, interactions, pagination, RBAC) dengan data runtime faker yang dapat di-seed. Efektivitas prototipe dievaluasi secara empiris melalui subperintah \texttt{tt eval} menggunakan lima kelompok metrik, yaitu cakupan model, cakupan kode aplikasi target (PCOV), deteksi \textit{fault} melalui \textit{mutation-style fault seeding}, kualitas suite, serta keandalan dan efisiensi. Seluruh pengukuran dilaporkan dengan interval kepercayaan 95\%, uji Mann--Whitney $U$, dan kesepakatan lintas-browser Fleiss $\kappa$. Evaluasi dilakukan pada tiga subjek: dua studi kasus Laravel (Blade dan Inertia React) yang diinstrumentasi penuh, serta SauceDemo sebagai subjek eksternal untuk menilai generalisabilitas lintas-stack dengan \textit{baseline} berupa tiga suite Playwright independen berlisensi MIT. Pada kedua studi kasus Laravel, suite yang dihasilkan mendeteksi seluruh sembilan fault yang di-seed, dengan \textit{mutation score} \evBladeMutScore{} pada Blade, \evInertiaMutScore{} pada Inertia React, dan kesepakatan lintas-browser $\kappa=$ \evBladeKappa. Kontribusi utama penelitian ini adalah desain pipeline pembangkitan uji sekaligus kerangka evaluasi berbasis metrik yang dapat direplikasi untuk menilai efektivitas generator test fungsional.
+Penelitian ini mengusulkan TathyaTest, sebuah \textit{pipeline} pembangkitan \textit{test case} fungsional yang mentransformasikan aplikasi web yang sedang berjalan menjadi model elemen per role, matriks akses RBAC, dan spesifikasi Playwright yang dapat dieksekusi. Kontribusi tersebut menjawab dua persoalan praktis sekaligus: \textit{uptime monitoring} tidak mampu menilai ketersediaan fungsional karena endpoint yang merespons HTTP 200 tidak menjamin login, otorisasi peran, validasi formulir, dan operasi CRUD benar-benar berfungsi, sementara penyusunan suite pengujian \textit{end-to-end} secara manual menuntut biaya awal yang tinggi dan rentan terhadap perubahan struktur DOM. Prototipe melakukan \textit{crawling} terautentikasi untuk setiap role, mengekstraksi kontrak \texttt{crawl/<role>.json} sebagai antarmuka yang auditabel, menurunkan variasi data positif, negatif, dan edge dari constraint HTML, lalu mengemisi lima kategori spesifikasi (auth, forms, interactions, pagination, RBAC) dengan data runtime faker yang dapat di-seed. Efektivitas prototipe dievaluasi melalui subperintah \texttt{tt eval} menggunakan lima kelompok metrik, yaitu cakupan model, cakupan kode aplikasi target (PCOV), deteksi \textit{fault} melalui \textit{mutation-style fault seeding}, kualitas suite, serta keandalan dan efisiensi; seluruh pengukuran dilaporkan dengan interval kepercayaan 95\%, uji Mann--Whitney $U$, dan kesepakatan lintas-browser Fleiss $\kappa$. Evaluasi dilakukan pada tiga subjek: dua studi kasus Laravel (Blade dan Inertia React) yang diinstrumentasi penuh, serta SauceDemo sebagai subjek eksternal dengan \textit{baseline} berupa tiga suite Playwright independen berlisensi MIT. Pada kedua studi kasus Laravel, suite yang dihasilkan mendeteksi seluruh sembilan fault yang di-seed, dengan \textit{mutation score} \evBladeMutScore{} pada Blade, \evInertiaMutScore{} pada Inertia React, dan kesepakatan lintas-browser $\kappa=$ \evBladeKappa. Hasil tersebut menunjukkan bahwa pipeline yang diusulkan, beserta kerangka evaluasinya yang dapat direplikasi, layak menjadi dasar pengujian regresi dan pemeriksaan functional availability aplikasi web.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -74,7 +74,7 @@ Kontribusi penelitian ini adalah sebagai berikut.
     \item Menyusun kerangka evaluasi empiris lima kelompok metrik (\texttt{tt eval}): cakupan model, cakupan kode SUT, efektivitas deteksi fault melalui mutation score, kualitas suite, serta keandalan dan efisiensi dengan uji statistik terhadap baseline independen.
 \end{itemize}
 
-\section{Tinjauan Pustaka}
+\section{Penelitian Terkait}
 
 Automated test generation untuk aplikasi web menunjukkan bahwa skenario uji dapat dibangun dari artefak yang dapat diamati, bukan hanya dari skrip manual. Pada domain web, studi terbaru memanfaatkan informasi penggunaan, test case terekam, fragment-based generation, combinatorial strategy, dan pendekatan berbasis model besar untuk menghasilkan skenario uji yang lebih sistematis \cite{garcia2021webusage,sunman2022automated,yandrapally2023fragment,letraon2023combinatorial,alian2024autoe2e}. Literatur ini mendukung asumsi bahwa observasi antarmuka dapat menjadi sumber test case, tetapi juga menunjukkan perlunya kontrak yang jelas antara hasil observasi dan test yang dieksekusi.
 
@@ -106,15 +106,20 @@ Data uji & manual/plugin & acak & faker runtime (seedable) \\
 
 Penelitian ini menempatkan kontribusi pada integrasi pipeline, bukan pada klaim bahwa satu teknik baru menyelesaikan seluruh masalah test generation. Bukti literatur terbaru menunjukkan adanya komponen yang relevan: observasi UI, pembangkitan uji, regresi, locator abstraction, flakiness, RBAC, dan E2E generation berbasis fitur \cite{sunman2022automated,romano2021uiflaky,hashemi2022jsflaky,pei2023traf,alian2024autoe2e,junior2025genia}. TathyaTest menggabungkan komponen tersebut melalui crawling per role, kontrak model elemen, pembangkitan variasi data, dan emisi spesifikasi Playwright. Dengan posisi ini, TathyaTest diperlakukan sebagai fondasi baseline regresi dan functional availability check; efektivitasnya dievaluasi secara empiris pada tiga subjek dalam penelitian ini, sementara generalisasi yang lebih luas tetap memerlukan replikasi lanjutan.
 
-\section{Metodologi Penelitian}
+\section{Metode Penelitian}
+\label{sec:metode}
 
-Penelitian ini menggunakan pendekatan rekayasa prototipe dengan orientasi design science karena tujuan utamanya adalah merancang dan menilai artefak perangkat lunak. Artefak yang dikaji adalah pipeline TathyaTest, mulai dari konfigurasi target, crawling terautentikasi, kontrak model elemen, mapping test case, sampai emisi Playwright. Pendekatan ini sesuai dengan fokus penelitian test generation terbaru yang menilai artefak berdasarkan kemampuan menghasilkan test, oracle, coverage, dan bukti eksekusi \cite{sunman2022automated,yandrapally2023fragment,hossain2022oracleadequacy,erni2024sbft}. Evaluasi pada penelitian ini berupa studi empiris berbasis metrik yang menilai efektivitas artefak melalui lima kelompok metrik dan uji statistik, sebagaimana dirinci pada Bagian Evaluasi.
+Bagian ini menguraikan metode penelitian dalam empat subbagian: pendekatan penelitian, perancangan pipeline, implementasi prototipe, dan desain evaluasi.
 
-Tahapan penelitian disusun agar setiap keputusan desain memiliki dasar artefaktual yang dapat diperiksa. Pertama, kebutuhan sistem dianalisis dari sudut pandang pengujian fungsional aplikasi web: login, peran pengguna, form CRUD, validasi, navigasi, search/filter, pagination, dan monitoring fungsional. Kedua, arsitektur dirancang dengan memisahkan lapisan crawling, kontrak model elemen, mapping test case, dan emitter Playwright. Ketiga, prototipe diimplementasikan sebagai CLI TypeScript yang memuat crawler Playwright, generator, dan runner test. Keempat, evaluasi empiris berbasis metrik dilakukan pada ketiga subjek sehingga ketiga RQ dijawab oleh data yang terukur lintas-stack: cakupan model dan kode untuk RQ1, deteksi fault untuk RQ2, serta kualitas, keandalan, dan efisiensi relatif terhadap baseline untuk RQ3. Bagian berikutnya merinci perancangan artefak yang menjadi objek pengukuran tersebut.
+\subsection{Pendekatan Penelitian}
 
-\section{Perancangan TathyaTest}
+Penelitian ini menggunakan pendekatan rekayasa prototipe dengan orientasi design science karena tujuan utamanya adalah merancang dan menilai artefak perangkat lunak. Artefak yang dikaji adalah pipeline TathyaTest, mulai dari konfigurasi target, crawling terautentikasi, kontrak model elemen, mapping test case, sampai emisi Playwright. Pendekatan ini sesuai dengan fokus penelitian test generation terbaru yang menilai artefak berdasarkan kemampuan menghasilkan test, oracle, coverage, dan bukti eksekusi \cite{sunman2022automated,yandrapally2023fragment,hossain2022oracleadequacy,erni2024sbft}. Evaluasi berupa studi empiris berbasis metrik yang menilai efektivitas artefak melalui lima kelompok metrik dan uji statistik, sebagaimana dirinci pada Subbagian~\ref{subsec:desain-eval}.
 
-\subsection{Alur Teknis Crawl dan Generate}
+Tahapan penelitian disusun agar setiap keputusan desain memiliki dasar artefaktual yang dapat diperiksa. Pertama, kebutuhan sistem dianalisis dari sudut pandang pengujian fungsional aplikasi web: login, peran pengguna, form CRUD, validasi, navigasi, search/filter, pagination, dan monitoring fungsional. Kedua, arsitektur dirancang dengan memisahkan lapisan crawling, kontrak model elemen, mapping test case, dan emitter Playwright. Ketiga, prototipe diimplementasikan sebagai CLI TypeScript yang memuat crawler Playwright, generator, dan runner test. Keempat, evaluasi empiris berbasis metrik dilakukan pada ketiga subjek sehingga ketiga RQ dijawab oleh data yang terukur lintas-stack: cakupan model dan kode untuk RQ1, deteksi fault untuk RQ2, serta kualitas, keandalan, dan efisiensi relatif terhadap baseline untuk RQ3.
+
+\subsection{Perancangan Pipeline}
+
+\subsubsection{Alur Crawl dan Generate}
 
 Pipeline TathyaTest dirancang sebagai transformasi berlapis dari aplikasi berjalan menjadi artefak uji yang dapat dieksekusi. Seperti ditunjukkan pada Gambar~\ref{fig:tt-flow}, pengguna menyediakan aplikasi target, konfigurasi role, kredensial, coverage, dan data hints. \texttt{tt crawl} membuka sesi Playwright untuk setiap role, melakukan login, memvalidasi bahwa form login tidak lagi aktif pada halaman login, lalu menjadikan landing page setelah login sebagai seed pertama. Crawler memperluas queue dengan URL same-origin yang ditemukan dari \texttt{a[href]}, \texttt{form[action]}, \texttt{formaction}, serta atribut data seperti \texttt{data-href}, \texttt{data-url}, \texttt{data-route}, dan \texttt{data-to}. Seed eksplisit dari \texttt{crawl.include} tetap didukung, tetapi diperlakukan sebagai input tester, bukan default tersembunyi.
 
@@ -156,7 +161,7 @@ Pipeline TathyaTest dirancang sebagai transformasi berlapis dari aplikasi berjal
 
 Setiap halaman yang berhasil dikunjungi diekstraksi menjadi model elemen. Form menyimpan \texttt{action}, \texttt{method}, indikasi operasi CRUD, status \texttt{novalidate}, field, constraint HTML, opsi input, name hints, dan locator submit. Link dan button disimpan bersama locator, sedangkan table menyimpan header dan jumlah baris. Locator dipilih dengan urutan prioritas semantik: \texttt{data-testid}, role dan accessible name, label, placeholder, id stabil, atribut \texttt{name}, lalu CSS sebagai pilihan terakhir. Urutan ini menjadikan hasil generate dapat ditelusuri ke DOM yang diamati sekaligus menjadi dasar metrik distribusi strategi locator dan rasio locator rapuh pada evaluasi kualitas suite.
 
-\subsection{Pemilihan Target Test dari DOM}
+\subsubsection{Pemilihan Target Test dari DOM}
 
 \texttt{tt generate} tidak mensintesis halaman maupun aksi di luar hasil observasi. Generator hanya membaca \texttt{crawl/<role>.json}, membentuk matriks akses dari perbedaan hasil crawl antar role, lalu memilih target test dari elemen yang benar-benar tercatat pada kontrak. Target route berasal dari path unik yang ditemukan crawler. Target form berasal dari form fieldful untuk submit valid dan variasi validasi, atau form fieldless untuk aksi seperti delete dan toggle state. Target interaction berasal dari link dan button yang bukan submit form dan bukan duplikat logika. Target pagination dipilih dari label umum seperti next, previous, first, last, nomor halaman, atau query key seperti \texttt{page}, \texttt{cursor}, dan \texttt{offset}. Untuk menekan duplikasi, URL dikanonisasi, query yang hanya membedakan data tidak dijadikan test baru, dan form dikelompokkan berdasarkan action, method, operasi CRUD, submit text, serta bentuk field.
 
@@ -180,39 +185,34 @@ Pagination & link/button label or query key & next, previous, first, last, and p
 
 Oracle assertion dirancang untuk memeriksa state, bukan teks pesan yang rapuh. Untuk form dengan \texttt{novalidate}, sistem mengecek indikator error pada DOM dan memastikan halaman kembali ke konteks form. Untuk validasi native HTML5, sistem mengecek validity state atau selector \texttt{:invalid}. Interaction dan pagination tidak dianggap membuktikan kebenaran bisnis; keduanya memeriksa bahwa aksi DOM dapat dijalankan tanpa error server yang tampak. Dengan demikian, target test TathyaTest adalah permukaan fungsi yang terekspos oleh DOM terautentikasi, bukan seluruh fungsi tersembunyi aplikasi.
 
-\subsection{RBAC dan Functional Availability}
+\subsubsection{RBAC dan Functional Availability}
 
 Untuk RBAC, sebuah rute dianggap reachable oleh role tertentu jika rute tersebut muncul pada hasil crawl role tersebut. Perbedaan antar file \texttt{crawl/<role>.json} membentuk kandidat positive dan negative authorization test: rute yang terlihat bagi admin tetapi tidak bagi user menjadi target blocked-route untuk user. Pendekatan ini mengurangi kebutuhan mendeklarasikan semua permission secara manual, tetapi tetap terbatas pada rute yang terlihat melalui DOM atau seed eksplisit tester.
 
 Dalam konteks functional availability, test yang dihasilkan menjadi kandidat synthetic check yang lebih dekat dengan pengalaman pengguna daripada HTTP uptime. Alur login, akses role, CRUD, validasi form, search/filter, pagination, dan perubahan state dapat diperiksa melalui browser nyata. Klaim ini tetap dibatasi: TathyaTest menyediakan baseline dari permukaan aplikasi yang berhasil di-crawl, bukan jaminan kelengkapan cakupan maupun superioritas deteksi fault.
 
-\section{Implementasi Prototipe}
+\subsection{Implementasi Prototipe}
 
 Prototipe TathyaTest diimplementasikan sebagai komponen TypeScript terpadu agar crawling dan emisi test berada pada satu toolchain. Di dalamnya terdapat crawler Playwright untuk autentikasi per role, crawling same-origin dari DOM, validasi konfigurasi, RBAC diff, field variant generator, oracle, mapper, dan emitter Playwright. Penggunaan satu engine menjamin perilaku browser yang konsisten untuk target server-rendered maupun JavaScript-rendered, sehingga hasil evaluasi tidak dipengaruhi perbedaan antara crawler statis dan crawler berbasis browser.
 
-CLI \texttt{tt} menunjukkan bahwa pipeline dapat dijalankan sebagai alur QA yang berulang. Perintah \texttt{tt init} membuat konfigurasi awal, \texttt{tt crawl} menjalankan crawler Playwright, \texttt{tt generate} membaca hasil crawl dan menghasilkan spesifikasi Playwright, \texttt{tt run} menjalankan test suite, dan \texttt{tt all} menjalankan seluruh pipeline dari crawl sampai eksekusi. Struktur perintah ini menghubungkan arsitektur pada Bagian Perancangan dengan praktik penggunaan oleh tester, sekaligus menjadi antarmuka yang dipakai evaluator pada Bagian Evaluasi.
+CLI \texttt{tt} menunjukkan bahwa pipeline dapat dijalankan sebagai alur QA yang berulang. Perintah \texttt{tt init} membuat konfigurasi awal, \texttt{tt crawl} menjalankan crawler Playwright, \texttt{tt generate} membaca hasil crawl dan menghasilkan spesifikasi Playwright, \texttt{tt run} menjalankan test suite, dan \texttt{tt all} menjalankan seluruh pipeline dari crawl sampai eksekusi. Struktur perintah ini menghubungkan rancangan pipeline dengan praktik penggunaan oleh tester, sekaligus menjadi antarmuka yang dipakai evaluator.
 
 Tiga aplikasi subjek disediakan untuk memberi variasi mekanisme rendering dan kontrol akses. Subjek pertama adalah Laravel Breeze Blade Todo App yang merepresentasikan aplikasi server-rendered, dan subjek kedua adalah Laravel Breeze Inertia React Todo App yang merepresentasikan aplikasi JavaScript-rendered. Keduanya memiliki fitur login, admin/user role, Todo CRUD, done/undone, search, filter, pagination, validasi form, dan halaman admin-only. Kesamaan fitur tersebut membuat perbedaan hasil lebih mudah ditelusuri ke mekanisme rendering atau pipeline TathyaTest, bukan ke perbedaan domain aplikasi.
 
 Subjek ketiga adalah \textbf{SauceDemo} (\texttt{https://www.saucedemo.com}), aplikasi demo e-commerce publik berbasis React SPA yang dikelola Sauce Labs. SauceDemo dipilih sebagai subjek eksternal yang tidak dikontrol peneliti sehingga tidak tersedia instrumentasi PCOV maupun fault endpoint. Dengan demikian, cakupan kode SUT (EQ2) dan deteksi fault (EQ3) tidak berlaku untuk subjek ini; evaluasi dibatasi pada tiga kelompok metrik: cakupan model (EQ1), kualitas suite (EQ4), dan keandalan/efisiensi/perbandingan baseline (EQ5). Pemilihan subjek eksternal ini memperkuat klaim generalisabilitas karena menunjukkan bahwa seluruh tahapan pipeline, mulai dari crawling dan pemodelan elemen sampai pembangkitan test dan emisi Playwright, berfungsi pada stack yang berbeda (React SPA, client-side routing, kredensial publik) tanpa modifikasi kode inti. Keterbatasan subjek ini diakui secara eksplisit: perbandingan baseline menggunakan tiga Playwright suite independen berlisensi MIT dari GitHub (bukan baseline manual buatan peneliti), yang di-pin pada commit SHA tertentu dan direkam dalam \texttt{SOURCES.md} untuk mendukung replikasi.
 
-\section{Evaluasi Berbasis Metrik}
+\subsection{Desain Evaluasi}
+\label{subsec:desain-eval}
 
-\subsection{Tujuan dan Pertanyaan Evaluasi}
+\subsubsection{Pertanyaan dan Subjek Evaluasi}
 
 Evaluasi merinci ketiga pertanyaan penelitian menjadi lima pertanyaan evaluasi (EQ): RQ1 dijawab oleh EQ1 dan EQ2, RQ2 oleh EQ3, dan RQ3 oleh EQ4 dan EQ5 (pemetaan lengkap pada Tabel~\ref{tab:metrics}). Masing-masing EQ dipetakan ke satu kelompok metrik: (EQ1) seberapa luas pipeline menguji model elemen aplikasi; (EQ2) seberapa banyak kode SUT yang dijangkau oleh suite yang dihasilkan; (EQ3) seberapa efektif suite mendeteksi fault melalui mutation-style fault seeding; (EQ4) seberapa baik kualitas intrinsik test yang dihasilkan; dan (EQ5) seberapa andal dan efisien pipeline dibandingkan baseline manual. Seluruh metrik dihitung oleh subperintah \texttt{tt eval} dan ditulis ke \texttt{metrics/report.json} serta \texttt{metrics/report.md}.
 
-\subsection{Objek Evaluasi}
+Evaluasi menggunakan tiga subjek. Dua subjek pertama, Blade dan Inertia React, di-crawl menggunakan engine Playwright yang sama, dibuat dengan fitur paralel, dan sepenuhnya diinstrumentasi (PCOV, fault endpoints); kesamaan fitur memungkinkan perbandingan lintas-rendering tanpa perbedaan domain sebagai faktor perancu. Subjek ketiga, SauceDemo, menguji generalisabilitas pada stack yang berbeda dan pada situasi tanpa kontrol atas server. Karena bersifat eksternal, EQ2 dan EQ3 tidak berlaku; subjek ini berkontribusi pada EQ1, EQ4, dan EQ5. Baseline EQ5 SauceDemo memakai tiga Playwright suite independen berlisensi MIT dari GitHub sebagai pengganti baseline manual sendiri, dengan analisis kualitas statis (\texttt{baseline-static.ts}) agar perbandingan tetap tersedia meskipun suite publik tidak dieksekusi.
 
-Evaluasi menggunakan tiga subjek. Dua subjek pertama, Blade dan Inertia React, di-crawl menggunakan engine Playwright yang sama, dibuat dengan fitur paralel, dan sepenuhnya diinstrumentasi (PCOV, fault endpoints). Pemilihan fitur yang identik memungkinkan perbandingan lintas-rendering tanpa perbedaan domain sebagai faktor perancu.
-
-Subjek ketiga, SauceDemo, ditambahkan untuk menguji generalisabilitas pada stack yang berbeda (React SPA, client-side routing) dan pada situasi di mana peneliti tidak memiliki kontrol atas server. Karena bersifat eksternal, EQ2 dan EQ3 tidak berlaku; subjek ini berkontribusi pada EQ1, EQ4, dan EQ5. Baseline EQ5 menggunakan tiga Playwright suite independen berlisensi MIT dari GitHub sebagai pengganti baseline manual sendiri, dengan analisis kualitas suite statis (jumlah test, assertion density, rasio locator rapuh) menggunakan \texttt{baseline-static.ts} agar perbandingan tetap tersedia meski suite publik tidak dieksekusi.
-
-\subsection{Alur Evaluasi}
+\subsubsection{Alur dan Skenario Evaluasi}
 
 Alur evaluasi diorkestrasi oleh \texttt{tt eval} dan dijalankan terhadap kedua studi kasus (cross-stack) agar setiap hasil dapat ditelusuri ke artefak yang jelas. Untuk tiap stack, \texttt{tt eval} mengukur waktu \texttt{tt crawl} dan \texttt{tt generate}, menjalankan suite yang dihasilkan sebanyak $R$ pengulangan (untuk interval kepercayaan dan flake rate), menjalankan baseline manual di \texttt{tests/manual/<stack>}, mengumpulkan cakupan kode SUT, lalu menyuntikkan setiap fault dalam katalog. \texttt{tt generate} juga menulis \texttt{manifest.json} berisi satu entri per test sehingga metrik cakupan dan kualitas dihitung tanpa mem-parsing kode spesifikasi. Pemisahan fase ini memisahkan sumber kegagalan (aplikasi target, crawler, atau generator) dan memperkuat interpretasi tiap EQ. Data nilai-per-test diperoleh dari reporter JSON bawaan Playwright; perhitungan statistik dilakukan oleh modul murni \texttt{metrics.ts} dan \texttt{stats.ts}.
-
-\subsection{Skenario Evaluasi}
 
 Skenario evaluasi harus mencerminkan fungsi yang secara langsung dialami pengguna. Tabel~\ref{tab:scenarios} merangkum skenario login, RBAC, CRUD, validasi, search/filter, pagination, dan aksi perubahan state. Skenario tersebut menjadi acuan target fungsional yang diharapkan muncul pada test suite. Jika suatu skenario tidak direpresentasikan oleh hasil generate, gap tersebut dapat ditelusuri pada crawl model atau aturan mapping.
 
@@ -238,7 +238,7 @@ S10 & Delete todo & Aksi destruktif \\
 \end{tabularx}
 \end{table}
 
-\subsection{Lima Kelompok Metrik}
+\subsubsection{Kelompok Metrik dan Injeksi Fault}
 
 Metrik dikelompokkan menjadi lima kelompok yang masing-masing menjawab satu EQ, seperti dirangkum pada Tabel~\ref{tab:metrics}. Kelompok A (cakupan model) dan D (kualitas suite) bersifat statis dan dihitung dari \texttt{manifest.json} serta \texttt{crawl/<role>.json}. Kelompok B (cakupan kode SUT) memerlukan instrumentasi sisi PHP: middleware berbasis PCOV mengakumulasi baris yang tereksekusi saat suite berjalan, lalu dipadankan dengan analisis statis berbasis token untuk memperoleh cakupan baris, fungsi, proksi cabang, dan cakupan rute eksak. Kelompok C (deteksi fault) merupakan metrik utama penelitian ini. Kelompok E (keandalan, efisiensi, baseline) memanfaatkan pengulangan terkontrol dengan \texttt{faker.seed} tetap agar variasi data tidak mencemari sinyal flakiness.
 
@@ -259,8 +259,6 @@ EQ5 & RQ3 & Reliability/efficiency & flake rate, kesepakatan lintas-browser (Fle
 \end{tabularx}
 \end{table}
 
-\subsection{Injeksi Fault dan Mutation Score}
-
 Deteksi fault (EQ3) dinilai melalui fault seeding bergaya mutation testing~\cite{jia2011mutation,papadakis2019mutation}. Katalog fault (Tabel~\ref{tab:faults}) berisi mutant yang dapat dibalik dan diaktifkan deterministik melalui environment toggle (\texttt{FaultRegistry}) tanpa mem-patch git. Untuk tiap fault, evaluator mengaktifkan fault melalui \texttt{POST /\_\_testing/fault}, menjalankan test yang relevan (disaring lewat manifest), dan mencatat fault sebagai \emph{killed} bila minimal satu test relevan gagal. Mutation score dihitung sebagai rasio fault yang killed terhadap total fault, secara keseluruhan dan per kelas. Akurasi lokalisasi mengukur proporsi fault yang killed oleh test yang memang menargetkan kelas fault tersebut, sehingga membedakan deteksi insidental dari deteksi yang tepat sasaran.
 
 \begin{table}[!t]
@@ -280,20 +278,18 @@ auth & menerima sembarang password saat login \\
 \end{tabularx}
 \end{table}
 
-\subsection{Metode Statistik dan Baseline}
+\subsubsection{Metode Statistik dan Baseline}
 
 Agar klaim dapat dipertahankan, setiap pengukuran waktu dan flakiness diulang $R$ kali dan dilaporkan sebagai rerata dengan interval kepercayaan 95\% (distribusi Student-$t$). Kesepakatan status lintas-browser (Chromium, Firefox, WebKit) diukur dengan Fleiss $\kappa$~\cite{fleiss1971kappa}. Suite yang dihasilkan dibandingkan dengan baseline menggunakan uji non-parametrik Mann--Whitney $U$~\cite{mann1947whitney} beserta ukuran efek rank-biserial, mengikuti panduan pengujian statistik untuk algoritma acak pada rekayasa perangkat lunak~\cite{arcuri2014statistical}. Rasio penghematan waktu dihitung terhadap asumsi biaya manual per kasus yang dilabeli eksplisit beserta rentang sensitivitasnya, sehingga asumsi tidak disalahartikan sebagai hasil empiris.
 
 Perbandingan baseline diperkuat dengan \textbf{analisis kualitas statis} menggunakan modul \texttt{baseline-static.ts}: jumlah test, assertion density, rasio locator rapuh, dan distribusi strategi locator dihitung dari sumber spesifikasi, baik untuk suite yang dihasilkan TathyaTest (dari manifest) maupun untuk baseline. Untuk dua studi kasus Laravel, baseline adalah Playwright suite manual di \texttt{tests/manual/<stack>}. Untuk SauceDemo, baseline adalah tiga suite independen berlisensi MIT dari GitHub (pinned SHA, \texttt{SOURCES.md}): suite ashutoshfolane/playwright-saucedemo~\cite{baseline2026ashutoshfolane}, aferminboada/portfolio-playwright-typescript-e2e-tests-pageObjetModel-saucedemo~\cite{baseline2026aferminboada}, dan renanpacheco21/automation\_sauceDemo\_playwright~\cite{baseline2025renanpacheco}. Penggunaan baseline pihak ketiga yang independen memperkuat validitas eksternal perbandingan EQ5, karena baseline tidak ditulis oleh peneliti yang sama dengan yang merancang TathyaTest.
 
-\subsection{Integritas Bukti Evaluasi}
+Seluruh nilai numerik pada Bagian~\ref{sec:hasil} diperoleh langsung dari eksekusi \texttt{tt eval} pada ketiga subjek dan dapat ditelusuri ke laporan \texttt{metrics/report.\{json,md\}}. Untuk dua studi kasus Laravel, server berjalan dengan \texttt{COVERAGE=1}; untuk SauceDemo, evaluasi memakai layanan publik \texttt{https://www.saucedemo.com} tanpa instrumentasi server-side. Dengan kerangka lima kelompok metrik dan tiga subjek ini, TathyaTest dinilai dari rantai bukti yang menyeluruh, bukan hanya dari jumlah test: cakupan model dan kode, efektivitas deteksi fault, kualitas intrinsik suite, serta keandalan dan efisiensi relatif terhadap baseline independen.
 
-Artikel ini tidak menggunakan tabel placeholder sebagai bukti hasil; seluruh nilai numerik diperoleh dari eksekusi \texttt{tt eval} pada ketiga subjek. Untuk dua studi kasus Laravel, server berjalan dengan \texttt{COVERAGE=1}. Untuk SauceDemo, evaluasi menggunakan layanan publik \texttt{https://www.saucedemo.com} tanpa instrumentasi server-side. Perbandingan lintas-stack (Blade vs.\ Inertia React vs.\ SauceDemo) mendukung klaim generalisabilitas yang lebih luas: dua mekanisme rendering terkontrol dan satu stack eksternal yang tidak dikontrol. Analisis kualitas statis baseline (\texttt{baseline-static.ts}) selalu menghasilkan angka dari sumber kode spesifikasi sehingga perbandingan EQ5 tersedia bahkan jika eksekusi suite publik tidak berhasil pada lingkungan tertentu. Dengan kerangka lima kelompok metrik dan tiga subjek ini, potensi TathyaTest dinilai dari rantai bukti yang menyeluruh, bukan hanya dari jumlah test: cakupan model dan kode, efektivitas deteksi fault, kualitas intrinsik suite, serta keandalan dan efisiensi relatif terhadap baseline independen.
-
-\section{Hasil Evaluasi}
+\section{Hasil dan Pembahasan}
 \label{sec:hasil}
 
-Bagian ini melaporkan hasil eksekusi \texttt{tt eval} pada ketiga subjek dengan $R=5$ pengulangan pada tiga browser (Chromium, Firefox, WebKit) dan seed faker tetap. Suite yang dihasilkan bersifat unik-per-skenario: deduplikasi berbasis bentuk (route shape dengan segmen numerik dinormalisasi, bentuk form, kunci query tanpa nilai, serta deduplikasi varian validasi lintas-role) menjamin tidak ada dua test yang mewakili skenario sama dengan data berbeda. Konsekuensinya, seluruh metrik cakupan EQ1 dihitung terhadap denominator bentuk skenario unik pada model crawl, bukan terhadap instans elemen DOM. Untuk kedua studi kasus Laravel, generator menghasilkan \evBladeTestCount{} test per stack dengan distribusi tier \evBladeTiers{} pada lima kategori spesifikasi (auth, forms, interactions, pagination, RBAC).
+Bagian ini melaporkan hasil eksekusi \texttt{tt eval} pada ketiga subjek dengan $R=5$ pengulangan pada tiga browser (Chromium, Firefox, WebKit) dan seed faker tetap; lima subbagian pertama menyajikan hasil per EQ, kemudian pembahasan mencakup ringkasan temuan, implikasi, keterbatasan, ancaman validitas, dan ketersediaan artefak. Suite yang dihasilkan bersifat unik-per-skenario: deduplikasi berbasis bentuk (route shape dengan segmen numerik dinormalisasi, bentuk form, kunci query tanpa nilai, serta deduplikasi varian validasi lintas-role) menjamin tidak ada dua test yang mewakili skenario sama dengan data berbeda. Konsekuensinya, seluruh metrik cakupan EQ1 dihitung terhadap denominator bentuk skenario unik pada model crawl, bukan terhadap instans elemen DOM. Untuk kedua studi kasus Laravel, generator menghasilkan \evBladeTestCount{} test per stack dengan distribusi tier \evBladeTiers{} pada lima kategori spesifikasi (auth, forms, interactions, pagination, RBAC).
 
 \subsection{EQ1: Cakupan Model}
 
@@ -416,8 +412,6 @@ Verdict head-to-head & \evBladeVerdict & \evInertiaVerdict & \evSauceVerdict \\
 \end{tabularx}
 \end{table}
 
-\section{Diskusi}
-
 \subsection{Ringkasan Temuan}
 
 \textbf{RQ1 (cakupan).} Suite yang dibangkitkan menutupi 100\% permukaan fungsional yang terobservasi pada ketiga subjek, mencakup elemen, rute, form, field, navigasi, matriks RBAC, dan jenis constraint (Tabel~\ref{tab:hasil-eq1}). Pada tingkat kode, suite menjangkau \evBladeRouteExecCov{} rute aplikasi dengan cakupan baris \evBladeLineCov{} pada Blade dan \evInertiaLineCov{} pada Inertia React (Tabel~\ref{tab:hasil-eq2}). Batasnya eksplisit: nilai 100\% mengacu pada permukaan yang terobservasi crawler, sehingga fungsi yang tidak pernah muncul pada DOM tidak ikut dibangkitkan.
@@ -456,7 +450,7 @@ Perbandingan generated-vs-baseline menggunakan uji non-parametrik Mann--Whitney 
 
 Seluruh evaluasi dapat direplikasi dengan satu perintah per subjek (\texttt{tt eval}); konfigurasi teladan disertakan dalam repositori (\texttt{tathya.config.example.yaml} dan varian per-stack), data runtime dibangkitkan dengan seed faker tetap (\texttt{seed: 42}), dan ketiga baseline publik SauceDemo di-pin pada SHA komit yang tercatat di \texttt{SOURCES.md} sebagai submodule git. Kedua studi kasus Laravel, katalog fault (\texttt{eval/faults.ts}), modul metrik murni (\texttt{metrics.ts}, \texttt{stats.ts}), serta laporan \texttt{metrics/report.\{json,md\}} tersedia dalam repositori yang sama, sehingga rantai bukti dari crawl hingga angka pada tabel hasil dapat ditelusuri penuh.
 
-\section{Kesimpulan dan Pekerjaan Lanjutan}
+\section{Kesimpulan}
 
 Penelitian ini menyajikan TathyaTest, generator test case fungsional berbasis crawling untuk aplikasi web. Pipeline melakukan crawling terautentikasi per role, mengekstraksi model elemen, membentuk matriks akses RBAC, lalu mengemisi spesifikasi Playwright beserta manifest dengan data runtime faker yang dapat di-seed. Efektivitasnya diukur melalui subperintah \texttt{tt eval} dengan lima kelompok metrik dan uji statistik pada tiga subjek, yaitu dua studi kasus Laravel yang diinstrumentasi penuh dan SauceDemo sebagai subjek eksternal.
 
@@ -464,7 +458,7 @@ Ketiga pertanyaan penelitian terjawab oleh data. Pertama, suite yang dibangkitka
 
 Hasil tersebut berlaku dalam batas yang dinyatakan. Cakupan 100\% mengacu pada permukaan yang terobservasi crawler, dan mutation score mengacu pada katalog sembilan fault. Dalam batas itu, kontribusi penelitian ini adalah desain pipeline pembangkitan uji dan kerangka evaluasi yang dapat direplikasi, dengan generalisabilitas yang diperkuat oleh subjek lintas-stack dan baseline pihak ketiga yang independen.
 
-Pekerjaan lanjutan diarahkan pada tiga hal. Validitas eksternal perlu diperluas melalui replikasi pada aplikasi produksi dan kerangka kerja non-Laravel, disertai katalog fault dan baseline manual yang lebih kaya. Arah teknis mencakup cakupan cabang penuh sebagai pengganti proksi, dukungan aturan validasi server-side yang kompleks, dan peningkatan robustness locator. Integrasi TathyaTest ke pipeline CI/CD akan menempatkan suite yang dibangkitkan sebagai synthetic functional monitoring pascadeployment.
+Penelitian lanjutan diarahkan pada tiga hal. Validitas eksternal perlu diperluas melalui replikasi pada aplikasi produksi dan kerangka kerja non-Laravel, disertai katalog fault dan baseline manual yang lebih kaya. Arah teknis mencakup cakupan cabang penuh sebagai pengganti proksi, dukungan aturan validasi server-side yang kompleks, dan peningkatan robustness locator. Integrasi TathyaTest ke pipeline CI/CD akan menempatkan suite yang dibangkitkan sebagai synthetic functional monitoring pascadeployment.
 
 \section*{Ucapan Terima Kasih}
 
