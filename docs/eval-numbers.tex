@@ -3,127 +3,127 @@
 % Nilai diisi dari metrics/report.json (Blade, Inertia) dan
 % metrics-saucedemo/report.json (SauceDemo), keduanya hasil `tt eval`.
 % \evalTBD (---) menandai angka yang menunggu run evaluasi berikutnya.
-% Regenerasi otomatis seluruh file ini:
+% File ini dibangkitkan otomatis:
 %   node generator/scripts/report-to-tex.mjs > docs/eval-numbers.tex
 % =====================================================================
 
 % ---------- EQ1: cakupan model (stacks[].coverage) ----------
-\newcommand{\evBladeElemCov}{\evalTBD}          % stacks[blade].coverage.element
-\newcommand{\evBladeRouteCov}{100{,}0\% (6/6)}  % stacks[blade].coverage.routes
-\newcommand{\evBladeFormCov}{\evalTBD}          % stacks[blade].coverage.forms
-\newcommand{\evBladeFieldCov}{\evalTBD}         % stacks[blade].coverage.fields
-\newcommand{\evBladeNavCov}{\evalTBD}           % stacks[blade].coverage.nav
+\newcommand{\evBladeElemCov}{100{,}0\% (44/44)} % stacks[blade].coverage.element
+\newcommand{\evBladeRouteCov}{100{,}0\% (6/6)} % stacks[blade].coverage.routes
+\newcommand{\evBladeFormCov}{100{,}0\% (3/3)} % stacks[blade].coverage.forms
+\newcommand{\evBladeFieldCov}{100{,}0\% (16/16)} % stacks[blade].coverage.fields
+\newcommand{\evBladeNavCov}{100{,}0\% (19/19)} % stacks[blade].coverage.nav
 \newcommand{\evBladeRbacCov}{100{,}0\% (12/12)} % stacks[blade].coverage.rbacMatrix
-\newcommand{\evBladeConstraintCov}{100{,}0\%}   % stacks[blade].coverage.constraintKinds.ratio
-\newcommand{\evBladeTiers}{44/23/34 (101)}      % stacks[blade].coverage.tiers
-\newcommand{\evBladeTestCount}{101}             % stacks[blade].quality.testCount
+\newcommand{\evBladeConstraintCov}{100{,}0\%} % stacks[blade].coverage.constraintKinds.ratio
+\newcommand{\evBladeTiers}{46/23/34 (103)} % stacks[blade].coverage.tiers
+\newcommand{\evBladeTestCount}{103} % stacks[blade].quality.testCount
 
-\newcommand{\evInertiaElemCov}{\evalTBD}          % stacks[inertia].coverage.element
-\newcommand{\evInertiaRouteCov}{100{,}0\% (6/6)}  % stacks[inertia].coverage.routes
-\newcommand{\evInertiaFormCov}{\evalTBD}          % stacks[inertia].coverage.forms
-\newcommand{\evInertiaFieldCov}{\evalTBD}         % stacks[inertia].coverage.fields
-\newcommand{\evInertiaNavCov}{\evalTBD}           % stacks[inertia].coverage.nav
+\newcommand{\evInertiaElemCov}{100{,}0\% (46/46)} % stacks[inertia].coverage.element
+\newcommand{\evInertiaRouteCov}{100{,}0\% (6/6)} % stacks[inertia].coverage.routes
+\newcommand{\evInertiaFormCov}{100{,}0\% (3/3)} % stacks[inertia].coverage.forms
+\newcommand{\evInertiaFieldCov}{100{,}0\% (16/16)} % stacks[inertia].coverage.fields
+\newcommand{\evInertiaNavCov}{100{,}0\% (21/21)} % stacks[inertia].coverage.nav
 \newcommand{\evInertiaRbacCov}{100{,}0\% (12/12)} % stacks[inertia].coverage.rbacMatrix
-\newcommand{\evInertiaConstraintCov}{100{,}0\%}   % stacks[inertia].coverage.constraintKinds.ratio
-\newcommand{\evInertiaTiers}{44/23/34 (101)}      % stacks[inertia].coverage.tiers
-\newcommand{\evInertiaTestCount}{101}             % stacks[inertia].quality.testCount
+\newcommand{\evInertiaConstraintCov}{100{,}0\%} % stacks[inertia].coverage.constraintKinds.ratio
+\newcommand{\evInertiaTiers}{46/23/34 (103)} % stacks[inertia].coverage.tiers
+\newcommand{\evInertiaTestCount}{103} % stacks[inertia].quality.testCount
 
-\newcommand{\evSauceElemCov}{\evalTBD}          % stacks[saucedemo].coverage.element
-\newcommand{\evSauceRouteCov}{100{,}0\% (4/4)}  % stacks[saucedemo].coverage.routes
-\newcommand{\evSauceFormCov}{\evalTBD}          % stacks[saucedemo].coverage.forms
-\newcommand{\evSauceFieldCov}{\evalTBD}         % stacks[saucedemo].coverage.fields
-\newcommand{\evSauceNavCov}{\evalTBD}           % stacks[saucedemo].coverage.nav
-\newcommand{\evSauceRbacCov}{100{,}0\% (4/4)}   % stacks[saucedemo].coverage.rbacMatrix
-\newcommand{\evSauceConstraintCov}{100{,}0\%}   % stacks[saucedemo].coverage.constraintKinds.ratio
-\newcommand{\evSauceTiers}{\evalTBD}            % stacks[saucedemo].coverage.tiers
-\newcommand{\evSauceTestCount}{\evalTBD}        % stacks[saucedemo].quality.testCount
+\newcommand{\evSauceElemCov}{100{,}0\% (20/20)} % stacks[saucedemo].coverage.element
+\newcommand{\evSauceRouteCov}{100{,}0\% (4/4)} % stacks[saucedemo].coverage.routes
+\newcommand{\evSauceFormCov}{100{,}0\% (1/1)} % stacks[saucedemo].coverage.forms
+\newcommand{\evSauceFieldCov}{100{,}0\% (3/3)} % stacks[saucedemo].coverage.fields
+\newcommand{\evSauceNavCov}{100{,}0\% (12/12)} % stacks[saucedemo].coverage.nav
+\newcommand{\evSauceRbacCov}{100{,}0\% (4/4)} % stacks[saucedemo].coverage.rbacMatrix
+\newcommand{\evSauceConstraintCov}{100{,}0\%} % stacks[saucedemo].coverage.constraintKinds.ratio
+\newcommand{\evSauceTiers}{18/4/9 (31)} % stacks[saucedemo].coverage.tiers
+\newcommand{\evSauceTestCount}{31} % stacks[saucedemo].quality.testCount
 
 % ---------- EQ2: cakupan kode SUT (stacks[].sutCoverage; PCOV, Laravel saja) ----------
-\newcommand{\evBladeLineCov}{\evalTBD}      % stacks[blade].sutCoverage.lines
-\newcommand{\evBladeBranchCov}{\evalTBD}    % stacks[blade].sutCoverage.branches (proksi)
-\newcommand{\evBladeFuncCov}{\evalTBD}      % stacks[blade].sutCoverage.functions
-\newcommand{\evBladeRouteExecCov}{\evalTBD} % stacks[blade].sutCoverage.routes
+\newcommand{\evBladeLineCov}{21{,}6\% (92/426)} % stacks[blade].sutCoverage.lines
+\newcommand{\evBladeBranchCov}{27{,}3\% (21/77)} % stacks[blade].sutCoverage.branches (proksi)
+\newcommand{\evBladeFuncCov}{69{,}6\% (39/56)} % stacks[blade].sutCoverage.functions
+\newcommand{\evBladeRouteExecCov}{87{,}5\% (7/8)} % stacks[blade].sutCoverage.routes
 
-\newcommand{\evInertiaLineCov}{\evalTBD}      % stacks[inertia].sutCoverage.lines
-\newcommand{\evInertiaBranchCov}{\evalTBD}    % stacks[inertia].sutCoverage.branches (proksi)
-\newcommand{\evInertiaFuncCov}{\evalTBD}      % stacks[inertia].sutCoverage.functions
-\newcommand{\evInertiaRouteExecCov}{\evalTBD} % stacks[inertia].sutCoverage.routes
+\newcommand{\evInertiaLineCov}{23{,}3\% (104/446)} % stacks[inertia].sutCoverage.lines
+\newcommand{\evInertiaBranchCov}{27{,}8\% (22/79)} % stacks[inertia].sutCoverage.branches (proksi)
+\newcommand{\evInertiaFuncCov}{68{,}4\% (39/57)} % stacks[inertia].sutCoverage.functions
+\newcommand{\evInertiaRouteExecCov}{87{,}5\% (7/8)} % stacks[inertia].sutCoverage.routes
 
 % ---------- EQ3: deteksi cacat (stacks[].faults; Laravel saja) ----------
-\newcommand{\evBladeMutScore}{\evalTBD}      % stacks[blade].faults.mutationScore (killed/total)
-\newcommand{\evBladeMutValidation}{\evalTBD} % stacks[blade].faults.byClass.validation
-\newcommand{\evBladeMutAuthz}{\evalTBD}      % stacks[blade].faults.byClass.authz
-\newcommand{\evBladeMutCrud}{\evalTBD}       % stacks[blade].faults.byClass.crud
-\newcommand{\evBladeMutPagination}{\evalTBD} % stacks[blade].faults.byClass.pagination
-\newcommand{\evBladeMutAuth}{\evalTBD}       % stacks[blade].faults.byClass.auth
-\newcommand{\evBladeFaultLoc}{\evalTBD}      % stacks[blade].faults.localizationAccuracy
+\newcommand{\evBladeMutScore}{100{,}0\% (9/9)} % stacks[blade].faults.mutationScore (killed/total)
+\newcommand{\evBladeMutValidation}{100{,}0\% (5/5)} % stacks[blade].faults.byClass.validation
+\newcommand{\evBladeMutAuthz}{100{,}0\% (1/1)} % stacks[blade].faults.byClass.authz
+\newcommand{\evBladeMutCrud}{100{,}0\% (1/1)} % stacks[blade].faults.byClass.crud
+\newcommand{\evBladeMutPagination}{100{,}0\% (1/1)} % stacks[blade].faults.byClass.pagination
+\newcommand{\evBladeMutAuth}{100{,}0\% (1/1)} % stacks[blade].faults.byClass.auth
+\newcommand{\evBladeFaultLoc}{100{,}0\%} % stacks[blade].faults.localizationAccuracy
 
-\newcommand{\evInertiaMutScore}{\evalTBD}      % stacks[inertia].faults.mutationScore (killed/total)
-\newcommand{\evInertiaMutValidation}{\evalTBD} % stacks[inertia].faults.byClass.validation
-\newcommand{\evInertiaMutAuthz}{\evalTBD}      % stacks[inertia].faults.byClass.authz
-\newcommand{\evInertiaMutCrud}{\evalTBD}       % stacks[inertia].faults.byClass.crud
-\newcommand{\evInertiaMutPagination}{\evalTBD} % stacks[inertia].faults.byClass.pagination
-\newcommand{\evInertiaMutAuth}{\evalTBD}       % stacks[inertia].faults.byClass.auth
-\newcommand{\evInertiaFaultLoc}{\evalTBD}      % stacks[inertia].faults.localizationAccuracy
+\newcommand{\evInertiaMutScore}{100{,}0\% (9/9)} % stacks[inertia].faults.mutationScore (killed/total)
+\newcommand{\evInertiaMutValidation}{100{,}0\% (5/5)} % stacks[inertia].faults.byClass.validation
+\newcommand{\evInertiaMutAuthz}{100{,}0\% (1/1)} % stacks[inertia].faults.byClass.authz
+\newcommand{\evInertiaMutCrud}{100{,}0\% (1/1)} % stacks[inertia].faults.byClass.crud
+\newcommand{\evInertiaMutPagination}{100{,}0\% (1/1)} % stacks[inertia].faults.byClass.pagination
+\newcommand{\evInertiaMutAuth}{100{,}0\% (1/1)} % stacks[inertia].faults.byClass.auth
+\newcommand{\evInertiaFaultLoc}{100{,}0\%} % stacks[inertia].faults.localizationAccuracy
 
 % ---------- EQ4: mutu suite (stacks[].quality + baseline.quality.baseline) ----------
-\newcommand{\evBladeAssertDensity}{\evalTBD} % stacks[blade].quality.assertionDensity
-\newcommand{\evBladeBrittle}{\evalTBD}       % stacks[blade].quality.brittleLocatorRatio
-\newcommand{\evBladeRobustness}{\evalTBD}    % stacks[blade].quality.locatorRobustness
-\newcommand{\evBladeLocMix}{\evalTBD}        % stacks[blade].quality.locatorDistribution (top-3)
-\newcommand{\evBladeBaseTestCount}{5}            % stacks[blade].baseline.quality.baseline.testCount
-\newcommand{\evBladeBaseAssertDensity}{\evalTBD} % stacks[blade].baseline.quality.baseline.assertionDensity
-\newcommand{\evBladeBaseBrittle}{\evalTBD}       % stacks[blade].baseline.quality.baseline.brittleLocatorRatio
-\newcommand{\evBladeBaseLocMix}{\evalTBD}        % stacks[blade].baseline.quality.baseline.locatorDistribution (top-3)
+\newcommand{\evBladeAssertDensity}{1{,}06} % stacks[blade].quality.assertionDensity
+\newcommand{\evBladeBrittle}{4{,}7\%} % stacks[blade].quality.brittleLocatorRatio
+\newcommand{\evBladeRobustness}{72{,}6\%} % stacks[blade].quality.locatorRobustness
+\newcommand{\evBladeLocMix}{label: 59, role: 23, css: 4} % stacks[blade].quality.locatorDistribution (top-3)
+\newcommand{\evBladeBaseTestCount}{5} % stacks[blade].baseline.quality.baseline.testCount
+\newcommand{\evBladeBaseAssertDensity}{1{,}00} % stacks[blade].baseline.quality.baseline.assertionDensity
+\newcommand{\evBladeBaseBrittle}{0{,}0\%} % stacks[blade].baseline.quality.baseline.brittleLocatorRatio
+\newcommand{\evBladeBaseLocMix}{name: 10} % stacks[blade].baseline.quality.baseline.locatorDistribution (top-3)
 
-\newcommand{\evInertiaAssertDensity}{\evalTBD} % stacks[inertia].quality.assertionDensity
-\newcommand{\evInertiaBrittle}{\evalTBD}       % stacks[inertia].quality.brittleLocatorRatio
-\newcommand{\evInertiaRobustness}{\evalTBD}    % stacks[inertia].quality.locatorRobustness
-\newcommand{\evInertiaLocMix}{\evalTBD}        % stacks[inertia].quality.locatorDistribution (top-3)
-\newcommand{\evInertiaBaseTestCount}{5}            % stacks[inertia].baseline.quality.baseline.testCount
-\newcommand{\evInertiaBaseAssertDensity}{\evalTBD} % stacks[inertia].baseline.quality.baseline.assertionDensity
-\newcommand{\evInertiaBaseBrittle}{\evalTBD}       % stacks[inertia].baseline.quality.baseline.brittleLocatorRatio
-\newcommand{\evInertiaBaseLocMix}{\evalTBD}        % stacks[inertia].baseline.quality.baseline.locatorDistribution (top-3)
+\newcommand{\evInertiaAssertDensity}{1{,}04} % stacks[inertia].quality.assertionDensity
+\newcommand{\evInertiaBrittle}{2{,}3\%} % stacks[inertia].quality.brittleLocatorRatio
+\newcommand{\evInertiaRobustness}{74{,}3\%} % stacks[inertia].quality.locatorRobustness
+\newcommand{\evInertiaLocMix}{label: 59, role: 25, css: 2} % stacks[inertia].quality.locatorDistribution (top-3)
+\newcommand{\evInertiaBaseTestCount}{5} % stacks[inertia].baseline.quality.baseline.testCount
+\newcommand{\evInertiaBaseAssertDensity}{1{,}00} % stacks[inertia].baseline.quality.baseline.assertionDensity
+\newcommand{\evInertiaBaseBrittle}{0{,}0\%} % stacks[inertia].baseline.quality.baseline.brittleLocatorRatio
+\newcommand{\evInertiaBaseLocMix}{name: 10, role: 4} % stacks[inertia].baseline.quality.baseline.locatorDistribution (top-3)
 
-\newcommand{\evSauceAssertDensity}{\evalTBD} % stacks[saucedemo].quality.assertionDensity
-\newcommand{\evSauceBrittle}{\evalTBD}       % stacks[saucedemo].quality.brittleLocatorRatio
-\newcommand{\evSauceRobustness}{\evalTBD}    % stacks[saucedemo].quality.locatorRobustness
-\newcommand{\evSauceLocMix}{\evalTBD}        % stacks[saucedemo].quality.locatorDistribution (top-3)
-\newcommand{\evSauceBaseTestCount}{74}                       % stacks[saucedemo].baseline.quality.baseline.testCount
-\newcommand{\evSauceBaseAssertDensity}{1{,}34}               % stacks[saucedemo].baseline.quality.baseline.assertionDensity
-\newcommand{\evSauceBaseBrittle}{62{,}5\%}                   % stacks[saucedemo].baseline.quality.baseline.brittleLocatorRatio
+\newcommand{\evSauceAssertDensity}{1{,}00} % stacks[saucedemo].quality.assertionDensity
+\newcommand{\evSauceBrittle}{4{,}0\%} % stacks[saucedemo].quality.brittleLocatorRatio
+\newcommand{\evSauceRobustness}{68{,}0\%} % stacks[saucedemo].quality.locatorRobustness
+\newcommand{\evSauceLocMix}{placeholder: 13, role: 11, css: 1} % stacks[saucedemo].quality.locatorDistribution (top-3)
+\newcommand{\evSauceBaseTestCount}{74} % stacks[saucedemo].baseline.quality.baseline.testCount
+\newcommand{\evSauceBaseAssertDensity}{1{,}34} % stacks[saucedemo].baseline.quality.baseline.assertionDensity
+\newcommand{\evSauceBaseBrittle}{62{,}5\%} % stacks[saucedemo].baseline.quality.baseline.brittleLocatorRatio
 \newcommand{\evSauceBaseLocMix}{css: 10, testid: 3, role: 3} % stacks[saucedemo].baseline.quality.baseline.locatorDistribution (top-3)
 
 % ---------- EQ5: keandalan, efisiensi, baseline (stacks[].reliability/efficiency/baseline) ----------
-\newcommand{\evBladeFlake}{\evalTBD}        % stacks[blade].reliability.flakeRate
-\newcommand{\evBladeKappa}{\evalTBD}        % stacks[blade].reliability.crossBrowserKappa
-\newcommand{\evBladePassRate}{\evalTBD}     % stacks[blade].reliability.passRate
-\newcommand{\evBladeCrawlSec}{\evalTBD}     % stacks[blade].efficiency.crawlMs
-\newcommand{\evBladeGenMs}{\evalTBD}        % stacks[blade].efficiency.generateMs
-\newcommand{\evBladeExecSec}{\evalTBD}      % stacks[blade].efficiency.executeMs (mean ± CI95)
-\newcommand{\evBladePerTestSec}{\evalTBD}   % stacks[blade].efficiency.perTestMs
-\newcommand{\evBladeSavings}{\evalTBD}      % stacks[blade].efficiency.timeSavingsRatio (+range)
-\newcommand{\evBladeMannWhitney}{\evalTBD}  % stacks[blade].baseline.durationMannWhitney (U, p, r)
-\newcommand{\evBladeVerdict}{\evalTBD}      % stacks[blade].baseline.verdict (wins gen:base, overall)
+\newcommand{\evBladeFlake}{0{,}2\%} % stacks[blade].reliability.flakeRate
+\newcommand{\evBladeKappa}{1{,}000} % stacks[blade].reliability.crossBrowserKappa
+\newcommand{\evBladePassRate}{98{,}9\%} % stacks[blade].reliability.passRate
+\newcommand{\evBladeCrawlSec}{35{,}7~s} % stacks[blade].efficiency.crawlMs
+\newcommand{\evBladeGenMs}{27~ms} % stacks[blade].efficiency.generateMs
+\newcommand{\evBladeExecSec}{976~s $\pm$ 78~s} % stacks[blade].efficiency.executeMs (mean ± CI95)
+\newcommand{\evBladePerTestSec}{9{,}5~s} % stacks[blade].efficiency.perTestMs
+\newcommand{\evBladeSavings}{30{,}6$\times$ (15{,}3--45{,}8)} % stacks[blade].efficiency.timeSavingsRatio (+range)
+\newcommand{\evBladeMannWhitney}{$U$=22448; $p<0{,}001$; $r$=0{,}79} % stacks[blade].baseline.durationMannWhitney (U, p, r)
+\newcommand{\evBladeVerdict}{3:4 (baseline)} % stacks[blade].baseline.verdict (wins gen:base, overall)
 
-\newcommand{\evInertiaFlake}{\evalTBD}        % stacks[inertia].reliability.flakeRate
-\newcommand{\evInertiaKappa}{\evalTBD}        % stacks[inertia].reliability.crossBrowserKappa
-\newcommand{\evInertiaPassRate}{\evalTBD}     % stacks[inertia].reliability.passRate
-\newcommand{\evInertiaCrawlSec}{\evalTBD}     % stacks[inertia].efficiency.crawlMs
-\newcommand{\evInertiaGenMs}{\evalTBD}        % stacks[inertia].efficiency.generateMs
-\newcommand{\evInertiaExecSec}{\evalTBD}      % stacks[inertia].efficiency.executeMs (mean ± CI95)
-\newcommand{\evInertiaPerTestSec}{\evalTBD}   % stacks[inertia].efficiency.perTestMs
-\newcommand{\evInertiaSavings}{\evalTBD}      % stacks[inertia].efficiency.timeSavingsRatio (+range)
-\newcommand{\evInertiaMannWhitney}{\evalTBD}  % stacks[inertia].baseline.durationMannWhitney (U, p, r)
-\newcommand{\evInertiaVerdict}{\evalTBD}      % stacks[inertia].baseline.verdict (wins gen:base, overall)
+\newcommand{\evInertiaFlake}{0{,}0\%} % stacks[inertia].reliability.flakeRate
+\newcommand{\evInertiaKappa}{1{,}000} % stacks[inertia].reliability.crossBrowserKappa
+\newcommand{\evInertiaPassRate}{100{,}0\%} % stacks[inertia].reliability.passRate
+\newcommand{\evInertiaCrawlSec}{34{,}8~s} % stacks[inertia].efficiency.crawlMs
+\newcommand{\evInertiaGenMs}{17~ms} % stacks[inertia].efficiency.generateMs
+\newcommand{\evInertiaExecSec}{1015~s $\pm$ 25~s} % stacks[inertia].efficiency.executeMs (mean ± CI95)
+\newcommand{\evInertiaPerTestSec}{9{,}9~s} % stacks[inertia].efficiency.perTestMs
+\newcommand{\evInertiaSavings}{29{,}4$\times$ (14{,}7--44{,}1)} % stacks[inertia].efficiency.timeSavingsRatio (+range)
+\newcommand{\evInertiaMannWhitney}{$U$=48697; $p<0{,}001$; $r$=0{,}57} % stacks[inertia].baseline.durationMannWhitney (U, p, r)
+\newcommand{\evInertiaVerdict}{3:2 (generated)} % stacks[inertia].baseline.verdict (wins gen:base, overall)
 
-\newcommand{\evSauceFlake}{\evalTBD}        % stacks[saucedemo].reliability.flakeRate
-\newcommand{\evSauceKappa}{\evalTBD}        % stacks[saucedemo].reliability.crossBrowserKappa
-\newcommand{\evSaucePassRate}{\evalTBD}     % stacks[saucedemo].reliability.passRate
-\newcommand{\evSauceCrawlSec}{\evalTBD}     % stacks[saucedemo].efficiency.crawlMs
-\newcommand{\evSauceGenMs}{\evalTBD}        % stacks[saucedemo].efficiency.generateMs
-\newcommand{\evSauceExecSec}{\evalTBD}      % stacks[saucedemo].efficiency.executeMs (mean ± CI95)
-\newcommand{\evSaucePerTestSec}{\evalTBD}   % stacks[saucedemo].efficiency.perTestMs
-\newcommand{\evSauceSavings}{\evalTBD}      % stacks[saucedemo].efficiency.timeSavingsRatio (+range)
-\newcommand{\evSauceMannWhitney}{\evalTBD}  % stacks[saucedemo].baseline.durationMannWhitney (U, p, r)
-\newcommand{\evSauceVerdict}{\evalTBD}      % stacks[saucedemo].baseline.verdict (wins gen:base, overall)
+\newcommand{\evSauceFlake}{5{,}4\%} % stacks[saucedemo].reliability.flakeRate
+\newcommand{\evSauceKappa}{-0{,}013} % stacks[saucedemo].reliability.crossBrowserKappa
+\newcommand{\evSaucePassRate}{98{,}7\%} % stacks[saucedemo].reliability.passRate
+\newcommand{\evSauceCrawlSec}{5{,}4~s} % stacks[saucedemo].efficiency.crawlMs
+\newcommand{\evSauceGenMs}{7~ms} % stacks[saucedemo].efficiency.generateMs
+\newcommand{\evSauceExecSec}{311~s $\pm$ 58~s} % stacks[saucedemo].efficiency.executeMs (mean ± CI95)
+\newcommand{\evSaucePerTestSec}{10{,}0~s} % stacks[saucedemo].efficiency.perTestMs
+\newcommand{\evSauceSavings}{29{,}4$\times$ (14{,}7--44{,}1)} % stacks[saucedemo].efficiency.timeSavingsRatio (+range)
+\newcommand{\evSauceMannWhitney}{$U$=15102; $p<0{,}001$; $r$=0{,}76} % stacks[saucedemo].baseline.durationMannWhitney (U, p, r)
+\newcommand{\evSauceVerdict}{4:2 (generated)} % stacks[saucedemo].baseline.verdict (wins gen:base, overall)

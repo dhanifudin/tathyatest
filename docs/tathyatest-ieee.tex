@@ -343,10 +343,7 @@ Cakupan rute tereksekusi & \evBladeRouteExecCov & \evInertiaRouteExecCov \\
 
 \subsection{EQ3 --- Efektivitas Deteksi Fault}
 
-Tabel~\ref{tab:hasil-eq3} melaporkan mutation score per kelas fault dari katalog sembilan mutant pada Tabel~\ref{tab:faults}. Mutation score keseluruhan mencapai \evBladeMutScore{} pada Blade dan \evInertiaMutScore{} pada Inertia React, dengan akurasi lokalisasi \evBladeFaultLoc{} dan \evInertiaFaultLoc{}---artinya fault yang killed memang dideteksi oleh test yang menargetkan kelas fault tersebut, bukan oleh kegagalan insidental. Baseline manual yang berukuran kecil tidak mendeteksi satu mutant pun pada konfigurasi yang sama, yang konsisten dengan cakupan skenarionya yang terbatas.
-% Catatan penulis (hapus saat final): pada verifikasi per-fault dengan reporter JSON
-% Playwright, kesembilan fault Blade berstatus killed (9/9); angka resmi diisi dari run
-% `tt eval` konsolidasi.
+Tabel~\ref{tab:hasil-eq3} melaporkan mutation score per kelas fault dari katalog sembilan mutant pada Tabel~\ref{tab:faults}. Mutation score keseluruhan mencapai \evBladeMutScore{} pada Blade dan \evInertiaMutScore{} pada Inertia React, dengan akurasi lokalisasi \evBladeFaultLoc{} dan \evInertiaFaultLoc{}---artinya fault yang killed memang dideteksi oleh test yang menargetkan kelas fault tersebut, bukan oleh kegagalan insidental. Baseline manual yang ringkas hanya mendeteksi sebagian kecil mutant pada konfigurasi yang sama, yang konsisten dengan cakupan skenarionya yang terbatas.
 
 \begin{table}[!t]
 \caption{Hasil EQ3 --- mutation score per kelas fault}
@@ -394,7 +391,7 @@ Mix locator (baseline) & \evBladeBaseLocMix & \evInertiaBaseLocMix & \evSauceBas
 
 \subsection{EQ5 --- Keandalan, Efisiensi, dan Perbandingan Baseline}
 
-Tabel~\ref{tab:hasil-eq5} merangkum keandalan dan efisiensi. Flake rate dihitung dari ketidakkonsistenan status test antar $R=5$ pengulangan; kesepakatan lintas-browser dihitung dengan Fleiss $\kappa$ atas status pass/fail (test yang di-skip karena gerbang role tidak dihitung sebagai penilaian). Rasio penghematan waktu dibaca sebagai perbandingan terhadap asumsi biaya penulisan manual per kasus yang dilabeli eksplisit, dilengkapi rentang sensitivitas; perbandingan durasi per-test generated-vs-baseline menggunakan Mann--Whitney $U$ dengan ukuran efek rank-biserial. Baris verdict merangkum tabulasi head-to-head pada dimensi yang dapat diperbandingkan (mutation score, flake rate, pass rate, assertion density, rasio locator rapuh, robustness, durasi per test).
+Tabel~\ref{tab:hasil-eq5} merangkum keandalan dan efisiensi. Flake rate dihitung dari ketidakkonsistenan status test antar $R=5$ pengulangan; kesepakatan lintas-browser dihitung dengan Fleiss $\kappa$ atas status pass/fail (test yang di-skip karena gerbang role tidak dihitung sebagai penilaian). Rasio penghematan waktu dibaca sebagai perbandingan terhadap asumsi biaya penulisan manual per kasus yang dilabeli eksplisit, dilengkapi rentang sensitivitas; perbandingan durasi per-test generated-vs-baseline menggunakan Mann--Whitney $U$ dengan ukuran efek rank-biserial. Baris verdict merangkum tabulasi head-to-head pada dimensi yang dapat diperbandingkan (mutation score, flake rate, pass rate, assertion density, rasio locator rapuh, robustness, durasi per test). Nilai $\kappa$ yang mendekati nol pada SauceDemo perlu dibaca dalam konteks paradoks prevalensi Fleiss $\kappa$: pada distribusi status yang sangat timpang (pass rate mendekati 100\%) dan flakiness server eksternal, ketidaksepakatan kecil menekan $\kappa$ secara tidak proporsional; pada kedua subjek terkontrol, $\kappa$ mencapai nilai sempurna.
 
 \begin{table}[!t]
 \caption{Hasil EQ5 --- keandalan, efisiensi, dan perbandingan baseline}
