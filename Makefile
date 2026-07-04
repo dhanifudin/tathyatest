@@ -4,7 +4,7 @@ ROOT := $(CURDIR)
 GENERATOR_DIR := $(ROOT)/generator
 TT := node $(GENERATOR_DIR)/dist/cli.js
 
-.PHONY: help install uninstall build generator-install generator-uninstall verify generator-test tt-help clean baseline-init
+.PHONY: help install uninstall build generator-install generator-uninstall verify generator-test tt-help clean baseline-init paper paper-numbers
 
 help:
 	@printf '%s\n' \
@@ -13,6 +13,8 @@ help:
 		'  make uninstall       remove the installed tt binary' \
 		'  make verify          Run generator verification and smoke the compiled tt entrypoint' \
 		'  make baseline-init   initialise git submodules (public SauceDemo baseline suites)' \
+		'  make paper           build docs/tathyatest-ieee.pdf with latexmk' \
+		'  make paper-numbers   refresh docs/eval-numbers.tex from the tt eval reports, then build' \
 		'  make clean           Remove compiled artifacts'
 
 install: generator-install
@@ -64,5 +66,16 @@ baseline-init:
 		fi; \
 	done
 
+# Evaluation numbers are injected via docs/eval-numbers.tex; paper-numbers
+# regenerates that file from metrics/report.json + metrics-saucedemo/report.json
+# (both written by `tt eval`) before compiling.
+paper:
+	cd docs && latexmk -pdf -interaction=nonstopmode tathyatest-ieee.tex
+
+paper-numbers:
+	node generator/scripts/report-to-tex.mjs > docs/eval-numbers.tex
+	$(MAKE) paper
+
 clean:
 	rm -rf $(GENERATOR_DIR)/dist
+	cd docs && latexmk -C tathyatest-ieee.tex 2>/dev/null || true
