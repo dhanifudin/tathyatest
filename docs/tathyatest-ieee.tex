@@ -264,7 +264,7 @@ EQ5 & RQ3 & Reliability\slash efficiency & flake rate, kesepakatan lintas-browse
 \end{tblr}
 \end{table}
 
-Deteksi fault (EQ3) dinilai melalui fault seeding bergaya mutation testing~\cite{jia2011mutation,papadakis2019mutation}. Katalog fault (Tabel~\ref{tab:faults}) berisi mutant yang dapat dibalik dan diaktifkan secara deterministik melalui registri fault sisi server tanpa mem-patch kode. Untuk tiap fault, evaluator mengaktifkannya melalui endpoint kontrol khusus evaluasi, menjalankan test yang relevan (disaring lewat manifes), dan mencatat fault sebagai \emph{killed} bila minimal satu test relevan gagal. Mutation score dihitung sebagai rasio fault yang killed terhadap total fault, secara keseluruhan dan per kelas. Akurasi lokalisasi mengukur proporsi fault yang killed oleh test yang memang menargetkan kelas fault tersebut, sehingga membedakan deteksi insidental dari deteksi yang tepat sasaran.
+Deteksi fault (EQ3) dinilai melalui fault seeding bergaya mutation testing~\cite{jia2011mutation,papadakis2019mutation}. Katalog fault (Tabel~\ref{tab:faults}) berisi fault yang dapat diaktifkan dan dinonaktifkan kembali secara deterministik melalui registri fault sisi server tanpa mem-patch kode; dalam istilah mutation testing, setiap fault aktif berperan sebagai \textit{mutant} dan fault yang terdeteksi disebut \textit{killed}. Untuk tiap fault, evaluator mengaktifkannya melalui endpoint kontrol khusus evaluasi, menjalankan test yang relevan (disaring lewat manifes), dan menyatakan fault \emph{terdeteksi} bila minimal satu test relevan gagal. Mutation score dihitung sebagai proporsi fault yang terdeteksi terhadap total fault, secara keseluruhan dan per kelas. Akurasi lokalisasi mengukur proporsi fault yang terdeteksi oleh test yang memang menargetkan kelas fault tersebut, sehingga membedakan deteksi insidental dari deteksi yang tepat sasaran.
 
 \begin{table}[!t]
 \caption{Katalog fault yang di-seed}
@@ -273,7 +273,7 @@ Deteksi fault (EQ3) dinilai melalui fault seeding bergaya mutation testing~\cite
 \footnotesize
 \begin{tblr}{width=\linewidth, colspec={X[0.6,l] X[2.4,l]}}
 \toprule
-Kelas & Contoh mutant yang diaktifkan \\
+Kelas & Contoh fault yang diaktifkan \\
 \midrule
 validation & menghapus aturan \texttt{required}/\texttt{email}/\texttt{unique}/\texttt{confirmed}/\texttt{max} \\
 authz & menonaktifkan middleware peran sehingga rute admin terbuka \\
@@ -365,7 +365,7 @@ Cakupan rute tereksekusi & \evBladeRouteExecCov & \evInertiaRouteExecCov \\
 
 \subsection{EQ3: Efektivitas Deteksi Fault}
 
-Seluruh sembilan mutant pada katalog terdeteksi: mutation score mencapai \evBladeMutScore{} pada Blade dan \evInertiaMutScore{} pada Inertia React dengan akurasi lokalisasi \evBladeFaultLoc{} (Tabel~\ref{tab:hasil-eq3}, dari katalog pada Tabel~\ref{tab:faults}). Karena setiap fault yang di-seed merepresentasikan regresi fungsional yang realistis (aturan validasi yang hilang, rute admin yang terbuka, persistensi yang dilewati), mutation score pada tabel ini secara operasional merupakan tingkat deteksi regresi suite. Nilai akurasi lokalisasi tersebut menunjukkan bahwa setiap fault yang killed dideteksi oleh test yang memang menargetkan kelas fault itu, bukan oleh kegagalan insidental, termasuk fault otorisasi yang ditangkap test RBAC yang diturunkan dari matriks akses per role pada kedua stack. Sebaliknya, baseline manual yang ringkas hanya mendeteksi sebagian kecil mutant pada konfigurasi yang sama, konsisten dengan cakupan skenarionya yang terbatas. Dalam batas katalog sembilan fault ini, RQ2 terjawab afirmatif untuk kelima kelas regresi fungsional.
+Seluruh sembilan fault pada katalog terdeteksi: mutation score mencapai \evBladeMutScore{} pada Blade dan \evInertiaMutScore{} pada Inertia React dengan akurasi lokalisasi \evBladeFaultLoc{} (Tabel~\ref{tab:hasil-eq3}, dari katalog pada Tabel~\ref{tab:faults}). Karena setiap fault yang di-seed merepresentasikan regresi fungsional yang realistis (aturan validasi yang hilang, rute admin yang terbuka, persistensi yang dilewati), mutation score pada tabel ini secara operasional merupakan tingkat deteksi regresi suite. Nilai akurasi lokalisasi tersebut menunjukkan bahwa setiap fault terdeteksi oleh test yang memang menargetkan kelas fault itu, bukan oleh kegagalan insidental, termasuk fault otorisasi yang ditangkap test RBAC yang diturunkan dari matriks akses per role pada kedua stack. Sebaliknya, baseline manual yang ringkas hanya mendeteksi sebagian kecil fault pada konfigurasi yang sama, konsisten dengan cakupan skenarionya yang terbatas. Dalam batas katalog sembilan fault ini, RQ2 terjawab afirmatif untuk kelima kelas regresi fungsional.
 
 \begin{table}[!t]
 \caption{Hasil EQ3: mutation score per kelas fault}
@@ -461,7 +461,7 @@ Keterbatasan tersebut menentukan cara membaca kontribusi penelitian. Bukti yang 
 \subsection{Ancaman terhadap Validitas}
 
 \subsubsection{Validitas internal}
-Fault yang di-seed diaktifkan secara deterministik melalui registri fault sisi server tanpa mem-patch kode, dan setiap test diawali pemanggilan endpoint reset state khusus evaluasi sehingga hasil tidak terkontaminasi antar-test. Meski demikian, eksekusi terhadap browser nyata tetap rentan flakiness lingkungan; ancaman ini dimitigasi dengan $R$ pengulangan, pelaporan flake rate, dan seed faker tetap agar variasi data tidak menjadi faktor perancu. Untuk fault run, pembatasan eksekusi pada test yang relevan (disaring lewat manifes) tidak mengubah semantik mutation score karena hanya kegagalan test relevan yang menandai mutant sebagai killed.
+Fault yang di-seed diaktifkan secara deterministik melalui registri fault sisi server tanpa mem-patch kode, dan setiap test diawali pemanggilan endpoint reset state khusus evaluasi sehingga hasil tidak terkontaminasi antar-test. Meski demikian, eksekusi terhadap browser nyata tetap rentan flakiness lingkungan; ancaman ini dimitigasi dengan $R$ pengulangan, pelaporan flake rate, dan seed faker tetap agar variasi data tidak menjadi faktor perancu. Untuk fault run, pembatasan eksekusi pada test yang relevan (disaring lewat manifes) tidak mengubah semantik mutation score karena hanya kegagalan test relevan yang menandai fault sebagai terdeteksi.
 
 \subsubsection{Validitas eksternal}
 Dua subjek internal dibangun di atas satu kerangka kerja (Laravel) sehingga generalisasi utamanya berlaku pada aplikasi MVC dengan pola serupa. Subjek ketiga (SauceDemo, React SPA eksternal) memperluas cakupan arsitektur, tetapi memperkenalkan asimetri: EQ2 dan EQ3 tidak berlaku karena server tidak dapat diinstrumentasi, dan ketersediaan \texttt{saucedemo.com} tidak dijamin pada setiap eksekusi. Baseline EQ5 SauceDemo berasal dari tiga suite pihak ketiga yang ditulis dengan pola dan kualitas beragam. Justru karena independen, suite tersebut memperkuat validitas eksternal perbandingan, meskipun tidak dirancang untuk cakupan yang sebanding satu-ke-satu dengan suite yang dihasilkan.
