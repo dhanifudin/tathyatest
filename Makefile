@@ -4,7 +4,13 @@ ROOT := $(CURDIR)
 GENERATOR_DIR := $(ROOT)/generator
 TT := node $(GENERATOR_DIR)/dist/cli.js
 
-.PHONY: help install uninstall build generator-install generator-uninstall verify generator-test tt-help clean baseline-init paper paper-numbers
+.PHONY: help install uninstall build generator-install generator-uninstall verify generator-test tt-help clean baseline-init paper paper-numbers paper-typst paper-typst-numbers
+
+# Typst isn't assumed to be on PATH; nix-shell -p typst provides a pinned-enough
+# toolchain (tested with typst 0.13.1). `pacman -S typst` makes this wrapper
+# unnecessary — the target still works either way since nix-shell just execs the
+# command in a shell where `typst` resolves.
+TYPST_RUN := nix-shell -p typst --run
 
 help:
 	@printf '%s\n' \
@@ -15,6 +21,8 @@ help:
 		'  make baseline-init   initialise git submodules (public SauceDemo baseline suites)' \
 		'  make paper           build docs/tathyatest-ieee.pdf with latexmk' \
 		'  make paper-numbers   refresh docs/eval-numbers.tex from the tt eval reports, then build' \
+		'  make paper-typst         build docs/juti/tathyatest-juti.pdf with Typst (JUTI template)' \
+		'  make paper-typst-numbers refresh docs/juti/eval-numbers.typ from the tt eval reports, then build' \
 		'  make clean           Remove compiled artifacts'
 
 install: generator-install
@@ -76,6 +84,17 @@ paper-numbers:
 	node generator/scripts/report-to-tex.mjs > docs/eval-numbers.tex
 	$(MAKE) paper
 
+# English/JUTI counterpart of paper / paper-numbers, sibling files under docs/juti/.
+# See docs/juti/eval-numbers.typ's header and generator/scripts/report-to-typst.mjs
+# for how it stays in sync with the LaTeX numbers.
+paper-typst:
+	$(TYPST_RUN) "typst compile --root docs docs/juti/main.typ docs/juti/tathyatest-juti.pdf"
+
+paper-typst-numbers:
+	node generator/scripts/report-to-typst.mjs > docs/juti/eval-numbers.typ
+	$(MAKE) paper-typst
+
 clean:
 	rm -rf $(GENERATOR_DIR)/dist
 	cd docs && latexmk -C tathyatest-ieee.tex 2>/dev/null || true
+	rm -f docs/juti/tathyatest-juti.pdf
