@@ -168,24 +168,7 @@ inside the project directory.
 It launches `chromium.launch()`, opens one `page` per configured role with `baseURL` set,
 logs in once, then follows same-origin links/forms discovered live from the rendered page.
 
-```mermaid
-flowchart TD
-    A[Launch chromium, open page per role] --> B[Log in: fill inferred login controls]
-    B --> C[Wait for URL change or submit, then domcontentloaded + networkidle]
-    C --> D{Login form still visible?}
-    D -- yes --> E[Throw: login failed]
-    D -- no --> F[Seed queue: landing path, /, crawl.include]
-    F --> G[Dequeue next URL]
-    G --> H[page.goto, wait for hydration]
-    H --> I[page.evaluate: extract forms, links, buttons, tables, controls]
-    I --> J[ariaSnapshot: upgrade weak css/name locators to role]
-    J --> K[Discover same-origin URLs: a href, GET form actions, formaction, data-href/url/route/to]
-    K --> L{Unseen and under maxPages/maxDepth and not excluded?}
-    L -- yes --> F
-    L -- no --> M{Queue empty?}
-    M -- no --> G
-    M -- yes --> N[Write crawl/role.json]
-```
+![Crawl loop per role: login phase, then dequeue/goto/extract/enrich/discover loop until the queue is empty](docs/diagrams/crawl-pipeline.svg)
 
 **Login.** Login controls are inferred by scoring candidate inputs in the rendered HTML
 (`generator/src/login.ts`): username (`type="email"` +100, `autocomplete="username"` +90,
@@ -247,22 +230,7 @@ a heuristic guess. Keywords are grouped by the file that owns them.
 exact order (never positional/`nth-child`); `generator/src/locator.ts` turns the chosen
 strategy into a Playwright call when emitting a spec:
 
-```mermaid
-flowchart TD
-    S[Element] --> Q1{Has data-testid?}
-    Q1 -- yes --> R1[getByTestId]
-    Q1 -- no --> Q2{aria-label set, or role is button/link?}
-    Q2 -- yes --> R2["getByRole(role, name)"]
-    Q2 -- no --> Q3{"Has a label (for= or wrapping)?"}
-    Q3 -- yes --> R3[getByLabel]
-    Q3 -- no --> Q4{Has placeholder?}
-    Q4 -- yes --> R4[getByPlaceholder]
-    Q4 -- no --> Q5{"Stable id (not hash-like/colon)?"}
-    Q5 -- yes --> R5["locator('#id')"]
-    Q5 -- no --> Q6{Has name attribute?}
-    Q6 -- yes --> R6["locator by name attribute"]
-    Q6 -- no --> R7[CSS fallback: #parentId tag, or bare tag]
-```
+![Locator priority chain: data-testid, then role/name, label, placeholder, stable id, name attribute, and finally a CSS fallback](docs/diagrams/locator-chain.svg)
 
 A "stable" id rejects anything matching `/[0-9a-f]{8,}|:/` (hashed or framework-generated
 ids such as React's `:r3:`). Accessible roles are inferred from the tag/type:
@@ -308,26 +276,7 @@ Supporting keyword lists:
   `invalid-option`, and `confirmation-mismatch` are skipped — they'd never reach the
   server-side oracle.
 
-```mermaid
-flowchart LR
-    F[Field + constraints] --> R{required?}
-    R -- yes --> V1[required-empty]
-    F --> T{type in email/url/number/tel?}
-    T -- yes --> V2["&lt;type&gt;-format"]
-    F --> P{pattern set?}
-    P -- yes --> V3[pattern-fail]
-    F --> L{minlength/maxlength set?}
-    L -- yes --> V4[minlength-minus-one / maxlength-plus-one / maxlength-exact / very-long]
-    F --> M{min/max set?}
-    M -- yes --> V5[min-minus-one / max-plus-one]
-    F --> O{has options?}
-    O -- yes --> V6[invalid-option]
-    F --> C{"name ends _confirmation?"}
-    C -- yes --> V7[confirmation-mismatch]
-    F --> U{"not required?"}
-    U -- yes --> V8[optional-omitted]
-    F --> ALW[always] --> V0[valid]
-```
+![Field constraint to generated test variant: each trigger (required, type, pattern, length, range, options, confirmation, optional) fans out to its negative/edge/positive variant name](docs/diagrams/constraint-variants.svg)
 
 ### 3. CRUD-operation classification
 

@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path class="arrowhead" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+  <style>
+    .trigger { fill:#f1f5f9; stroke:#64748b; stroke-width:1.5; }
+    .lbl { font-size:11px; fill:#1e1b4b; }
+    .chiplbl { font-size:10.5px; fill:#1e1b4b; }
+    .edge { fill:none; stroke:#94a3b8; stroke-width:1.25; marker-end:url(#arrow3); }
+    .arrowhead { fill:#94a3b8; }
+    .title { font-size:13px; font-weight:600; fill:#1e1b4b; }
+    .legend { font-size:10.5px; fill:#334155; }
+    .pos { fill:#ecfdf5; stroke:#059669; stroke-width:1.5; }
+    .neg { fill:#fef2f2; stroke:#dc2626; stroke-width:1.5; }
+    .edg { fill:#fff7ed; stroke:#d97706; stroke-width:1.5; }
+    @media (prefers-color-scheme: dark) {
+      .trigger { fill:#1e293b; stroke:#94a3b8; }
+      .lbl { fill:#e2e8f0; }
+      .chiplbl { fill:#0f172a; }
+      .edge { stroke:#64748b; }
+      .arrowhead { fill:#64748b; }
+      .title { fill:#e2e8f0; }
+      .legend { fill:#cbd5e1; }
+      .pos { fill:#6ee7b7; stroke:#34d399; }
+      .neg { fill:#fca5a5; stroke:#f87171; }
+      .edg { fill:#fcd34d; stroke:#fbbf24; }
+    }
+  </style>
+
+  <text class="title" x="20" y="24">Field constraint &#8594; generated test variant</text>
+
+  <!-- Row 1: always -->
+  <rect class="trigger" x="20" y="50" width="260" height="40" rx="8"/>
+  <text class="lbl" text-anchor="middle" x="150" y="74">Always (base value)</text>
+  <path class="edge" d="M280,70 L340,70"/>
+  <rect class="pos" x="340" y="58" width="240" height="24" rx="12"/>
+  <text class="chiplbl" text-anchor="middle" x="460" y="74">valid</text>
+
+  <!-- Row 2: required -->
+  <rect class="trigger" x="20" y="102" width="260" height="40" rx="8"/>
+  <text class="lbl" text-anchor="middle" x="150" y="126">Required field</text>
+  <path class="edge" d="M280,122 L340,122"/>
+  <rect class="neg" x="340" y="110" width="240" height="24" rx="12"/>
+  <text class="chiplbl" text-anchor="middle" x="460" y="126">required-empty</text>
+
+  <!-- Row 3: type format -->
+  <rect class="trigger" x="20" y="154" width="260" height="40" rx="8"/>
+  <text class="lbl" text-anchor="middle" x="150" y="170"><tspan x="150" dy="0">Type is email, url,</tspan><tspan x="150" dy="13">number, or tel</tspan></text>
+  <path class="edge" d="M280,174 L340,174"/>
+  <rect class="neg" x="340" y="162" width="240" height="24" rx="12"/>
+  <text class="chiplbl" text-anchor="middle" x="460" y="178">&lt;type&gt;-format</text>
+
+  <!-- Row 4: pattern -->
+  <rect class="trigger" x="20" y="206" width="260" height="40" rx="8"/>
+  <text class="lbl" text-anchor="middle" x="150" y="230">pattern attribute set</text>
+  <path class="edge" d="M280,226 L340,226"/>
+  <rect class="neg" x="340" y="214" width="240" height="24" rx="12"/>
+  <text class="chiplbl" text-anchor="middle" x="460" y="230">pattern-fail</text>
+
+  <!-- Row 5: minlength/maxlength (4 chips) -->
+  <rect class="trigger" x="20" y="258" width="260" height="130" rx="8"/>
+  <text class="lbl" text-anchor="middle" x="150" y="327"><tspan x="150" dy="0">minlength and/or</tspan><tspan x="150" dy="13">maxlength set</tspan></text>
+  <path class="edge" d="M280,323 L340,281"/>
+  <rect class="neg" x="340" y="269" width="240" height="24" rx="12"/>
+  <text class="chiplbl" text-anchor="middle" x="460" y="285">minlength-minus-one</text>
+  <path class="edge" d="M280,323 L340,309"/>
+  <rect class="neg" x="340" y="297" width="240" height="24" rx="12"/>
+  <text class="chiplbl" text-anchor="middle" x="460" y="313">maxlength-plus-one</text>
+  <path class="edge" d="M280,323 L340,337"/>
+  <rect class="edg" x="340" y="325" width="240" height="24" rx="12"/>
+  <text class="chiplbl" text-anchor="middle" x="460" y="341">maxlength-exact</text>
+  <path class="edge" d="M280,323 L340,365"/>
+  <rect class="edg" x="340" y="353" width="240" height="24" rx="12"/>
+  <text class="chiplbl" text-anchor="middle" x="460" y="369">very-long</text>
+
+  <!-- Row 6: min/max (2 chips) -->
+  <rect class="trigger" x="20" y="400" width="260" height="70" rx="8"/>
+  <text class="lbl" text-anchor="middle" x="150" y="439">min and/or max set</text>
+  <path class="edge" d="M280,435 L340,421"/>
+  <rect class="neg" x="340" y="409" width="240" height="24" rx="12"/>
+  <text class="chiplbl" text-anchor="middle" x="460" y="425">min-minus-one</text>
+  <path class="edge" d="M280,435 L340,449"/>
+  <rect class="neg" x="340" y="437" width="240" height="24" rx="12"/>
+  <text class="chiplbl" text-anchor="middle" x="460" y="453">max-plus-one</text>
+
+  <!-- Row 7: text-like (2 chips) -->
+  <rect class="trigger" x="20" y="482" width="260" height="70" rx="8"/>
+  <text class="lbl" text-anchor="middle" x="150" y="513"><tspan x="150" dy="0">Text-like field (text, email,</tspan><tspan x="150" dy="13">url, tel, textarea, password)</tspan></text>
+  <path class="edge" d="M280,517 L340,503"/>
+  <rect class="edg" x="340" y="491" width="240" height="24" rx="12"/>
+  <text class="chiplbl" text-anchor="middle" x="460" y="507">unicode</text>
+  <path class="edge" d="M280,517 L340,531"/>
+  <rect class="edg" x="340" y="519" width="240" height="24" rx="12"/>
+  <text class="chiplbl" text-anchor="middle" x="460" y="535">whitespace</text>
+
+  <!-- Row 8: options -->
+  <rect class="trigger" x="20" y="564" width="260" height="40" rx="8"/>
+  <text class="lbl" text-anchor="middle" x="150" y="588">Field has &lt;option&gt; values</text>
+  <path class="edge" d="M280,584 L340,584"/>
+  <rect class="neg" x="340" y="572" width="240" height="24" rx="12"/>
+  <text class="chiplbl" text-anchor="middle" x="460" y="588">invalid-option</text>
+
+  <!-- Row 9: confirmation -->
+  <rect class="trigger" x="20" y="616" width="260" height="40" rx="8"/>
+  <text class="lbl" text-anchor="middle" x="150" y="632"><tspan x="150" dy="0">Field name ends in</tspan><tspan x="150" dy="13">_confirmation</tspan></text>
+  <path class="edge" d="M280,636 L340,636"/>
+  <rect class="neg" x="340" y="624" width="240" height="24" rx="12"/>
+  <text class="chiplbl" text-anchor="middle" x="460" y="640">confirmation-mismatch</text>
+
+  <!-- Row 10: not required -->
+  <rect class="trigger" x="20" y="668" width="260" height="40" rx="8"/>
+  <text class="lbl" text-anchor="middle" x="150" y="692">Field is not required</text>
+  <path class="edge" d="M280,688 L340,688"/>
+  <rect class="edg" x="340" y="676" width="240" height="24" rx="12"/>
+  <text class="chiplbl" text-anchor="middle" x="460" y="692">optional-omitted</text>
+
+  <!-- Legend -->
+  <rect class="pos" x="20" y="735" width="18" height="14" rx="7"/>
+  <text class="legend" x="44" y="746">positive (expect success)</text>
+  <rect class="neg" x="230" y="735" width="18" height="14" rx="7"/>
+  <text class="legend" x="254" y="746">negative (expect error)</text>
+  <rect class="edg" x="430" y="735" width="18" height="14" rx="7"/>
+  <text class="legend" x="454" y="746">edge (expect graceful handling)</text>
+</svg>
