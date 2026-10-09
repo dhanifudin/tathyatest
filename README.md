@@ -260,7 +260,7 @@ flowchart TD
     Q4 -- no --> Q5{"Stable id (not hash-like/colon)?"}
     Q5 -- yes --> R5["locator('#id')"]
     Q5 -- no --> Q6{Has name attribute?}
-    Q6 -- yes --> R6["locator('[name=\"..\"]')"]
+    Q6 -- yes --> R6["locator('[name=&quot;..&quot;]')"]
     Q6 -- no --> R7[CSS fallback: #parentId tag, or bare tag]
 ```
 
