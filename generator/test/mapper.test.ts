@@ -861,12 +861,41 @@ describe('mapTestCases', () => {
 
     expect(rbacAllowed).toHaveLength(1);
     expect(rbacAllowed[0].route).toBe('/inventory.html');
+    // item=1 and item=2 are distinct signatures (different query values) and both survive;
+    // item=3 lives only on the sort=za page, which is skipped entirely as a duplicate page.
     expect(interactions.map((testCase) => testCase.title)).toEqual([
       'admin /inventory.html link /inventory.html?item=1 -> handled',
+      'admin /inventory.html link /inventory.html?item=2 -> handled',
       'admin /inventory.html button Add to cart -> handled',
     ]);
-    expect(interactions).toHaveLength(2);
+    expect(interactions).toHaveLength(3);
     expect(new Set(titles).size).toBe(titles.length);
     expect(JSON.stringify(cases)).not.toContain('sort=za');
+  });
+
+  it('treats different query parameter values as distinct interaction scenarios', () => {
+    const link = (href: string, text: string) => ({ href, text, locator: { strategy: 'role' as const, value: `link:${text}` } });
+    const page = (url: string, links: ReturnType<typeof link>[]) => ({ url, title: url, forms: [], links, buttons: [], tables: [] });
+    const crawl: CrawlOutput = {
+      baseUrl: config.baseUrl,
+      engine: 'rendered',
+      role: 'admin',
+      crawledAt: '2026-06-15T00:00:00.000Z',
+      pages: [
+        page('/todos', [
+          link('/todos?status=done', 'Done'),
+          link('/todos?status=pending', 'Pending'),
+        ]),
+      ],
+    };
+
+    const cases = mapTestCases([crawl], new Map(), config);
+    const interactions = cases.filter((testCase) => testCase.kind === 'interaction');
+
+    // Same route, same query KEY, different VALUE — two distinct data scenarios, not one.
+    expect(interactions.map((testCase) => testCase.title)).toEqual([
+      'admin /todos link /todos?status=done -> handled',
+      'admin /todos link /todos?status=pending -> handled',
+    ]);
   });
 });

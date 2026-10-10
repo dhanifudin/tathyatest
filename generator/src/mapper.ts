@@ -249,9 +249,13 @@ export function navScenarioKeysForPage(page: PageModel, baseUrl: string): string
 }
 
 // The seen-set is shared across a role's pages: the navbar link on every page, or ten
-// per-row edit links, are one navigation scenario each — keyed by target shape (numeric
-// segments -> :id, query VALUES dropped but query KEYS kept, so /todos?status=... filter
-// links stay distinct from bare /todos).
+// per-row edit links, are one navigation scenario each — keyed by a full target signature
+// (route shape with numeric segments -> :id, plus every query key=value pair sorted), so
+// /todos?status=done and /todos?status=pending are distinct scenarios, not just distinct
+// from bare /todos. Pagination links/buttons are classified and routed to
+// paginationCasesForPage before reaching this function (see isPaginationCandidate below),
+// so they are exempt from this signature and keep their own one-representative-per-action
+// dedup instead of one case per page number.
 function interactionCasesForPage(role: string, page: PageModel, canonicalPageUrl: string, baseUrl: string, seen: Set<string>): TestCase[] {
   const cases: TestCase[] = [];
   const formSubmitLocators = new Set(page.forms.map((form) => locatorKey(form.submit.locator)));
@@ -540,10 +544,20 @@ function hasPaginationQuery(targetPathAndSearch: string): boolean {
   return [...params.keys()].some((key) => /^(page|p|pageNo|pageNum|pageNumber|offset|start|cursor|after|before|limit)$/i.test(key));
 }
 
+// Full target signature used to decide whether two links/buttons are the same test
+// scenario: route shape (numeric path segments -> :id) plus every query key=value pair,
+// sorted for determinism. Query VALUES matter here — ?status=done and ?status=pending are
+// different data scenarios, not duplicates. (Pagination links are classified and routed
+// to paginationCasesForPage before reaching this function — see isPaginationCandidate —
+// so they never use this signature.)
 function targetShapeKey(href: string, baseUrl: string): string {
   const [pathname = '/', search = ''] = resolveHrefPathAndSearch(href, baseUrl).split('?', 2);
-  const queryKeys = [...new Set([...new URLSearchParams(search).keys()])].sort();
-  return queryKeys.length > 0 ? `${routeShape(pathname)}?${queryKeys.join(',')}` : routeShape(pathname);
+  const params = [...new URLSearchParams(search).entries()].sort(([ak, av], [bk, bv]) =>
+    ak === bk ? av.localeCompare(bv) : ak.localeCompare(bk),
+  );
+  return params.length > 0
+    ? `${routeShape(pathname)}?${params.map(([key, value]) => `${key}=${value}`).join('&')}`
+    : routeShape(pathname);
 }
 
 function resolveHrefPathAndSearch(path: string, baseUrl: string): string {
