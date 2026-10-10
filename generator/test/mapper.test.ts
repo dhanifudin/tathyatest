@@ -872,6 +872,38 @@ describe('mapTestCases', () => {
     expect(JSON.stringify(cases)).not.toContain('sort=za');
   });
 
+  it('recognises an entity-escaped, text-less "next" arrow and prefers it over the hidden mobile link', () => {
+    // Laravel's stock paginator: a hidden mobile text link plus a visible desktop svg link whose
+    // aria-label is the literal string "Next &raquo;" (the entity is escaped into the attribute).
+    const crawl: CrawlOutput = {
+      baseUrl: config.baseUrl,
+      schemaVersion: 2,
+      role: 'admin',
+      crawledAt: '2026-06-15T00:00:00.000Z',
+      pages: [{
+        url: '/todos',
+        title: 'Todos',
+        forms: [],
+        links: [
+          { href: '/todos?page=2', text: 'Next »', locator: { strategy: 'role', value: 'link:Next »' }, visible: false },
+          { href: '/todos?page=2', text: '2', locator: { strategy: 'role', value: 'link:Go to page 2' }, visible: true },
+          { href: '/todos?page=2', text: '', locator: { strategy: 'role', value: 'link:Next &raquo;' }, visible: true },
+        ],
+        buttons: [],
+        tables: [],
+      }],
+    };
+
+    const cases = mapTestCases([crawl], new Map(), config);
+    const pagination = cases.filter((testCase) => testCase.kind === 'pagination');
+
+    expect(pagination.map((testCase) => [testCase.pagination.action, testCase.pagination.locator.value])).toEqual([
+      ['page', 'link:Go to page 2'],
+      ['next', 'link:Next &raquo;'],
+    ]);
+    expect(cases.filter((testCase) => testCase.kind === 'interaction')).toHaveLength(0);
+  });
+
   it('treats different query parameter values as distinct interaction scenarios', () => {
     const link = (href: string, text: string) => ({ href, text, locator: { strategy: 'role' as const, value: `link:${text}` } });
     const page = (url: string, links: ReturnType<typeof link>[]) => ({ url, title: url, forms: [], links, buttons: [], tables: [] });

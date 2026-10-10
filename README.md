@@ -326,8 +326,9 @@ instead of the generic `valid` label.
 ### 4. Pagination keywords
 
 `generator/src/mapper.ts` classifies links/buttons as pagination controls by exact label
-match (after lowercasing and stripping arrow decoration `«»‹›←→<>` when the label also
-contains alphanumerics) or by query-parameter key:
+match (after decoding HTML entities such as `&raquo;` — Laravel's stock paginator escapes
+them into its `aria-label` — then lowercasing and stripping arrow decoration `«»‹›←→<>` when
+the label also contains alphanumerics) or by query-parameter key:
 
 | Action | Label regex |
 |---|---|

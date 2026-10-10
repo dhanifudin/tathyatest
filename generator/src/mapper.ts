@@ -501,10 +501,23 @@ function isPaginationCandidate(text: string | null, fallback: string, href: stri
 }
 
 function normalizePaginationLabel(text: string): string {
-  // Paginators decorate word labels with arrows ("Next »", "« Previous"); strip the
-  // decoration so the action classifies, but keep pure-symbol labels ("«") intact.
-  const label = normalizeTitleText(text).toLowerCase();
+  // The fallback label is a locator value ("link:Next »"); drop the role prefix. Then decode
+  // HTML entities — Laravel's stock paginator escapes its arrow into the aria-label, so the
+  // visible desktop control is literally named "Next &raquo;" — and strip arrow decoration
+  // ("Next »", "« Previous") so the action classifies, keeping pure-symbol labels ("«") intact.
+  const label = decodeEntities(normalizeTitleText(text).replace(/^(link|button|menuitem|tab):/i, '')).toLowerCase();
   return /[a-z0-9]/.test(label) ? label.replace(/[«»‹›←→<>]/g, '').trim() : label;
+}
+
+const NAMED_ENTITIES: Record<string, string> = {
+  raquo: '»', laquo: '«', rsaquo: '›', lsaquo: '‹', rarr: '→', larr: '←', gt: '>', lt: '<', amp: '&', nbsp: ' ',
+};
+
+function decodeEntities(text: string): string {
+  return text
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCodePoint(Number.parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec: string) => String.fromCodePoint(Number.parseInt(dec, 10)))
+    .replace(/&([a-z]+);/gi, (match, name: string) => NAMED_ENTITIES[name.toLowerCase()] ?? match);
 }
 
 function isPreviousLabel(label: string): boolean {
