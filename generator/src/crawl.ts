@@ -6,7 +6,8 @@ import { assertReachable } from './reachability.js';
 import type { TathyaConfig } from './config.js';
 
 export type LocatorStrategy = 'testid' | 'role' | 'label' | 'placeholder' | 'id' | 'name' | 'css';
-export type CrudOp = 'create' | 'update' | 'delete' | 'unknown';
+/** `logout`: a session-ending form (Breeze's POST /logout) — an auth scenario, not a CRUD create. */
+export type CrudOp = 'create' | 'update' | 'delete' | 'logout' | 'unknown';
 
 /**
  * Version of the crawl contract written by the crawler. Bump when a field changes meaning or is
@@ -108,7 +109,7 @@ export const crawlOutputSchema: z.ZodType<CrawlOutput, z.ZodTypeDef, unknown> = 
     forms: z.array(z.object({
       action: z.string(),
       method: z.enum(['GET', 'POST']),
-      crudOp: z.enum(['create', 'update', 'delete', 'unknown']),
+      crudOp: z.enum(['create', 'update', 'delete', 'logout', 'unknown']),
       noValidate: z.boolean(),
       fields: z.array(z.object({
         name: z.string(),

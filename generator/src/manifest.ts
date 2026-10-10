@@ -42,8 +42,10 @@ function classify(testCase: TestCase): Omit<CaseMeta, 'mutating'> {
     case 'auth':
       return {
         category: 'auth', tier: testCase.tier, role: testCase.role,
-        route: null, targetForm: null, targetField: null, constraintKind: null,
-        assertionCount: 1, locatorStrategy: null, faultClass: 'auth',
+        route: testCase.logout ? canonicalPath(testCase.logout.page.url) : null,
+        targetForm: testCase.logout ? `${testCase.logout.form.method}:${canonicalPath(testCase.logout.form.action)}` : null,
+        targetField: null, constraintKind: null,
+        assertionCount: 1, locatorStrategy: testCase.logout?.form.submit.locator.strategy ?? null, faultClass: 'auth',
       };
     case 'form': {
       const negative = testCase.variant.kind !== 'positive';

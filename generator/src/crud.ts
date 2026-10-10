@@ -31,6 +31,8 @@ export type CrudSignals = {
  *   5. any other POST → create.
  */
 export function classifyCrudOp(signals: CrudSignals): CrudOp {
+  // A logout form is an auth scenario whatever verb it carries.
+  if (isLogoutPath(signals.action) || /^(log ?out|sign ?out)$/i.test((signals.submitText ?? '').trim())) return 'logout';
   const explicit = verbToOp(signals.spoofedMethod) ?? verbToOp(signals.turboMethod) ?? verbToOp(signals.hxMethod);
   if (explicit) return explicit;
   if (signals.method === 'GET') return 'unknown';
@@ -58,4 +60,9 @@ function verbToOp(verb: string | null): CrudOp | null {
 function pathOf(action: string): string {
   const [path = ''] = action.split(/[?#]/, 1);
   return path;
+}
+
+/** `/logout`, `/auth/sign-out`, `/users/signout/` — the path alone marks a session-ending target. */
+export function isLogoutPath(hrefOrAction: string): boolean {
+  return /(^|\/)(logout|log-out|signout|sign-out)(\/|$)/i.test(pathOf(hrefOrAction));
 }

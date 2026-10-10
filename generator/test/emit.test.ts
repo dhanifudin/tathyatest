@@ -78,6 +78,19 @@ describe('emitTs', () => {
       expect(authSpec).toContain('performLogin(page, "admin@example.com", "password")');
       expect(authSpec).toContain('assertLoggedIn(page)');
       expect(authSpec).toContain('assertLoginRejected(page)');
+
+      await emitTs([{
+        kind: 'auth', tier: 'positive', title: 'admin logs out', role: 'admin', username: 'admin@example.com', password: 'password', expectSuccess: true,
+        logout: {
+          page: emptyPage('/dashboard', 'Dashboard'),
+          form: { action: '/logout', method: 'POST', crudOp: 'logout', noValidate: false, fields: [], submit: { text: 'Log Out', locator: { strategy: 'role', value: 'button:Log Out' } } },
+        },
+      }], { ...config, output: { ...config.output, dir } });
+      const logoutSpec = await readFile(join(dir, 'auth', 'login.spec.ts'), 'utf8');
+      expect(logoutSpec).toContain('test("admin logs out", { tag: ["@positive","@auth","@role:admin","@write"]');
+      expect(logoutSpec).toContain('await test.step("Log in as admin", () => app.loginAs("admin"));');
+      expect(logoutSpec).toContain('page.locator("form[action$=\\"/logout\\"]")');
+      expect(logoutSpec).toContain('await test.step("Expect /dashboard to need a login again", () => assertLoggedOut(page, "/dashboard"));');
       expect(authSpec).not.toContain('storageState/admin.json');
       // Login mechanics live in the support module, not in every spec.
       expect(authSpec).not.toContain('inferLoginControls');

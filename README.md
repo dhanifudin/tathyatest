@@ -317,6 +317,8 @@ The crawler records a form's raw signals and `generator/src/crud.ts` classifies 
 Node (pure, unit-tested), framework-neutrally, in this precedence:
 
 ```
+0. logout               action path segment logout|log-out|signout|sign-out, or submit text
+                        "Log out"/"Sign out"  -> logout (an auth scenario: "<role> logs out")
 1. explicit verb        hidden _method (Laravel/Rails/Symfony/Spring), data-turbo-method (Rails
                         Turbo), hx-put|hx-patch|hx-delete (HTMX):  PUT|PATCH -> update, DELETE -> delete
 2. form method = GET    -> unknown (search / filter form; never mutates)

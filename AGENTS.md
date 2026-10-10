@@ -77,7 +77,7 @@ Full schema reference:
     "forms": [{
       "action": "string",
       "method": "GET | POST",    // HTTP method of the form element
-      "crudOp": "create | update | delete | unknown",  // derived from _method input
+      "crudOp": "create | update | delete | logout | unknown",  // see src/crud.ts classifyCrudOp
       "noValidate": "boolean",   // form[novalidate] attribute
       "fields": [{
         "name": "string",

@@ -1,5 +1,6 @@
 import type { CrawlOutput, Field, Form, Locator, PageModel } from './crawl.js';
 import type { TathyaConfig } from './config.js';
+import { isLogoutPath } from './crud.js';
 import { shouldIncludeCoverage } from './config.js';
 import { routeShape, type AccessMatrix } from './rbac.js';
 import { variantsForField, validFieldValue, type FieldValue, type FieldVariant } from './fieldgen.js';
@@ -14,6 +15,8 @@ export type TestCase =
       username: string;
       password: string;
       expectSuccess: boolean;
+      /** Present for a logout scenario: the page and form whose submit ends the session. */
+      logout?: { page: PageModel; form: Form };
     }
   | {
       kind: 'form';
@@ -95,6 +98,7 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
   // the same form shape reached by two roles is ONE validation scenario, owned by the first
   // role that reaches it. Positives stay per role — the acting role is part of the scenario.
   const seenVariants = new Set<string>();
+  const seenLogout = new Set<string>();
   for (const crawl of crawls) {
     const seenPages = new Set<string>();
     const seenFieldlessForms = new Set<string>();
@@ -177,6 +181,22 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
               });
             }
           }
+        } else if (form.crudOp === 'logout') {
+          // One logout scenario per role: ending the session is auth behaviour, not a create.
+          if (!seenLogout.has(crawl.role)) {
+            seenLogout.add(crawl.role);
+            const credentials = config.auth.roles.find((role) => role.name === crawl.role);
+            cases.push({
+              kind: 'auth',
+              tier: 'positive',
+              title: `${crawl.role} logs out`,
+              role: crawl.role,
+              username: credentials?.username ?? '',
+              password: credentials?.password ?? '',
+              expectSuccess: true,
+              logout: { page, form },
+            });
+          }
         } else {
           cases.push({
             kind: 'form',
@@ -234,7 +254,7 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
 export function isMutating(testCase: TestCase): boolean {
   switch (testCase.kind) {
     case 'auth':
-      return !testCase.expectSuccess;
+      return !testCase.expectSuccess || testCase.logout !== undefined;
     case 'form':
       return testCase.form.method !== 'GET';
     case 'interaction':
@@ -247,9 +267,6 @@ export function isMutating(testCase: TestCase): boolean {
   }
 }
 
-function isLogoutPath(href: string): boolean {
-  return /(^|\/)(logout|log-out|signout|sign-out)(\/|\?|#|$)/i.test(href.split(/[?#]/, 1)[0] ?? '');
-}
 
 /**
  * The nav scenario keys (interaction + pagination) this page contributes, at the same
@@ -293,11 +310,15 @@ function interactionCasesForPage(role: string, page: PageModel, canonicalPageUrl
   const orderedLinks = [...page.links].sort((a, b) => Number(b.visible !== false) - Number(a.visible !== false));
   const orderedButtons = [...page.buttons].sort((a, b) => Number(b.visible !== false) - Number(a.visible !== false));
 
+  // A logout link next to a logout form (Breeze's anchor that submits the hidden form) is the
+  // same scenario as the auth logout case; without such a form the link stays an interaction.
+  const hasLogoutForm = page.forms.some((form) => form.crudOp === 'logout');
   for (const link of orderedLinks) {
     // Title carries the query too: /todos and /todos?status=done are distinct scenarios
     // (different dedup keys) and must not share a title.
     const target = resolveHrefPathAndSearch(link.href, baseUrl);
     if (isPaginationCandidate(link.text, link.locator.value, link.href, page.url, baseUrl)) continue;
+    if (hasLogoutForm && isLogoutPath(target)) continue;
     const key = `link:${targetShapeKey(link.href, baseUrl)}`;
     if (seen.has(key)) continue;
     seen.add(key);

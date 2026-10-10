@@ -106,6 +106,23 @@ export async function assertLoggedIn(page: Page): Promise<void> {
   await expect(page.locator('input[type="password"], input[autocomplete="current-password"], input[name*="password"], input[id*="password"], input[placeholder*="Password"]').first()).not.toBeVisible();
 }
 
+/**
+ * Logged out = a page that needed the session is no longer reachable: revisiting it lands on
+ * the login page, shows a login form, or redirects elsewhere. (Where the app sends you right
+ * after logging out — home, login, a goodbye page — is app-specific and not asserted.)
+ */
+export async function assertLoggedOut(page: Page, protectedPath: string): Promise<void> {
+  await page.waitForLoadState('domcontentloaded').catch(() => undefined);
+  await page.goto(protectedPath);
+  await page.waitForLoadState('networkidle').catch(() => undefined);
+  const expectedLoginPath = new URL(loginPath, 'http://tathyatest.local').pathname;
+  const landed = new URL(page.url()).pathname;
+  if (landed === expectedLoginPath) return;
+  const loginForm = page.locator('input[type="password"], input[autocomplete="current-password"], input[name*="password"]').first();
+  if (await loginForm.isVisible().catch(() => false)) return;
+  expect(landed, 'a protected page is still reachable after logging out').not.toBe(new URL(protectedPath, 'http://tathyatest.local').pathname);
+}
+
 /** A rejected login shows the app's error indicator. */
 export async function assertLoginRejected(page: Page): Promise<void> {
   await expect(page.locator(errorSelector).first()).toBeVisible();

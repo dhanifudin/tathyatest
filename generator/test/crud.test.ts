@@ -58,6 +58,14 @@ describe('classifyCrudOp', () => {
 
   it('defaults a plain POST to create', () => {
     expect(classifyCrudOp(post({ submitText: 'Apply' }))).toBe('create');
-    expect(classifyCrudOp(post({ action: '/logout', submitText: 'Log out' }))).toBe('create');
+  });
+
+  it('classifies session-ending forms as logout, whatever verb they carry', () => {
+    expect(classifyCrudOp(post({ action: '/logout', submitText: 'Log Out' }))).toBe('logout');
+    expect(classifyCrudOp(post({ action: '/auth/sign-out/', submitText: null }))).toBe('logout');
+    expect(classifyCrudOp(post({ action: '/session', submitText: 'Sign out', spoofedMethod: 'DELETE' }))).toBe('logout');
+    expect(classifyCrudOp(post({ method: 'GET', action: '/logout' }))).toBe('logout');
+    // "Log out" inside longer text is not a logout control.
+    expect(classifyCrudOp(post({ action: '/settings', submitText: 'Log out of all devices' }))).toBe('create');
   });
 });

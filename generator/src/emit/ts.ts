@@ -112,7 +112,7 @@ function helperImports(kind: TestCase['kind'], config: TathyaConfig): string[] {
   const readOnlyExtra = config.mode === 'read-only' ? ['expectRouteAllowed'] : [];
   switch (kind) {
     case 'auth':
-      return ['test', 'performLogin', 'assertLoggedIn', 'assertLoginRejected'];
+      return ['test', 'performLogin', 'assertLoggedIn', 'assertLoginRejected', 'assertLoggedOut'];
     case 'form':
       return ['test', 'expect', 'uploadFixture', 'expectQueryEcho', 'expectStateFlipped', ...readOnlyExtra];
     case 'interaction':
@@ -205,6 +205,24 @@ function testOptions(testCase: TestCase): string {
 }
 
 function authTest(testCase: Extract<TestCase, { kind: 'auth' }>): string {
+  if (testCase.logout) {
+    const { page: logoutPage, form } = testCase.logout;
+    const scope = `page.locator(${q(formActionSelector(form.action))})`;
+    return `test(${q(testCase.title)}, ${testOptions(testCase)}, async ({ page, app }) => {
+  await test.step(${q(`Log in as ${testCase.role}`)}, () => app.loginAs(${q(testCase.role)}));
+  await test.step(${q(`Open ${logoutPage.url}`)}, () => page.goto(${q(logoutPage.url)}));
+  await test.step('Log out', async () => {
+    const form = ${scope}.first();
+    const submitControl = ((await form.count()) > 0 ? ${locatorSource(form.submit.locator, 'form')} : ${locatorSource(form.submit.locator)}.first());
+    // Logout controls usually live in a collapsed account menu; the scenario is that the session
+    // ends, not the menu animation, so submit the form directly when its control is hidden.
+    if (await submitControl.isVisible().catch(() => false)) await submitControl.click();
+    else if ((await form.count()) > 0) await form.evaluate((element) => (element as HTMLFormElement).requestSubmit());
+    else await submitControl.click({ force: true });
+  });
+  await test.step(${q(`Expect ${logoutPage.url} to need a login again`)}, () => assertLoggedOut(page, ${q(logoutPage.url)}));
+});`;
+  }
   const outcome = testCase.expectSuccess
     ? `await test.step('Expect to be logged in', () => assertLoggedIn(page));`
     : `await test.step('Expect the login to be rejected', () => assertLoginRejected(page));`;

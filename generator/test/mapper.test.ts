@@ -962,6 +962,39 @@ describe('mapTestCases', () => {
     expect(readOnly.some((testCase) => testCase.kind === 'auth' && !testCase.expectSuccess)).toBe(false);
   });
 
+  it('turns a logout form into one auth scenario per role and drops the matching link', () => {
+    const logoutForm = { action: '/logout', method: 'POST' as const, crudOp: 'logout' as const, noValidate: false, fields: [], submit: { text: 'Log Out', locator: { strategy: 'role' as const, value: 'button:Log Out' } } };
+    const page = (url: string) => ({
+      url, title: url,
+      forms: [logoutForm, { ...logoutForm }],
+      links: [
+        { href: '/logout', text: 'Log Out', locator: { strategy: 'role' as const, value: 'link:Log Out' } },
+        { href: '/todos', text: 'Todos', locator: { strategy: 'role' as const, value: 'link:Todos' } },
+      ],
+      buttons: [], tables: [],
+    });
+    const crawl: CrawlOutput = {
+      baseUrl: config.baseUrl, schemaVersion: 2, role: 'admin', crawledAt: '2026-06-15T00:00:00.000Z',
+      pages: [page('/dashboard'), page('/todos')],
+    };
+
+    const cases = mapTestCases([crawl], new Map(), config);
+    const auth = cases.filter((testCase) => testCase.kind === 'auth');
+    const forms = cases.filter((testCase) => testCase.kind === 'form');
+    const links = cases.filter((testCase) => testCase.kind === 'interaction');
+
+    expect(auth.map((testCase) => testCase.title)).toEqual([
+      'admin logs in with valid credentials',
+      'admin is rejected with a wrong password',
+      'admin logs out',
+    ]);
+    expect(auth[2].logout?.form.action).toBe('/logout');
+    expect(auth[2].logout?.page.url).toBe('/dashboard');
+    expect(isMutating(auth[2])).toBe(true);
+    expect(forms).toHaveLength(0);
+    expect(links.map((testCase) => testCase.title)).toEqual(['admin · /dashboard · follows the "Todos" link to /todos']);
+  });
+
   it('treats different query parameter values as distinct interaction scenarios', () => {
     const link = (href: string, text: string) => ({ href, text, locator: { strategy: 'role' as const, value: `link:${text}` } });
     const page = (url: string, links: ReturnType<typeof link>[]) => ({ url, title: url, forms: [], links, buttons: [], tables: [] });
