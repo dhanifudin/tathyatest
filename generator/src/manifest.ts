@@ -28,19 +28,21 @@ export function buildManifest(cases: TestCase[]): ManifestEntry[] {
   return cases.map((testCase, index) => entryFor(testCase, index));
 }
 
-function entryFor(testCase: TestCase, index: number): ManifestEntry {
-  const id = `t${String(index + 1).padStart(4, '0')}`;
+/** The classification of one case — shared by the manifest and by the emitter's tags/annotations. */
+export type CaseMeta = Omit<ManifestEntry, 'id' | 'title'>;
+
+export function caseMeta(testCase: TestCase): CaseMeta {
   switch (testCase.kind) {
     case 'auth':
       return {
-        id, title: testCase.title, category: 'auth', tier: testCase.tier, role: testCase.role,
+        category: 'auth', tier: testCase.tier, role: testCase.role,
         route: null, targetForm: null, targetField: null, constraintKind: null,
         assertionCount: 1, locatorStrategy: null, faultClass: 'auth',
       };
     case 'form': {
       const negative = testCase.variant.kind !== 'positive';
       return {
-        id, title: testCase.title, category: 'crud', tier: testCase.tier, role: testCase.role,
+        category: 'crud', tier: testCase.tier, role: testCase.role,
         route: canonicalPath(testCase.page.url),
         targetForm: `${testCase.form.method}:${canonicalPath(testCase.form.action)}`,
         targetField: testCase.targetField?.name ?? null,
@@ -52,25 +54,29 @@ function entryFor(testCase: TestCase, index: number): ManifestEntry {
     }
     case 'interaction':
       return {
-        id, title: testCase.title, category: 'nav', tier: 'positive', role: testCase.role,
+        category: 'nav', tier: 'positive', role: testCase.role,
         route: canonicalPath(testCase.page.url), targetForm: null, targetField: null,
         constraintKind: null, assertionCount: 1, locatorStrategy: testCase.interaction.locator.strategy,
         faultClass: null,
       };
     case 'pagination':
       return {
-        id, title: testCase.title, category: 'nav', tier: 'positive', role: testCase.role,
+        category: 'nav', tier: 'positive', role: testCase.role,
         route: canonicalPath(testCase.page.url), targetForm: null, targetField: null,
         constraintKind: null, assertionCount: testCase.pagination.href ? 2 : 1,
         locatorStrategy: testCase.pagination.locator.strategy, faultClass: 'pagination',
       };
     case 'rbac':
       return {
-        id, title: testCase.title, category: 'rbac', tier: testCase.tier, role: testCase.role,
+        category: 'rbac', tier: testCase.tier, role: testCase.role,
         route: canonicalPath(testCase.route), targetForm: null, targetField: null,
         constraintKind: null, assertionCount: 1, locatorStrategy: null, faultClass: 'authz',
       };
   }
+}
+
+function entryFor(testCase: TestCase, index: number): ManifestEntry {
+  return { id: `t${String(index + 1).padStart(4, '0')}`, title: testCase.title, ...caseMeta(testCase) };
 }
 
 function constraintKindFor(variantName: string): string | null {

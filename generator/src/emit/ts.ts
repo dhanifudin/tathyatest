@@ -1,31 +1,145 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import type { TathyaConfig } from '../config.js';
 import type { Field } from '../crawl.js';
 import { locatorSource } from '../locator.js';
+import { caseMeta } from '../manifest.js';
 import { errorAssertionSource, gracefulAssertionSource } from '../oracle.js';
 import type { TestCase } from '../mapper.js';
+import { routeShape } from '../rbac.js';
+import { GENERATED_HEADER, SUPPORT_IMPORT, SUPPORT_MODULE_PATH, supportModuleSource } from './support.js';
 
+type FormCase = Extract<TestCase, { kind: 'form' }>;
+
+/**
+ * Write the TypeScript suite: one shared `support/tathya.ts` plus one spec file per category and
+ * route shape (`forms/todos-create.spec.ts`, `rbac/admin-users.spec.ts`, …). Specs import their
+ * helpers from the support module, group tests in `describe` blocks per role and page, gate the
+ * role once per group, narrate phases with `test.step`, and carry tags/annotations so a run can
+ * be filtered with `--grep @negative`, `--grep @role:admin`, etc.
+ */
 export async function emitTs(cases: TestCase[], config: TathyaConfig): Promise<void> {
   await resetOutput(config.output.dir);
-  await writeFile(join(config.output.dir, 'auth', 'auth.spec.ts'), authSpec(cases, config));
-  await writeFile(join(config.output.dir, 'forms', 'forms.spec.ts'), formSpec(cases, config));
-  await writeFile(join(config.output.dir, 'interactions', 'interactions.spec.ts'), interactionSpec(cases, config));
-  await writeFile(join(config.output.dir, 'pagination', 'pagination.spec.ts'), paginationSpec(cases, config));
-  await writeFile(join(config.output.dir, 'rbac', 'rbac.spec.ts'), rbacSpec(cases, config));
+  for (const [path, source] of specFilesFor(cases, config)) {
+    const target = join(config.output.dir, path);
+    await mkdir(dirname(target), { recursive: true });
+    await writeFile(target, source);
+  }
 }
 
 async function resetOutput(dir: string): Promise<void> {
   await rm(dir, { recursive: true, force: true });
-  await mkdir(join(dir, 'auth'), { recursive: true });
-  await mkdir(join(dir, 'forms'), { recursive: true });
-  await mkdir(join(dir, 'interactions'), { recursive: true });
-  await mkdir(join(dir, 'pagination'), { recursive: true });
-  await mkdir(join(dir, 'rbac'), { recursive: true });
+  await mkdir(dir, { recursive: true });
 }
 
-function header(): string {
-  return `import { test, expect } from '@playwright/test';\n\n`;
+/** Pure: every file of the suite, keyed by its path inside `output.dir`. */
+export function specFilesFor(cases: TestCase[], config: TathyaConfig): Map<string, string> {
+  const files = new Map<string, string>();
+  files.set(SUPPORT_MODULE_PATH, supportModuleSource(config));
+  const groups = new Map<string, TestCase[]>();
+  for (const testCase of cases) {
+    const path = specPathFor(testCase);
+    const group = groups.get(path);
+    if (group) group.push(testCase);
+    else groups.set(path, [testCase]);
+  }
+  for (const [path, group] of groups) files.set(path, specSource(group, config));
+  return files;
+}
+
+/** `auth/login.spec.ts`, `forms/todos-create.spec.ts`, `rbac/admin-users.spec.ts`, … */
+export function specPathFor(testCase: TestCase): string {
+  switch (testCase.kind) {
+    case 'auth':
+      return 'auth/login.spec.ts';
+    case 'form':
+      return `forms/${routeSlug(testCase.page.url)}.spec.ts`;
+    case 'interaction':
+      return `interactions/${routeSlug(testCase.page.url)}.spec.ts`;
+    case 'pagination':
+      return `pagination/${routeSlug(testCase.page.url)}.spec.ts`;
+    case 'rbac':
+      return `rbac/${routeSlug(testCase.route)}.spec.ts`;
+  }
+}
+
+function routeSlug(url: string): string {
+  const slug = routeShape(canonicalPath(url))
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase();
+  return slug || 'root';
+}
+
+function canonicalPath(path: string): string {
+  try {
+    return new URL(path, 'http://tathyatest.local').pathname || '/';
+  } catch {
+    const [withoutQuery = '/'] = path.split(/[?#]/, 1);
+    return withoutQuery || '/';
+  }
+}
+
+// ---------------------------------------------------------------------------------------------
+// One spec file
+// ---------------------------------------------------------------------------------------------
+
+function specSource(group: TestCase[], config: TathyaConfig): string {
+  const kind = group[0].kind;
+  const parts: string[] = [GENERATED_HEADER, `import { ${helperImports(kind).join(', ')} } from '${SUPPORT_IMPORT}';\n`];
+  if (kind === 'form') parts.push(fakerPreamble(config));
+  // Login tests must start logged out: the role projects pre-authenticate via storageState.
+  if (kind === 'auth') parts.push(`\ntest.use({ storageState: { cookies: [], origins: [] } });\n`);
+
+  for (const [role, roleCases] of groupBy(group, (testCase) => testCase.role)) {
+    parts.push(`\ntest.describe(${q(describeTitle(roleCases[0]))}, () => {\n`);
+    parts.push(`  test.skip(({ role }) => role !== ${q(role)}, ${q(`runs under the ${role} project only`)});\n`);
+    if (kind === 'form') {
+      for (const [, formCases] of groupBy(roleCases as FormCase[], (testCase) => formGroupKey(testCase))) {
+        parts.push(`\n  test.describe(${q(formDescribeTitle(formCases[0]))}, () => {\n`);
+        for (const testCase of formCases) parts.push(indent(testSource(testCase, config), 4), '\n');
+        parts.push('  });\n');
+      }
+    } else {
+      for (const testCase of roleCases) parts.push('\n', indent(testSource(testCase, config), 2), '\n');
+    }
+    parts.push('});\n');
+  }
+  return parts.join('');
+}
+
+function helperImports(kind: TestCase['kind']): string[] {
+  switch (kind) {
+    case 'auth':
+      return ['test', 'performLogin', 'assertLoggedIn', 'assertLoginRejected'];
+    case 'form':
+      return ['test', 'expect'];
+    case 'interaction':
+    case 'pagination':
+      return ['test', 'expect', 'expectNoServerError'];
+    case 'rbac':
+      return ['test', 'expectRouteAllowed', 'expectRouteBlocked'];
+  }
+}
+
+function describeTitle(testCase: TestCase): string {
+  switch (testCase.kind) {
+    case 'auth':
+      return `${testCase.role} login`;
+    case 'rbac':
+      return `${testCase.role} · ${canonicalPath(testCase.route)}`;
+    default:
+      return `${testCase.role} · ${canonicalPath(testCase.page.url)}`;
+  }
+}
+
+function formGroupKey(testCase: FormCase): string {
+  return `${testCase.form.method} ${canonicalPath(testCase.form.action)} ${testCase.form.submit.text ?? ''}`;
+}
+
+function formDescribeTitle(testCase: FormCase): string {
+  const label = testCase.form.submit.text ? `"${testCase.form.submit.text}" form` : 'form';
+  return `${label} → ${testCase.form.method} ${canonicalPath(testCase.form.action)}`;
 }
 
 function fakerPreamble(config: TathyaConfig): string {
@@ -34,32 +148,126 @@ function fakerPreamble(config: TathyaConfig): string {
     ? `import { allFakers } from '@faker-js/faker';\nconst faker = allFakers[${JSON.stringify(locale)}] ?? allFakers['en'];\n`
     : `import { faker } from '@faker-js/faker';\n`;
   const seedLine = seed !== null && seed !== undefined ? `test.beforeAll(() => { faker.seed(${seed}); });\n` : '';
-  return `${importLine}${seedLine}\n`;
+  return `${importLine}${seedLine}`;
 }
+
+// ---------------------------------------------------------------------------------------------
+// One test
+// ---------------------------------------------------------------------------------------------
+
+function testSource(testCase: TestCase, config: TathyaConfig): string {
+  switch (testCase.kind) {
+    case 'auth':
+      return authTest(testCase);
+    case 'form':
+      return formTest(testCase, config);
+    case 'interaction':
+      return interactionTest(testCase);
+    case 'pagination':
+      return paginationTest(testCase, config);
+    case 'rbac':
+      return rbacTest(testCase);
+  }
+}
+
+/** `{ tag: [...], annotation: [...] }` from the same classification the manifest records. */
+function testOptions(testCase: TestCase): string {
+  const meta = caseMeta(testCase);
+  const tags = [`@${meta.tier}`, `@${meta.category}`, `@role:${meta.role}`];
+  const annotations: { type: string; description: string }[] = [
+    { type: 'tier', description: meta.tier },
+    { type: 'category', description: meta.category },
+  ];
+  if (meta.route) annotations.push({ type: 'route', description: meta.route });
+  if (meta.targetField) annotations.push({ type: 'targetField', description: meta.targetField });
+  if (meta.constraintKind) annotations.push({ type: 'constraintKind', description: meta.constraintKind });
+  return `{ tag: ${JSON.stringify(tags)}, annotation: ${JSON.stringify(annotations)} }`;
+}
+
+function authTest(testCase: Extract<TestCase, { kind: 'auth' }>): string {
+  const outcome = testCase.expectSuccess
+    ? `await test.step('Expect to be logged in', () => assertLoggedIn(page));`
+    : `await test.step('Expect the login to be rejected', () => assertLoginRejected(page));`;
+  return `test(${q(testCase.title)}, ${testOptions(testCase)}, async ({ page }) => {
+  await test.step(${q(`Log in as ${testCase.username}`)}, () => performLogin(page, ${q(testCase.username)}, ${q(testCase.password)}));
+  ${outcome}
+});`;
+}
+
+function formTest(testCase: FormCase, config: TathyaConfig): string {
+  const { decls, fills } = fillFormSource(testCase);
+  const lines = [
+    `test(${q(testCase.title)}, ${testOptions(testCase)}, async ({ page, app }) => {`,
+    `  await test.step(${q(`Log in as ${testCase.role}`)}, () => app.loginAs(${q(testCase.role)}));`,
+    `  await test.step(${q(`Open ${testCase.page.url}`)}, () => page.goto(${q(testCase.page.url)}));`,
+  ];
+  if (decls.length > 0) lines.push(...decls.map((decl) => `  ${decl}`));
+  if (fills.length > 0) {
+    lines.push(`  await test.step('Fill the form', async () => {`, ...fills.map((fill) => indent(fill, 4)), '  });');
+  }
+  lines.push(`  await test.step('Submit', async () => {`, indent(submitClickSource(testCase), 4), '  });');
+  lines.push(`  await test.step(${q(outcomeStepTitle(testCase))}, async () => {`, indent(formAssertion(testCase, config), 4), '  });');
+  lines.push('});');
+  return lines.join('\n');
+}
+
+function outcomeStepTitle(testCase: FormCase): string {
+  if (testCase.variant.name === 'delete') return 'Expect the record to be gone';
+  if (testCase.variant.outcome === 'error') return 'Expect a validation error';
+  if (testCase.variant.outcome === 'graceful') return 'Expect no server error';
+  return 'Expect the submission to succeed';
+}
+
+function interactionTest(testCase: Extract<TestCase, { kind: 'interaction' }>): string {
+  const { interaction } = testCase;
+  const action = interaction.type === 'select' && interaction.optionValue !== undefined
+    ? `await test.step(${q(`Select "${interaction.optionValue}" in ${interaction.label}`)}, () => target.selectOption(${q(interaction.optionValue)}));`
+    : `await test.step(${q(`Click ${interaction.type} "${interaction.label}"`)}, () => target.click());`;
+  return `test(${q(testCase.title)}, ${testOptions(testCase)}, async ({ page, app }) => {
+  await test.step(${q(`Log in as ${testCase.role}`)}, () => app.loginAs(${q(testCase.role)}));
+  await test.step(${q(`Open ${testCase.page.url}`)}, () => page.goto(${q(testCase.page.url)}));
+  const target = ${nth(locatorSource(interaction.locator), interaction.ordinal)};
+  test.skip(await target.count() === 0 || !(await target.isVisible().catch(() => false)), 'interaction target is not visible');
+  ${action}
+  await test.step('Expect no server error', () => expectNoServerError(page));
+});`;
+}
+
+function paginationTest(testCase: Extract<TestCase, { kind: 'pagination' }>, config: TathyaConfig): string {
+  const { pagination } = testCase;
+  const stepTitle = pagination.action === 'page' ? `Go to page ${pagination.label}` : `Go to the ${pagination.action} page`;
+  const landing = pagination.href ? pathAndSearch(pagination.href, config.baseUrl) : null;
+  const landingStep = landing
+    ? `\n  await test.step(${q(`Expect to land on ${landing}`)}, () => expect(page).toHaveURL((url) => url.pathname + url.search === ${q(landing)}));`
+    : '';
+  return `test(${q(testCase.title)}, ${testOptions(testCase)}, async ({ page, app }) => {
+  await test.step(${q(`Log in as ${testCase.role}`)}, () => app.loginAs(${q(testCase.role)}));
+  await test.step(${q(`Open ${testCase.page.url}`)}, () => page.goto(${q(testCase.page.url)}));
+  const target = ${nth(locatorSource(pagination.locator), pagination.ordinal)};
+  test.skip(await target.count() === 0 || !(await target.isVisible().catch(() => false)), 'pagination target is not visible');
+  await test.step(${q(stepTitle)}, () => target.click());${landingStep}
+  await test.step('Expect no server error', () => expectNoServerError(page));
+});`;
+}
+
+function rbacTest(testCase: Extract<TestCase, { kind: 'rbac' }>): string {
+  const routePath = canonicalPath(testCase.route);
+  const outcome = testCase.expectAllowed
+    ? `await test.step('Expect the route to be allowed', () => expectRouteAllowed(page, response, ${q(routePath)}));`
+    : `await test.step('Expect the route to be blocked', () => expectRouteBlocked(page, response, ${q(routePath)}));`;
+  return `test(${q(testCase.title)}, ${testOptions(testCase)}, async ({ page, app }) => {
+  await test.step(${q(`Log in as ${testCase.role}`)}, () => app.loginAs(${q(testCase.role)}));
+  const response = await test.step(${q(`Open ${testCase.route}`)}, () => page.goto(${q(testCase.route)}));
+  ${outcome}
+});`;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Form bodies (fill, submit, assert)
+// ---------------------------------------------------------------------------------------------
 
 function fieldVar(name: string): string {
   return `f_${name.replace(/[^a-zA-Z0-9_]/g, '_')}`;
-}
-
-function authSpec(cases: TestCase[], config: TathyaConfig): string {
-  const authCases = cases.filter((testCase) => testCase.kind === 'auth');
-  return header() + loginHelperSource(config) + `test.use({ storageState: { cookies: [], origins: [] } });\n\n` + authCases.map((testCase) => `test(${JSON.stringify(testCase.title)}, async ({ page }) => {
-  test.skip(!test.info().project.name.startsWith(${JSON.stringify(`${testCase.role}-`)}), 'role-specific test');
-  await performLogin(page, ${JSON.stringify(testCase.username)}, ${JSON.stringify(testCase.password)});
-  ${testCase.expectSuccess ? 'await assertLoginSucceeded(page);' : `await expect(page.locator(${JSON.stringify(config.oracle.errorSelector)}).first()).toBeVisible();`}
-});`).join('\n\n') + '\n';
-}
-
-function formSpec(cases: TestCase[], config: TathyaConfig): string {
-  const formCases = cases.filter((testCase) => testCase.kind === 'form');
-  return header() + fakerPreamble(config) + roleLoginHelpers(config) + formCases.map((testCase) => `test(${JSON.stringify(testCase.title)}, async ({ page }) => {
-  test.skip(!test.info().project.name.startsWith(${JSON.stringify(`${testCase.role}-`)}), 'role-specific test');
-  await resetAndLogin(page, ${JSON.stringify(testCase.role)});
-  await page.goto(${JSON.stringify(testCase.page.url)});
-${fillFormSource(testCase)}
-${submitClickSource(testCase)}
-  ${formAssertion(testCase, config)}
-});`).join('\n\n') + '\n';
 }
 
 /**
@@ -69,20 +277,20 @@ ${submitClickSource(testCase)}
  * click on the intended form. Falls back to `.first()` for forms without a usable action
  * attribute (e.g. SPA forms that submit via JS).
  */
-function submitClickSource(testCase: Extract<TestCase, { kind: 'form' }>): string {
+function submitClickSource(testCase: FormCase): string {
   const lines: string[] = [];
   if (testCase.variant.name === 'delete') {
     // Accept a potential confirm() dialog; Playwright dismisses dialogs by default, which would
     // silently cancel the destructive action.
-    lines.push(`  page.once('dialog', (dialog) => { dialog.accept().catch(() => undefined); });`);
+    lines.push(`page.once('dialog', (dialog) => { dialog.accept().catch(() => undefined); });`);
   }
   lines.push(
-    `  const formScope = page.locator(${JSON.stringify(formActionSelector(testCase.form.action))});`,
-    `  const submitControl = (await formScope.count()) > 0 ? ${locatorSource(testCase.form.submit.locator, 'formScope.first()')} : ${locatorSource(testCase.form.submit.locator)}.first();`,
-    // Mirrors the interaction-spec convention: controls hidden behind collapsed menus/dropdowns
-    // (e.g. a logout form inside a nav dropdown) are skipped, not failed.
-    `  test.skip(!(await submitControl.isVisible().catch(() => false)), 'submit control is not visible');`,
-    `  await submitControl.click();`,
+    `const formScope = page.locator(${q(formActionSelector(testCase.form.action))});`,
+    `const submitControl = (await formScope.count()) > 0 ? ${locatorSource(testCase.form.submit.locator, 'formScope.first()')} : ${locatorSource(testCase.form.submit.locator)}.first();`,
+    // Controls hidden behind collapsed menus/dropdowns (e.g. a logout form inside a nav dropdown)
+    // are skipped, not failed.
+    `test.skip(!(await submitControl.isVisible().catch(() => false)), 'submit control is not visible');`,
+    `await submitControl.click();`,
   );
   return lines.join('\n');
 }
@@ -93,282 +301,7 @@ function formActionSelector(action: string): string {
   return `form[action$="${action.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"]`;
 }
 
-function interactionSpec(cases: TestCase[], config: TathyaConfig): string {
-  const interactionCases = cases.filter((testCase) => testCase.kind === 'interaction');
-  return header() + roleLoginHelpers(config) + interactionCases.map((testCase) => {
-    const { interaction } = testCase;
-    const action = interaction.type === 'select' && interaction.optionValue !== undefined
-      ? `await target.selectOption(${JSON.stringify(interaction.optionValue)});`
-      : 'await target.click();';
-    return `test(${JSON.stringify(testCase.title)}, async ({ page }) => {
-  test.skip(!test.info().project.name.startsWith(${JSON.stringify(`${testCase.role}-`)}), 'role-specific test');
-  await resetAndLogin(page, ${JSON.stringify(testCase.role)});
-  await page.goto(${JSON.stringify(testCase.page.url)});
-  const target = ${locatorSource(interaction.locator)}.nth(${interaction.ordinal});
-  test.skip(await target.count() === 0 || !(await target.isVisible().catch(() => false)), 'interaction target is not visible');
-  ${action}
-  await page.waitForLoadState('domcontentloaded').catch(() => undefined);
-  await page.waitForLoadState('networkidle').catch(() => undefined);
-  await expect(page.locator('body')).not.toContainText(/500|server error|exception/i);
-});`;
-  }).join('\n\n') + '\n';
-}
-
-function paginationSpec(cases: TestCase[], config: TathyaConfig): string {
-  const paginationCases = cases.filter((testCase) => testCase.kind === 'pagination');
-  return header() + roleLoginHelpers(config) + paginationCases.map((testCase) => `test(${JSON.stringify(testCase.title)}, async ({ page }) => {
-  test.skip(!test.info().project.name.startsWith(${JSON.stringify(`${testCase.role}-`)}), 'role-specific test');
-  await resetAndLogin(page, ${JSON.stringify(testCase.role)});
-  await page.goto(${JSON.stringify(testCase.page.url)});
-  const target = ${locatorSource(testCase.pagination.locator)}.nth(${testCase.pagination.ordinal});
-  test.skip(await target.count() === 0 || !(await target.isVisible().catch(() => false)), 'pagination target is not visible');
-  const beforePath = new URL(page.url()).pathname + new URL(page.url()).search;
-  await target.click();
-  await page.waitForLoadState('domcontentloaded').catch(() => undefined);
-  await page.waitForLoadState('networkidle').catch(() => undefined);
-  ${testCase.pagination.href ? `await expect(new URL(page.url()).pathname + new URL(page.url()).search).toBe(new URL(${JSON.stringify(testCase.pagination.href)}, ${JSON.stringify(config.baseUrl)}).pathname + new URL(${JSON.stringify(testCase.pagination.href)}, ${JSON.stringify(config.baseUrl)}).search);` : ''}
-  await expect(page.locator('body')).not.toContainText(/500|server error|exception/i);
-});`).join('\n\n') + '\n';
-}
-
-function rbacSpec(cases: TestCase[], config: TathyaConfig): string {
-  const rbacCases = cases.filter((testCase) => testCase.kind === 'rbac');
-  return header() + roleLoginHelpers(config) + rbacCases.map((testCase) => {
-    if (testCase.expectAllowed) {
-      // Allowed = a healthy (< 400) document response, OR — because SPA hosts serve deep links
-      // with an error status while the client router still renders the page — staying on the
-      // route with interactive content rendered. A genuine error page (e.g. Laravel's 404, which
-      // renders nothing interactive) fails both arms; the graceful body check catches debug 500s.
-      const routePath = new URL(testCase.route, 'http://placeholder.local').pathname;
-      return `test(${JSON.stringify(testCase.title)}, async ({ page }) => {
-  test.skip(!test.info().project.name.startsWith(${JSON.stringify(`${testCase.role}-`)}), 'role-specific test');
-  await resetAndLogin(page, ${JSON.stringify(testCase.role)});
-  const response = await page.goto(${JSON.stringify(testCase.route)});
-  const status = response?.status() ?? 200;
-  if (status >= 400) {
-    await page.waitForLoadState('networkidle').catch(() => undefined);
-    expect(new URL(page.url()).pathname).toBe(${JSON.stringify(routePath)});
-    expect(await page.locator('a, button, form, select, input').count()).toBeGreaterThan(0);
-  }
-  await expect(page.locator('body')).not.toContainText(/500|server error|exception/i);
-});`;
-    }
-    // Blocked route: `page.goto` resolves redirect chains, so a redirect-away denial ends with a
-    // 2xx on a DIFFERENT path. Assert either a direct denial status (>= 400) or that the browser
-    // never landed on the blocked path — plus a graceful (no-500) body either way.
-    const blockedPath = new URL(testCase.route, 'http://placeholder.local').pathname;
-    return `test(${JSON.stringify(testCase.title)}, async ({ page }) => {
-  test.skip(!test.info().project.name.startsWith(${JSON.stringify(`${testCase.role}-`)}), 'role-specific test');
-  await resetAndLogin(page, ${JSON.stringify(testCase.role)});
-  const response = await page.goto(${JSON.stringify(testCase.route)});
-  const status = response?.status() ?? 200;
-  if (status < 400) {
-    expect(new URL(page.url()).pathname).not.toBe(${JSON.stringify(blockedPath)});
-  } else {
-    expect([401, 403, 404]).toContain(status);
-  }
-  await expect(page.locator('body')).not.toContainText(/500|server error|exception/i);
-});`;
-  }).join('\n\n') + '\n';
-}
-
-function roleLoginHelpers(config: TathyaConfig): string {
-  return roleLoginHelpersFromEntries(
-    config,
-    config.auth.roles.map((role) => [role.name, { username: role.username, password: role.password }] as const),
-  );
-}
-
-function roleLoginHelpersFromEntries(
-  config: Pick<TathyaConfig, 'auth' | 'hooks'>,
-  entries: Array<readonly [string, { username: string; password: string }]>,
-): string {
-  const credentials = Object.fromEntries(entries);
-  // The reset hook is the only app endpoint the specs may call, and only when the config
-  // declares one (the case studies reseed their database; a third-party app has nothing to call).
-  const reset = config.hooks?.reset;
-  const resetLine = reset ? `  await page.request.fetch(${JSON.stringify(reset.path)}, { method: ${JSON.stringify(reset.method)} });\n` : '';
-  return loginHelperSource(config) + `const roleCredentials = ${JSON.stringify(credentials, null, 2)};\n\nasync function resetAndLogin(page: import('@playwright/test').Page, role: keyof typeof roleCredentials) {
-${resetLine}  await page.context().clearCookies();
-  const credentials = roleCredentials[role];
-  await performLogin(page, credentials.username, credentials.password);
-  await assertLoginSucceeded(page);
-}\n\n`;
-}
-
-function loginHelperSource(config: Pick<TathyaConfig, 'auth'>): string {
-  return `type LoginLocator = { strategy: 'testid' | 'role' | 'label' | 'placeholder' | 'id' | 'name' | 'css'; value: string };
-type LoginControls = { username: LoginLocator; password: LoginLocator; submit: LoginLocator };
-
-function loginLocator(page: import('@playwright/test').Page, locator: LoginLocator) {
-  switch (locator.strategy) {
-    case 'testid':
-      return page.getByTestId(locator.value);
-    case 'role': {
-      const [role, ...nameParts] = locator.value.split(':');
-      const name = nameParts.join(':');
-      return name ? page.getByRole(role as Parameters<typeof page.getByRole>[0], { name }) : page.getByRole(role as Parameters<typeof page.getByRole>[0]);
-    }
-    case 'label':
-      return page.getByLabel(locator.value, { exact: true });
-    case 'placeholder':
-      return page.getByPlaceholder(locator.value);
-    case 'id':
-      return page.locator('#' + cssEscape(locator.value));
-    case 'name':
-      return page.locator('[name="' + cssEscape(locator.value) + '"]');
-    case 'css':
-      return page.locator(locator.value);
-  }
-}
-
-async function performLogin(page: import('@playwright/test').Page, username: string, password: string) {
-  await page.goto(${JSON.stringify(config.auth.loginPath)});
-  const controls = await inferLoginControls(page);
-  await loginLocator(page, controls.username).fill(username);
-  await loginLocator(page, controls.password).fill(password);
-  const beforePath = new URL(page.url()).pathname;
-  await Promise.all([
-    page.waitForURL((url) => url.pathname !== beforePath, { timeout: 5000 }).catch(() => undefined),
-    loginLocator(page, controls.submit).click(),
-  ]);
-  await page.waitForLoadState('networkidle').catch(() => undefined);
-}
-
-async function assertLoginSucceeded(page: import('@playwright/test').Page) {
-  const loginPath = new URL(${JSON.stringify(config.auth.loginPath)}, 'http://tathyatest.local').pathname;
-  const currentPath = new URL(page.url()).pathname;
-  if (currentPath !== loginPath) return;
-  await expect(page.locator('input[type="password"], input[autocomplete="current-password"], input[name*="password"], input[id*="password"], input[placeholder*="Password"]').first()).not.toBeVisible();
-}
-
-async function inferLoginControls(page: import('@playwright/test').Page): Promise<LoginControls> {
-  await page.waitForLoadState('domcontentloaded').catch(() => undefined);
-  return page.evaluate(() => {
-    type Candidate = {
-      tag: 'input' | 'button';
-      type: string;
-      name: string;
-      id: string;
-      placeholder: string;
-      autocomplete: string;
-      ariaLabel: string;
-      dataAttr: string;
-      dataValue: string;
-      text: string;
-      value: string;
-    };
-    const attr = (el: Element, name: string): string => el.getAttribute(name) ?? '';
-    const text = (el: Element): string => (el.textContent ?? '').replace(/\\s+/g, ' ').trim();
-    const candidateText = (candidate: Candidate): string => [
-      candidate.type,
-      candidate.name,
-      candidate.id,
-      candidate.placeholder,
-      candidate.autocomplete,
-      candidate.ariaLabel,
-      candidate.dataValue,
-      candidate.text,
-      candidate.value,
-    ].join(' ').toLowerCase();
-    const stableId = (value: string): boolean => value.length > 0 && !/[0-9a-f]{8,}|:/.test(value);
-    const cssEscape = (value: string): string => {
-      const escaper = (globalThis as typeof globalThis & { CSS?: { escape?: (v: string) => string } }).CSS?.escape;
-      return escaper ? escaper(value) : value.replace(/["\\\\]/g, '\\\\$&');
-    };
-    const inputCandidate = (input: HTMLInputElement): Candidate => ({
-      tag: 'input',
-      type: (input.type || 'text').toLowerCase(),
-      name: input.name,
-      id: input.id,
-      placeholder: input.placeholder,
-      autocomplete: input.autocomplete,
-      ariaLabel: attr(input, 'aria-label'),
-      dataAttr: attr(input, 'data-test') ? 'data-test' : attr(input, 'data-testid') ? 'data-testid' : '',
-      dataValue: attr(input, 'data-test') || attr(input, 'data-testid'),
-      text: '',
-      value: input.value,
-    });
-    const buttonCandidate = (button: HTMLButtonElement | HTMLInputElement): Candidate => ({
-      tag: button.tagName.toLowerCase() === 'button' ? 'button' : 'input',
-      type: (attr(button, 'type') || (button instanceof HTMLButtonElement ? 'submit' : 'text')).toLowerCase(),
-      name: attr(button, 'name'),
-      id: attr(button, 'id'),
-      placeholder: attr(button, 'placeholder'),
-      autocomplete: attr(button, 'autocomplete'),
-      ariaLabel: attr(button, 'aria-label'),
-      dataAttr: attr(button, 'data-test') ? 'data-test' : attr(button, 'data-testid') ? 'data-testid' : '',
-      dataValue: attr(button, 'data-test') || attr(button, 'data-testid'),
-      text: button instanceof HTMLInputElement ? '' : text(button),
-      value: button instanceof HTMLInputElement ? button.value : attr(button, 'value'),
-    });
-    const locatorFor = (candidate: Candidate | undefined, kind: 'username' | 'password' | 'submit'): LoginLocator => {
-      if (!candidate) {
-        if (kind === 'submit') return { strategy: 'css', value: 'button[type="submit"], input[type="submit"], button:not([type])' };
-        return { strategy: 'css', value: kind === 'username' ? 'input:not([type="hidden"]):not([type="password"])' : 'input[type="password"]' };
-      }
-      if (candidate.dataAttr && candidate.dataValue) return { strategy: 'css', value: '[' + candidate.dataAttr + '="' + cssEscape(candidate.dataValue) + '"]' };
-      if (candidate.placeholder) return { strategy: 'placeholder', value: candidate.placeholder };
-      if (stableId(candidate.id)) return { strategy: 'id', value: candidate.id };
-      if (candidate.name) return { strategy: 'name', value: candidate.name };
-      const buttonText = candidate.text || candidate.value;
-      if (candidate.tag === 'button' && buttonText) return { strategy: 'role', value: 'button:' + buttonText };
-      return { strategy: 'css', value: candidate.tag === 'button' ? 'button' : 'input' };
-    };
-    const inputs = Array.from(document.querySelectorAll<HTMLInputElement>('input'))
-      .map(inputCandidate)
-      .filter((input) => !['hidden', 'submit', 'button', 'reset', 'image', 'file'].includes(input.type));
-    const buttons = [
-      ...Array.from(document.querySelectorAll<HTMLButtonElement>('button')).map(buttonCandidate),
-      ...Array.from(document.querySelectorAll<HTMLInputElement>('input[type="submit"], input[type="button"]')).map(buttonCandidate),
-    ];
-    const username = inputs
-      .map((input) => {
-        const haystack = candidateText(input);
-        let score = 0;
-        if (input.type === 'email') score += 100;
-        if (input.autocomplete.toLowerCase() === 'username') score += 90;
-        if (input.autocomplete.toLowerCase() === 'email') score += 80;
-        if (/(email|username|user|account|identifier|handle)/.test(haystack)) score += 50;
-        return { input, score };
-      })
-      .sort((a, b) => b.score - a.score)[0]?.input ?? inputs[0];
-    const password = inputs
-      .map((input) => {
-        const haystack = candidateText(input);
-        let score = 0;
-        if (input.type === 'password') score += 100;
-        if (/(password|passcode|pin)/.test(haystack)) score += 50;
-        return { input, score };
-      })
-      .sort((a, b) => b.score - a.score)[0]?.input ?? inputs.find((input) => input !== username) ?? inputs[1] ?? inputs[0];
-    const submit = buttons
-      .map((button) => {
-        const haystack = candidateText(button);
-        let score = 0;
-        if (button.dataValue) score += 100;
-        if (button.tag === 'button') score += 20;
-        if (/(log in|login|sign in|sign-in)/.test(haystack)) score += 50;
-        if (button.type === 'submit') score += 10;
-        return { button, score };
-      })
-      .sort((a, b) => b.score - a.score)[0]?.button ?? buttons[0];
-    return {
-      username: locatorFor(username, 'username'),
-      password: locatorFor(password, 'password'),
-      submit: locatorFor(submit, 'submit'),
-    };
-  });
-}
-
-function cssEscape(value: string): string {
-  return value.replaceAll('\\\\', '\\\\\\\\').replaceAll('"', '\\\\"');
-}
-
-`;
-}
-
-function fillFormSource(testCase: Extract<TestCase, { kind: 'form' }>): string {
+function fillFormSource(testCase: FormCase): { decls: string[]; fills: string[] } {
   const { form, values } = testCase;
 
   // Resolve runtime/ref fields to a variable (or a referenced literal) and collect their decls.
@@ -379,7 +312,7 @@ function fillFormSource(testCase: Extract<TestCase, { kind: 'form' }>): string {
     if (fieldValue === undefined) continue;
     if (fieldValue.kind === 'runtime') {
       const variable = fieldVar(field.name);
-      decls.push(`  const ${variable} = ${fieldValue.expr};`);
+      decls.push(`const ${variable} = ${fieldValue.expr};`);
       runtimeFill.set(field.name, variable);
     } else if (fieldValue.kind === 'ref') {
       const source = values[fieldValue.name];
@@ -388,94 +321,94 @@ function fillFormSource(testCase: Extract<TestCase, { kind: 'form' }>): string {
     }
   }
 
-  const fills = form.fields.map((field) => {
+  const fills = form.fields.flatMap((field) => {
     const fieldValue = values[field.name];
-    if (fieldValue === undefined) return '';
+    if (fieldValue === undefined) return [];
     const loc = locatorSource(field.locator);
     const runtimeExpr = runtimeFill.get(field.name);
     if (runtimeExpr !== undefined && fieldValue.kind !== 'literal') {
-      return `  await ${loc}.fill(${runtimeExpr});`;
+      return [`await ${loc}.fill(${runtimeExpr});`];
     }
     const value = fieldValue.kind === 'literal' ? fieldValue.value : '';
     if (field.type === 'radio') {
       if (testCase.targetField?.name === field.name && testCase.variant.name === 'required-empty') {
-        return `  await page.locator(${JSON.stringify(`[name="${field.name}"]`)}).evaluateAll((elements) => {
-    for (const element of elements) {
-      if (element instanceof HTMLInputElement && element.type === 'radio') {
-        element.checked = false;
-        element.dispatchEvent(new Event('input', { bubbles: true }));
-        element.dispatchEvent(new Event('change', { bubbles: true }));
-      }
+        return [`await page.locator(${q(`[name="${field.name}"]`)}).evaluateAll((elements) => {
+  for (const element of elements) {
+    if (element instanceof HTMLInputElement && element.type === 'radio') {
+      element.checked = false;
+      element.dispatchEvent(new Event('input', { bubbles: true }));
+      element.dispatchEvent(new Event('change', { bubbles: true }));
     }
-  });`;
+  }
+});`];
       }
-      return `  await ${loc}.check();`;
+      return [`await ${loc}.check();`];
     }
     if (shouldForceInvalidOption(testCase, field)) {
-      return `  await ${loc}.evaluate((element, value) => {
-    if (element instanceof HTMLSelectElement) {
-      const option = document.createElement('option');
-      option.value = value;
-      option.textContent = value;
-      element.appendChild(option);
-      element.value = value;
-      element.dispatchEvent(new Event('input', { bubbles: true }));
-      element.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-  }, ${JSON.stringify(value)});`;
+      return [`await ${loc}.evaluate((element, value) => {
+  if (element instanceof HTMLSelectElement) {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = value;
+    element.appendChild(option);
+    element.value = value;
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+    element.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+}, ${q(value)});`];
     }
     if (field.options?.length && testCase.targetField?.name === field.name && testCase.variant.name === 'required-empty') {
-      return `  await ${loc}.evaluate((element) => {
-    if (element instanceof HTMLSelectElement) {
-      element.selectedIndex = -1;
-      element.dispatchEvent(new Event('input', { bubbles: true }));
-      element.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-  });`;
+      return [`await ${loc}.evaluate((element) => {
+  if (element instanceof HTMLSelectElement) {
+    element.selectedIndex = -1;
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+    element.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+});`];
     }
     if (shouldForceValue(testCase, field)) {
-      return `  await ${loc}.evaluate((element, value) => {
-    if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
-      element.value = value;
-      element.dispatchEvent(new Event('input', { bubbles: true }));
-      element.dispatchEvent(new Event('change', { bubbles: true }));
+      return [`await ${loc}.evaluate((element, value) => {
+  if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+    element.value = value;
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+    element.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+}, ${q(value)});`];
     }
-  }, ${JSON.stringify(value)});`;
-    }
-    if (field.type === 'checkbox') return `  await ${loc}.setChecked(${JSON.stringify(value === 'on' || value === 'true')});`;
-    if (field.options?.length) return `  await ${loc}.selectOption(${JSON.stringify(value)});`;
-    return `  await ${loc}.fill(${JSON.stringify(value)});`;
-  }).filter(Boolean).join('\n');
+    if (field.type === 'checkbox') return [`await ${loc}.setChecked(${JSON.stringify(value === 'on' || value === 'true')});`];
+    if (field.options?.length) return [`await ${loc}.selectOption(${q(value)});`];
+    return [`await ${loc}.fill(${q(value)});`];
+  });
 
-  return [decls.join('\n'), fills].filter(Boolean).join('\n');
+  return { decls, fills };
 }
 
-function shouldForceValue(testCase: Extract<TestCase, { kind: 'form' }>, field: Field): boolean {
+function shouldForceValue(testCase: FormCase, field: Field): boolean {
   return testCase.targetField?.name === field.name && (
     testCase.variant.name === 'maxlength-plus-one' ||
     testCase.variant.name === 'very-long'
   );
 }
 
-function shouldForceInvalidOption(testCase: Extract<TestCase, { kind: 'form' }>, field: Field): boolean {
+function shouldForceInvalidOption(testCase: FormCase, field: Field): boolean {
   return testCase.targetField?.name === field.name && (
     testCase.variant.name === 'invalid-option' ||
     testCase.variant.forceInvalidOption === true
   );
 }
 
-function formAssertion(testCase: Extract<TestCase, { kind: 'form' }>, config: TathyaConfig): string {
+function formAssertion(testCase: FormCase, config: TathyaConfig): string {
   if (testCase.form.crudOp === 'delete' && testCase.variant.name === 'delete') {
     // The deleted entity's form action is unique per row, so its disappearance proves the delete
     // took effect. Row counting is deliberately avoided: on paginated listings the page size stays
     // constant after a delete, and hard-coding the redirect URL would leak app-specific paths.
     return [
-      `await expect(page.locator(${JSON.stringify(formActionSelector(testCase.form.action))})).toHaveCount(0);`,
-      `await expect(page.locator('body')).not.toContainText(/500|server error|exception/i);`,
-    ].join('\n  ');
+      `await expect(page.locator(${q(formActionSelector(testCase.form.action))})).toHaveCount(0);`,
+      gracefulAssertionSource(),
+    ].join('\n');
   }
   if (testCase.variant.outcome === 'error' && testCase.targetField) {
-    return errorAssertionSource(testCase.form, testCase.targetField, config.oracle.errorSelector, testCase.page.url, testCase.variant.name).replaceAll('\n', '\n  ');
+    return errorAssertionSource(testCase.form, testCase.targetField, config.oracle.errorSelector, testCase.page.url, testCase.variant.name);
   }
   if (testCase.variant.outcome === 'graceful') return gracefulAssertionSource();
   const representative = representativeTextValue(testCase);
@@ -484,7 +417,7 @@ function formAssertion(testCase: Extract<TestCase, { kind: 'form' }>, config: Ta
   if (representative && testCase.variant.name === 'valid' && (testCase.form.crudOp === 'create' || testCase.form.crudOp === 'update')) {
     return `await expect(page.getByText(${representative}).first()).toBeVisible();`;
   }
-  return "await expect(page.locator('body')).not.toContainText(/500|server error|exception/i);";
+  return gracefulAssertionSource();
 }
 
 // The submitted value the app should echo back after a successful create/update — asserting it
@@ -492,7 +425,7 @@ function formAssertion(testCase: Extract<TestCase, { kind: 'form' }>, config: Ta
 // server silently drops the write). Prefer a faker-generated text field (unique by
 // construction); fall back to a config-pinned literal text value. Textarea fields are excluded
 // because their content is rarely rendered in list/summary views.
-function representativeTextValue(testCase: Extract<TestCase, { kind: 'form' }>): string | null {
+function representativeTextValue(testCase: FormCase): string | null {
   for (const field of testCase.form.fields) {
     const fieldValue = testCase.values[field.name];
     if (fieldValue?.kind === 'runtime' && ['text', 'search'].includes(field.type)) {
@@ -506,4 +439,37 @@ function representativeTextValue(testCase: Extract<TestCase, { kind: 'form' }>):
     }
   }
   return null;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Small helpers
+// ---------------------------------------------------------------------------------------------
+
+function q(value: string): string {
+  return JSON.stringify(value);
+}
+
+function nth(locator: string, ordinal: number): string {
+  return ordinal === 0 ? `${locator}.first()` : `${locator}.nth(${ordinal})`;
+}
+
+function pathAndSearch(href: string, baseUrl: string): string {
+  const url = new URL(href, baseUrl);
+  return `${url.pathname}${url.search}`;
+}
+
+function indent(source: string, spaces: number): string {
+  const pad = ' '.repeat(spaces);
+  return source.split('\n').map((line) => (line.length > 0 ? pad + line : line)).join('\n');
+}
+
+function groupBy<T>(items: T[], keyOf: (item: T) => string): Map<string, T[]> {
+  const groups = new Map<string, T[]>();
+  for (const item of items) {
+    const key = keyOf(item);
+    const group = groups.get(key);
+    if (group) group.push(item);
+    else groups.set(key, [item]);
+  }
+  return groups;
 }
