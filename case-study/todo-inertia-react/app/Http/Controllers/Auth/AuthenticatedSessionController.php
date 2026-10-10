@@ -29,6 +29,11 @@ class AuthenticatedSessionController extends Controller
 
     public function destroy(Request $request): RedirectResponse
     {
+        // Eval-only auth fault: logging out leaves the session alive.
+        if (\App\Support\FaultRegistry::is('auth_logout_noop')) {
+            return redirect('/');
+        }
+
         auth()->guard('web')->logout();
 
         $request->session()->invalidate();

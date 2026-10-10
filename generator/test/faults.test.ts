@@ -33,7 +33,7 @@ describe('fault catalogue files', () => {
     expect(merged).toHaveLength(FAULT_CATALOGUE.length + 1);
     expect(merged.find((fault) => fault.id === 'validation_title_required')?.description).toBe('replaced');
     expect(merged.at(-1)?.id).toBe('shop_discount_wrong');
-    expect(faultsForClasses(['crud'], merged).map((fault) => fault.id)).toEqual(['crud_skip_persist', 'shop_discount_wrong']);
+    expect(faultsForClasses(['crud'], merged).map((fault) => fault.id)).toEqual(['crud_skip_persist', 'crud_delete_noop', 'crud_toggle_noop', 'search_filter_ignored', 'shop_discount_wrong']);
   });
 
   it('loads and validates a JSON catalogue file', async () => {
@@ -55,5 +55,31 @@ describe('fault catalogue files', () => {
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe('negative controls and per-fault reporting', () => {
+  it('marks exactly the controls as expected survivors and matches titles', () => {
+    const controls = FAULT_CATALOGUE.filter((fault) => fault.expected === 'survives').map((fault) => fault.id);
+    expect(controls).toEqual(['validation_date_rule_drop', 'validation_body_string_drop', 'validation_message_text_changed', 'search_filter_ignored']);
+    expect(FAULT_CATALOGUE).toHaveLength(18);
+    expect(new Set(FAULT_CATALOGUE.map((fault) => fault.id)).size).toBe(18);
+    expect(relevantFromMatcher({ category: 'crud', titleIncludes: 'deletes the record' })({ ...entry, title: 'a · deletes the record' })).toBe(true);
+    expect(relevantFromMatcher({ category: 'crud', titleIncludes: 'deletes the record' })(entry)).toBe(false);
+  });
+
+  it('splits detectable faults from controls in the metrics', async () => {
+    const { faultMetricsOf } = await import('../src/metrics.js');
+    const failed = [{ title: 't', project: 'p', status: 'failed' as const, durationMs: 1 }];
+    const passed = [{ title: 't', project: 'p', status: 'passed' as const, durationMs: 1 }];
+    const m = faultMetricsOf([
+      { id: 'a', faultClass: 'crud', outcomes: failed },
+      { id: 'b', faultClass: 'crud', outcomes: passed },
+      { id: 'c', faultClass: 'validation', expected: 'survives', outcomes: passed },
+    ]);
+    expect(m.killed).toBe(1);
+    expect(m.detectable).toEqual({ total: 2, killed: 1, score: 0.5 });
+    expect(m.controls).toEqual({ total: 1, survived: 1 });
+    expect(m.perFault.map((row) => [row.id, row.killed, row.expected])).toEqual([['a', true, 'detected'], ['b', false, 'detected'], ['c', false, 'survives']]);
   });
 });

@@ -54,7 +54,30 @@ class StoreTodoRequest extends FormRequest
             ));
         }
 
+        if (FaultRegistry::is('validation_status_in_drop')) {
+            $rules['status'] = self::without($rules['status'], ['in:open,doing,done']);
+        }
+        // Negative controls: regressions the generator is NOT expected to catch (browsers sanitise
+        // malformed dates, and a free-text body has no observable constraint).
+        if (FaultRegistry::is('validation_date_rule_drop')) {
+            $rules['due_date'] = self::without($rules['due_date'], ['date']);
+        }
+        if (FaultRegistry::is('validation_body_string_drop')) {
+            $rules['body'] = self::without($rules['body'], ['string']);
+        }
+
         return $rules;
+    }
+
+    /**
+     * Negative control: reword every validation message. The generator asserts error STATE, never
+     * message copy, so this regression is expected to survive.
+     */
+    public function messages(): array
+    {
+        return FaultRegistry::is('validation_message_text_changed')
+            ? ['required' => 'Please provide a value.', 'email' => 'That does not look right.', 'max' => 'Too long.', 'unique' => 'Already used.', 'confirmed' => 'Entries differ.', 'in' => 'Pick another.']
+            : [];
     }
 
     private static function without(array $rules, array $remove): array

@@ -13,6 +13,12 @@ export type FaultSpec = {
   faultClass: FaultClass;
   description: string;
   relevant: (entry: ManifestEntry) => boolean;
+  /**
+   * `survives` marks a negative control: a regression the generator is deliberately NOT expected
+   * to catch (the oracle asserts state, never message copy; browsers sanitise some inputs). It
+   * keeps the catalogue honest — a score that cannot go below 100 % discriminates nothing.
+   */
+  expected?: 'detected' | 'survives';
 };
 
 /**
@@ -27,6 +33,8 @@ export type FaultMatcher = {
   /** Substring match on the target field name, e.g. "email". */
   targetFieldIncludes?: string;
   faultClass?: FaultClass;
+  /** Substring of the generated test title (scenario wording is stable: see mapper.ts). */
+  titleIncludes?: string;
 };
 
 const faultClassSchema = z.enum(['validation', 'authz', 'crud', 'pagination', 'auth']);
@@ -37,12 +45,14 @@ const matcherSchema = z.object({
   targetField: z.string().optional(),
   targetFieldIncludes: z.string().optional(),
   faultClass: faultClassSchema.optional(),
+  titleIncludes: z.string().optional(),
 });
 const catalogueFileSchema = z.array(z.object({
   id: z.string().min(1),
   faultClass: faultClassSchema,
   description: z.string().default(''),
   relevant: matcherSchema,
+  expected: z.enum(['detected', 'survives']).optional(),
 }));
 export type FaultCatalogueFile = z.infer<typeof catalogueFileSchema>;
 
@@ -53,7 +63,8 @@ export function relevantFromMatcher(matcher: FaultMatcher): (entry: ManifestEntr
     && (matcher.constraintKind === undefined || entry.constraintKind === matcher.constraintKind)
     && (matcher.targetField === undefined || entry.targetField === matcher.targetField)
     && (matcher.targetFieldIncludes === undefined || (entry.targetField?.includes(matcher.targetFieldIncludes) ?? false))
-    && (matcher.faultClass === undefined || entry.faultClass === matcher.faultClass);
+    && (matcher.faultClass === undefined || entry.faultClass === matcher.faultClass)
+    && (matcher.titleIncludes === undefined || entry.title.includes(matcher.titleIncludes));
 }
 
 export function faultSpecsFromFile(entries: FaultCatalogueFile): FaultSpec[] {
@@ -62,6 +73,7 @@ export function faultSpecsFromFile(entries: FaultCatalogueFile): FaultSpec[] {
     faultClass: entry.faultClass,
     description: entry.description,
     relevant: relevantFromMatcher(entry.relevant),
+    expected: entry.expected,
   }));
 }
 
@@ -120,6 +132,66 @@ export const FAULT_CATALOGUE: FaultSpec[] = [
     faultClass: 'auth',
     description: 'Accept any password at login',
     relevant: (entry) => entry.category === 'auth' && entry.tier === 'negative',
+  },
+  // ---- derived from the case-study code (one per rule / middleware / controller outcome) ----
+  {
+    id: 'validation_status_in_drop',
+    faultClass: 'validation',
+    description: 'Drop the in:open,doing,done rule on status',
+    relevant: (entry) => entry.category === 'crud' && entry.tier === 'negative' && entry.constraintKind === 'option',
+  },
+  {
+    id: 'authz_ownership_open',
+    faultClass: 'authz',
+    description: 'Drop the ownership check so any user can open another user\'s todo',
+    relevant: (entry) => entry.category === 'rbac' && entry.tier === 'negative' && entry.title.includes('is blocked from /todos/'),
+  },
+  {
+    id: 'crud_delete_noop',
+    faultClass: 'crud',
+    description: 'Report a successful delete without deleting',
+    relevant: (entry) => entry.category === 'crud' && entry.tier === 'positive' && entry.title.includes('deletes the record'),
+  },
+  {
+    id: 'crud_toggle_noop',
+    faultClass: 'crud',
+    description: 'The done/undone toggle does nothing',
+    relevant: (entry) => entry.category === 'crud' && entry.tier === 'positive' && entry.title.includes('/toggle'),
+  },
+  {
+    id: 'auth_logout_noop',
+    faultClass: 'auth',
+    description: 'Logging out leaves the session alive',
+    relevant: (entry) => entry.category === 'auth' && entry.tier === 'positive' && entry.title.endsWith('logs out'),
+  },
+  // ---- negative controls: expected to survive ----
+  {
+    id: 'validation_date_rule_drop',
+    faultClass: 'validation',
+    description: 'Drop the date rule on due_date (browsers sanitise malformed dates, so no variant exists)',
+    expected: 'survives',
+    relevant: (entry) => entry.category === 'crud' && entry.targetField === 'due_date',
+  },
+  {
+    id: 'validation_body_string_drop',
+    faultClass: 'validation',
+    description: 'Drop the string rule on the free-text body (no observable constraint)',
+    expected: 'survives',
+    relevant: (entry) => entry.category === 'crud' && entry.targetField === 'body',
+  },
+  {
+    id: 'validation_message_text_changed',
+    faultClass: 'validation',
+    description: 'Reword every validation message (oracles assert error state, never copy)',
+    expected: 'survives',
+    relevant: (entry) => entry.category === 'crud' && entry.tier === 'negative',
+  },
+  {
+    id: 'search_filter_ignored',
+    faultClass: 'crud',
+    description: 'The search filter is ignored by the list (the oracle checks the URL echo, not the rows)',
+    expected: 'survives',
+    relevant: (entry) => entry.category === 'crud' && entry.title.includes('GET /todos'),
   },
 ];
 

@@ -56,9 +56,16 @@ function stackMarkdown(stack: StackReport): string[] {
 
   out.push('### RQ3 — Fault-detection effectiveness', '');
   out.push(`- Mutation score: ${pct(report.faults.mutationScore)} (${report.faults.killed}/${report.faults.total} faults killed)`);
+  out.push(`- Detection of detectable faults: ${pct(report.faults.detectable.score)} (${report.faults.detectable.killed}/${report.faults.detectable.total}); negative controls surviving as expected: ${report.faults.controls.survived}/${report.faults.controls.total}`);
   out.push(`- Fault-localization accuracy: ${pct(report.faults.localizationAccuracy)}`);
   for (const [klass, stat] of Object.entries(report.faults.byClass)) {
     out.push(`  - ${klass}: ${pct(stat.score)} (${stat.killed}/${stat.total})`);
+  }
+  out.push('  - per fault:');
+  for (const row of report.faults.perFault) {
+    const verdict = row.killed ? 'detected' : 'survived';
+    const flag = row.expected === 'survives' ? ' (negative control)' : row.killed ? '' : ' (UNEXPECTED survivor)';
+    out.push(`    - ${row.id} [${row.faultClass}]: ${verdict}${flag}`);
   }
   out.push('');
 

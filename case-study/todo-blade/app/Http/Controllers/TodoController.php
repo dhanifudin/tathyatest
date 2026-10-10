@@ -27,7 +27,7 @@ class TodoController extends Controller
             : auth()->user()->todos();
 
         $query
-            ->when($filters['search'] ?? null, function ($query, string $search): void {
+            ->when(FaultRegistry::is('search_filter_ignored') ? null : ($filters['search'] ?? null), function ($query, string $search): void {
                 $query->where(function ($query) use ($search): void {
                     $query
                         ->where('title', 'like', "%{$search}%")
@@ -83,7 +83,10 @@ class TodoController extends Controller
     public function destroy(Todo $todo): RedirectResponse
     {
         $this->authorizeTodo($todo);
-        $todo->delete();
+        // Eval-only crud fault: report success without deleting.
+        if (! FaultRegistry::is('crud_delete_noop')) {
+            $todo->delete();
+        }
 
         return redirect('/todos');
     }
@@ -91,13 +94,20 @@ class TodoController extends Controller
     public function toggle(Todo $todo): RedirectResponse
     {
         $this->authorizeTodo($todo);
-        $todo->update(['done' => ! $todo->done]);
+        // Eval-only crud fault: the toggle does nothing.
+        if (! FaultRegistry::is('crud_toggle_noop')) {
+            $todo->update(['done' => ! $todo->done]);
+        }
 
         return back();
     }
 
     private function authorizeTodo(Todo $todo): void
     {
+        // Eval-only authz fault: drop the ownership check so any user can touch any todo.
+        if (FaultRegistry::is('authz_ownership_open')) {
+            return;
+        }
         abort_unless(auth()->user()->isAdmin() || $todo->user_id === auth()->id(), 403);
     }
 }

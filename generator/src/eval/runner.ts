@@ -196,7 +196,7 @@ async function runBaselineFaults(stack: StackConfig, rootConfig: TathyaConfig, c
     const suite = hasConfig
       ? await runPlaywrightJson({ cwd: '.', config: standaloneConfig })
       : await runPlaywrightJson({ cwd: '.', env: { TATHYA_TESTDIR: dir } });
-    faultRuns.push({ id: fault.id, faultClass: fault.faultClass, outcomes: suite.outcomes });
+    faultRuns.push({ id: fault.id, faultClass: fault.faultClass, expected: fault.expected, outcomes: suite.outcomes });
   }
   await control(stack.baseUrl, 'POST', plane.faultClear);
   return faultRuns;
@@ -229,7 +229,7 @@ async function runFaults(stack: StackConfig, rootConfig: TathyaConfig, config: T
     // run to those titles instead of executing the whole suite once per fault.
     const relevantEntries = manifest.filter((entry) => fault.relevant(entry));
     if (relevantEntries.length === 0) {
-      faultRuns.push({ id: fault.id, faultClass: fault.faultClass, outcomes: [] });
+      faultRuns.push({ id: fault.id, faultClass: fault.faultClass, expected: fault.expected, outcomes: [] });
       continue;
     }
     const set = await control(stack.baseUrl, 'POST', plane.fault, { id: fault.id });
@@ -243,7 +243,7 @@ async function runFaults(stack: StackConfig, rootConfig: TathyaConfig, config: T
       const entry = byTitle.get(outcome.title);
       return entry ? fault.relevant(entry) : false;
     });
-    faultRuns.push({ id: fault.id, faultClass: fault.faultClass, outcomes: relevant });
+    faultRuns.push({ id: fault.id, faultClass: fault.faultClass, expected: fault.expected, outcomes: relevant });
   }
   await control(stack.baseUrl, 'POST', plane.faultClear);
   return faultRuns;

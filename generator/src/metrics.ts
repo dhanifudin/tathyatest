@@ -9,7 +9,7 @@ import type { BaselineStaticAnalysis } from './eval/baseline-static.js';
 export type TestStatus = 'passed' | 'failed' | 'skipped';
 export type TestOutcome = { title: string; project: string; status: TestStatus; durationMs: number };
 export type SuiteRun = { outcomes: TestOutcome[] };
-export type FaultRun = { id: string; faultClass: FaultClass; outcomes: TestOutcome[] };
+export type FaultRun = { id: string; faultClass: FaultClass; expected?: 'detected' | 'survives'; outcomes: TestOutcome[] };
 
 export type Ratio = { covered: number; total: number; ratio: number };
 export type SutCoverage = { lines: Ratio; branches: Ratio; functions: Ratio; routes: Ratio };
@@ -52,6 +52,12 @@ export type FaultMetrics = {
   mutationScore: number;
   byClass: Record<string, { total: number; killed: number; score: number }>;
   localizationAccuracy: number;
+  /** One row per catalogue fault: whether it was detected and whether detection was expected. */
+  perFault: { id: string; faultClass: string; killed: boolean; expected: 'detected' | 'survives' }[];
+  /** Faults the generator should catch (the denominator of the headline detection rate). */
+  detectable: { total: number; killed: number; score: number };
+  /** Negative controls: how many were expected to survive and how many did. */
+  controls: { total: number; survived: number };
 };
 
 export type QualityMetrics = {
@@ -290,11 +296,13 @@ export function faultMetricsOf(
   const byClass: Record<string, { total: number; killed: number; score: number }> = {};
   let killed = 0;
   let localized = 0;
+  const perFault: FaultMetrics['perFault'] = [];
 
   for (const fault of faultRuns) {
     const bucket = (byClass[fault.faultClass] ??= { total: 0, killed: 0, score: 0 });
     bucket.total += 1;
     const killers = fault.outcomes.filter((outcome) => outcome.status === 'failed');
+    perFault.push({ id: fault.id, faultClass: fault.faultClass, killed: killers.length > 0, expected: fault.expected ?? 'detected' });
     if (killers.length > 0) {
       killed += 1;
       bucket.killed += 1;
@@ -307,12 +315,18 @@ export function faultMetricsOf(
   for (const bucket of Object.values(byClass)) bucket.score = bucket.total === 0 ? 0 : bucket.killed / bucket.total;
 
   const total = faultRuns.length;
+  const detectable = perFault.filter((row) => row.expected === 'detected');
+  const controls = perFault.filter((row) => row.expected === 'survives');
+  const detectableKilled = detectable.filter((row) => row.killed).length;
   return {
     total,
     killed,
     mutationScore: total === 0 ? 0 : killed / total,
     byClass,
     localizationAccuracy: killed === 0 ? 0 : localized / killed,
+    perFault,
+    detectable: { total: detectable.length, killed: detectableKilled, score: detectable.length === 0 ? 0 : detectableKilled / detectable.length },
+    controls: { total: controls.length, survived: controls.filter((row) => !row.killed).length },
   };
 }
 
