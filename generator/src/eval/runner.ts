@@ -1,8 +1,9 @@
 import { chdir, cwd } from 'node:process';
 import { access, mkdir, readdir, writeFile } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { loadConfig, type TathyaConfig } from '../config.js';
 import { loadCrawls, runCrawl } from '../crawl.js';
+import { assertReachable, isReachable } from '../reachability.js';
 import { buildAccessMatrix } from '../rbac.js';
 import { mapTestCases } from '../mapper.js';
 import { emit } from '../emit/index.js';
@@ -14,24 +15,79 @@ import { renderReportJson, renderReportMarkdown, type StackReport } from './repo
 import { analyzeBaselineDir } from './baseline-static.js';
 
 type StackConfig = TathyaConfig['evaluation']['stacks'][number];
-export type EvalOptions = { stack?: string | null; repeat?: number | null; faults?: boolean; coverage?: boolean; baseline?: boolean };
+export type EvalOptions = {
+  /** Evaluate one named entry of `evaluation.stacks`. */
+  stack?: string | null;
+  /** Evaluate every entry of `evaluation.stacks` (the cross-stack study); unreachable ones are skipped. */
+  allStacks?: boolean;
+  /** Config file the CLI was pointed at; names and locates the default (current-project) stack. */
+  configPath?: string;
+  repeat?: number | null;
+  faults?: boolean;
+  coverage?: boolean;
+  baseline?: boolean;
+};
 
 export async function runEvaluation(rootConfig: TathyaConfig, options: EvalOptions = {}): Promise<void> {
-  const stacks = resolveStacks(rootConfig, options.stack);
+  const stacks = resolveStacks(rootConfig, options);
   const reports: StackReport[] = [];
   for (const stack of stacks) {
+    if (!(await isReachable(stack.baseUrl))) {
+      if (options.allStacks) {
+        console.warn(`[eval] stack "${stack.name}" (${stack.baseUrl}) is not reachable — skipping`);
+        continue;
+      }
+      await assertReachable(stack.baseUrl);
+    }
     console.log(`\n[eval] stack "${stack.name}" (${stack.baseUrl})`);
     reports.push({ name: stack.name, report: await runStack(stack, rootConfig, options) });
   }
+  if (reports.length === 0) throw new Error('[eval] no reachable stack to evaluate');
   await writeReports(rootConfig.evaluation.outDir, reports);
   console.log(`\n[eval] wrote ${join(rootConfig.evaluation.outDir, 'report.md')}`);
 }
 
-function resolveStacks(config: TathyaConfig, only?: string | null): StackConfig[] {
-  const stacks = config.evaluation.stacks.length > 0
-    ? config.evaluation.stacks
-    : [{ name: 'default', dir: '.', config: 'tathya.config.yaml', baseUrl: config.baseUrl, coverage: 'none' as const, faults: true }];
-  return only ? stacks.filter((stack) => stack.name === only) : stacks;
+/**
+ * Which stacks a `tt eval` invocation covers. The default is the project in front of you — the
+ * config the CLI was pointed at, as one stack — so a bare `tt eval` never launches the multi-hour
+ * cross-stack study by accident; `--stack <name>` picks one configured entry and `--all-stacks`
+ * runs them all.
+ */
+export function resolveStacks(config: TathyaConfig, options: Pick<EvalOptions, 'stack' | 'allStacks' | 'configPath'> = {}): StackConfig[] {
+  const configured = config.evaluation.stacks;
+  const configPath = options.configPath ?? 'tathya.config.yaml';
+  const current: StackConfig = { name: stackNameFor(configPath), dir: '.', config: configPath, baseUrl: config.baseUrl };
+  if (options.stack) {
+    const match = configured.find((stack) => stack.name === options.stack);
+    if (!match) {
+      const names = configured.map((stack) => stack.name).join(', ') || '(none configured)';
+      throw new Error(`Unknown stack "${options.stack}"; evaluation.stacks has: ${names}`);
+    }
+    return [match];
+  }
+  if (options.allStacks && configured.length > 0) return configured;
+  return [current];
+}
+
+/** `tathya.config.yaml` → `default`, `tathya.blade.config.yaml` → `blade`, `shop.yaml` → `shop`. */
+export function stackNameFor(configPath: string): string {
+  const base = basename(configPath).replace(/\.ya?ml$/i, '');
+  const name = base.split('.').filter((part) => part !== 'tathya' && part !== 'config').join('-');
+  return name || 'default';
+}
+
+/**
+ * A stack declares `coverage` / `faults` only when it wants to override detection: left unset,
+ * the app is probed for the control-plane endpoints `tt eval` relies on.
+ */
+export async function detectCapabilities(stack: Pick<StackConfig, 'baseUrl' | 'coverage' | 'faults'>): Promise<{ coverage: boolean; faults: boolean }> {
+  const coverage = stack.coverage !== undefined
+    ? stack.coverage !== 'none'
+    : await control(stack.baseUrl, 'GET', '/__testing/coverage');
+  const faults = stack.faults !== undefined
+    ? stack.faults
+    : await control(stack.baseUrl, 'POST', '/__testing/fault/clear');
+  return { coverage, faults };
 }
 
 async function runStack(stack: StackConfig, rootConfig: TathyaConfig, options: EvalOptions) {
@@ -44,7 +100,9 @@ async function runStack(stack: StackConfig, rootConfig: TathyaConfig, options: E
   try {
     const config = await loadConfig(stack.config);
     const repeat = options.repeat ?? rootConfig.evaluation.repeat;
-    const collectCoverage = options.coverage !== false && stack.coverage !== 'none';
+    const capabilities = await detectCapabilities(stack);
+    console.log(`[eval] SUT coverage: ${capabilities.coverage ? 'on' : 'off'}; fault injection: ${capabilities.faults ? 'on' : 'off'}${stack.coverage === undefined && stack.faults === undefined ? ' (probed)' : ''}`);
+    const collectCoverage = options.coverage !== false && capabilities.coverage;
 
     if (collectCoverage) await control(stack.baseUrl, 'POST', '/__testing/coverage/reset');
 
@@ -72,8 +130,9 @@ async function runStack(stack: StackConfig, rootConfig: TathyaConfig, options: E
     const baselineRuns = options.baseline !== false ? await runBaseline(config, repeat) : [];
     const baselineStatic = await analyzeBaselineDir(config.evaluation.baselineDir);
     const sutCoverage = collectCoverage ? await fetchCoverage(stack.baseUrl) : null;
-    // Skip fault injection for external stacks (stack.faults === false) or when disabled by flag.
-    const runFaultsEnabled = stack.faults !== false && options.faults !== false && rootConfig.evaluation.faults.enabled;
+    // Skip fault injection when the app has no fault endpoint (probed or `faults: false`) or when
+    // disabled by flag/config.
+    const runFaultsEnabled = capabilities.faults && options.faults !== false && rootConfig.evaluation.faults.enabled;
     const faultRuns = runFaultsEnabled ? await runFaults(stack, rootConfig, config, manifest) : [];
     const baselineFaultRuns = runFaultsEnabled ? await runBaselineFaults(stack, rootConfig, config) : [];
 

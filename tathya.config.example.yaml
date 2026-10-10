@@ -1,8 +1,18 @@
+# TathyaTest config reference. Copy to tathya.config.yaml (gitignored — it holds credentials).
+#
+# The smallest working config is the app URL plus one role; every other key below has the
+# default shown and can be omitted:
+#
+#   baseUrl: http://127.0.0.1:8000
+#   auth:
+#     roles:
+#       - { name: admin, username: admin@example.com, password: password }
+
 baseUrl: http://127.0.0.1:8000
 output:
   dir: tests/generated
-  language: ts
-coverage: all
+  language: ts          # ts | js
+coverage: all           # positive | negative | edge | all
 oracle:
   errorSelector: ".invalid-feedback, [role=alert], .text-red-600, x-input-error p"
 auth:
@@ -17,26 +27,26 @@ auth:
 crawl:
   maxDepth: 3
   maxPages: 100
-  include: []
-  exclude: []
+  include: []           # extra paths to visit besides what the crawler discovers from the DOM
+  exclude: []           # path prefixes never to visit (e.g. /logout)
 data:
-  fields:
+  fields:               # pinned valid values by field name (otherwise faker generates them)
     title: Buy groceries
     body: Milk, eggs, bread
     contact_email: contact@example.com
     due_date: "2026-06-15"
     email: user@example.com
-  defaults:
+  defaults:             # fallback valid value by input type
     text: Sample
     email: user@example.com
     number: "1"
     date: "2026-06-15"
-  unique:
+  unique:               # fields with a server-side unique rule → duplicate-value negatives
     - contact_email
-  duplicates:
+  duplicates:           # a value that already exists, used by the duplicate negative
     contact_email: admin.todo.01@example.com
-  requiredFields: []
-  confirmFields:
+  requiredFields: []    # force required-empty negatives for fields the crawl missed
+  confirmFields:        # extra *_confirmation pairs (auto-detected by the _confirmation suffix)
     - contact_email_confirmation
   faker:
     locale: en          # faker locale for generated create/update data
@@ -47,17 +57,20 @@ evaluation:             # `tt eval` — metric-based evaluation (writes metrics/
   manualBaselineSecPerCase: 300   # labelled assumption for the time-savings ratio
   baselineDir: tests/manual       # hand-written reference suite for the baseline comparison
   faultProject: null   # restrict fault runs to one browser project (e.g. chromium) for speed
-  stacks:              # cross-stack study; omit to evaluate the current config as one stack
+  # A bare `tt eval` evaluates THIS config as one stack. The stacks below are only used by
+  # `tt eval --stack <name>` / `tt eval --all-stacks` (the cross-stack research study).
+  # `coverage` (pcov | xdebug | none) and `faults` (true | false) are optional: left out, tt eval
+  # probes the app for GET /__testing/coverage and POST /__testing/fault/clear and switches the
+  # corresponding metric families on only when the endpoints answer.
+  stacks:
     - name: blade
       dir: .
       config: tathya.blade.config.yaml
       baseUrl: http://127.0.0.1:8000
-      coverage: pcov    # pcov | xdebug | none (SUT code-coverage source)
     - name: inertia
       dir: .
       config: tathya.inertia-react.config.yaml
       baseUrl: http://127.0.0.1:8001
-      coverage: pcov
   faults:
     enabled: true
     classes: [validation, authz, crud, pagination, auth]

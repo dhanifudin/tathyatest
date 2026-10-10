@@ -48,7 +48,9 @@ tt-help: install
 	$(TT) crawl --help >/dev/null
 	$(TT) generate --help >/dev/null
 	$(TT) run --help >/dev/null
+	$(TT) report --help >/dev/null
 	$(TT) all --help >/dev/null
+	$(TT) eval --help >/dev/null
 
 verify: install generator-test tt-help
 

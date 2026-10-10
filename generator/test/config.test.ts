@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { configSchema } from '../src/config.js';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { configSchema, parseConfig } from '../src/config.js';
 
 const baseConfig = {
   baseUrl: 'http://127.0.0.1:8000',
@@ -15,13 +15,55 @@ const baseConfig = {
 };
 
 describe('configSchema', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('accepts auth config without login field selectors', () => {
     expect(configSchema.safeParse(baseConfig).success).toBe(true);
   });
 
-  it('accepts legacy extractor engine config for existing projects', () => {
-    expect(configSchema.safeParse({ ...baseConfig, extractor: { engine: 'static' } }).success).toBe(true);
-    expect(configSchema.safeParse({ ...baseConfig, extractor: { engine: 'rendered' } }).success).toBe(true);
+  it('accepts a minimal config of baseUrl plus roles and fills every default', () => {
+    const parsed = parseConfig({
+      baseUrl: 'http://127.0.0.1:8000',
+      auth: { roles: [{ name: 'admin', username: 'admin@example.com', password: 'password' }] },
+    });
+
+    expect(parsed.auth.loginPath).toBe('/login');
+    expect(parsed.output).toEqual({ dir: 'tests/generated', language: 'ts' });
+    expect(parsed.coverage).toBe('all');
+    expect(parsed.oracle.errorSelector).toContain('[role=alert]');
+    expect(parsed.crawl).toEqual({ maxDepth: 3, maxPages: 100, include: [], exclude: [] });
+    expect(parsed.data.faker).toEqual({ locale: 'en', seed: null });
+    expect(parsed.evaluation.stacks).toEqual([]);
+  });
+
+  it('strips the obsolete extractor block and warns once', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    const parsed = parseConfig({ ...baseConfig, extractor: { engine: 'static' } }, 'legacy.yaml');
+
+    expect(parsed).not.toHaveProperty('extractor');
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][0]).toContain('legacy.yaml');
+    expect(warn.mock.calls[0][0]).toContain('"extractor" is ignored');
+  });
+
+  it('leaves evaluation stack capabilities undefined so tt eval can probe the app', () => {
+    const parsed = parseConfig({
+      ...baseConfig,
+      evaluation: { stacks: [{ name: 'blade', baseUrl: 'http://127.0.0.1:8000' }] },
+    });
+
+    expect(parsed.evaluation.stacks[0].coverage).toBeUndefined();
+    expect(parsed.evaluation.stacks[0].faults).toBeUndefined();
+    expect(parsed.evaluation.stacks[0].config).toBe('tathya.config.yaml');
+  });
+
+  it('renders validation errors one per line as path: message', () => {
+    expect(() => parseConfig({ baseUrl: 'not a url', auth: { roles: [] } }, 'broken.yaml')).toThrow(
+      /Invalid config broken\.yaml:\n  baseUrl: .*\n  auth\.roles: /,
+    );
   });
 
   it('rejects removed login selector config keys', () => {

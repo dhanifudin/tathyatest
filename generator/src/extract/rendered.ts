@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { chromium, type Page } from '@playwright/test';
-import type { CrawlOutput, FieldConstraints, Locator, PageModel } from '../crawl.js';
+import { CRAWL_SCHEMA_VERSION, type CrawlOutput, type FieldConstraints, type Locator, type PageModel } from '../crawl.js';
 import type { TathyaConfig } from '../config.js';
 import { inferLoginControlsOnPage, playwrightLocator } from '../login-runtime.js';
 
@@ -76,7 +76,7 @@ async function crawlRole(page: Page, config: TathyaConfig, role: string, landing
 
   return {
     baseUrl: config.baseUrl,
-    engine: 'rendered',
+    schemaVersion: CRAWL_SCHEMA_VERSION,
     role,
     crawledAt: new Date().toISOString(),
     pages,

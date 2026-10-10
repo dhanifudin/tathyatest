@@ -120,11 +120,16 @@ npx playwright show-report
 
 ### Metric-based evaluation (`tt eval`)
 
-`tt eval` produces the quantitative evaluation (publication target). It reads
-`evaluation.stacks` (per case study: config + baseUrl + coverage source), and per stack:
-times crawl/generate, runs the generated suite `evaluation.repeat` times for CI + flake, runs the
-hand-written `tests/manual/<stack>` baseline, collects SUT coverage, and injects each fault in the
-catalogue. It writes `metrics/report.json` + `report.md` with five metric families:
+`tt eval` produces the quantitative evaluation (publication target). With no flags it evaluates
+**the config it was pointed at** as one stack (named after the file: `tathya.config.yaml` →
+`default`, `tathya.blade.config.yaml` → `blade`); `--stack <name>` picks one entry of
+`evaluation.stacks`, and `--all-stacks` runs the whole cross-stack study (multi-hour; unreachable
+stacks are skipped with a warning). Per stack it: checks the app is reachable, probes the control
+plane (`GET /__testing/coverage` → SUT coverage on, `POST /__testing/fault/clear` → fault injection
+on; a stack's `coverage:`/`faults:` keys override the probe), times crawl/generate, runs the
+generated suite `evaluation.repeat` times for CI + flake, runs the hand-written
+`tests/manual/<stack>` baseline, collects SUT coverage, and injects each fault in the catalogue.
+It writes `metrics/report.json` + `report.md` with five metric families:
 
 1. **Coverage** (RQ1) — element/route/CRUD/RBAC-matrix/constraint-kind, tier counts.
 2. **SUT code coverage** (RQ2) — PCOV line/branch-proxy/function + exact route coverage.
@@ -204,8 +209,10 @@ Every change to the `crawl.json` schema must be coordinated across **two** files
 1. `generator/src/crawl.ts` — TypeScript types and zod validator
 2. `generator/src/extract/rendered.ts` — Playwright crawler output (must match the schema)
 
-Schema version is tracked by the `"engine"` field. Add a `"schemaVersion"` field if a
-breaking change is needed, and update all three places atomically.
+The contract version is the `"schemaVersion"` integer in the JSON root (`CRAWL_SCHEMA_VERSION`
+in `crawl.ts`, currently 2). Bump it when a field changes meaning or is removed; purely additive
+fields keep the number and get a zod `.default(...)` so older crawl files still load. (Version 1
+files carried an `"engine"` field instead; the validator drops it.)
 
 ---
 

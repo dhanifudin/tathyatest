@@ -117,17 +117,29 @@ npx playwright test --config=tests/baseline-public/saucedemo/playwright.config.t
 ## Commands
 
 ```bash
-tt init
-tt crawl
-tt generate
-tt run
-tt all
-tt eval
+tt init                 # wizard → <project>/tathya.config.yaml
+tt crawl                # crawl once per role → crawl/<role>.json
+tt generate [--fresh]   # specs → tests/generated/ (re-crawls when the crawl is missing/stale; --fresh forces it)
+tt run [playwright args]  # e.g. tt run --project admin-chromium --grep @auth
+tt report               # open the HTML report of the last run
+tt all [--fresh]        # crawl → generate → run
+tt eval [--stack <name> | --all-stacks]
 ```
 
-`tt crawl` uses the Playwright crawler for every target. It logs in once per configured role, starts
-from the authenticated landing page, then follows same-origin URLs discovered from the live DOM.
-Legacy configs that still contain `extractor.engine` are accepted, but the value is ignored.
+Every command takes `-c <path>` to use a config other than `tathya.config.yaml`. A bare `tt`
+prints this list. The smallest working config is the app URL plus one role — everything else
+has a default (login path `/login`, output `tests/generated`, coverage `all`, …):
+
+```yaml
+baseUrl: http://127.0.0.1:8000
+auth:
+  roles:
+    - { name: admin, username: admin@example.com, password: password }
+```
+
+`tt crawl` logs in once per configured role with a real Chromium (Playwright), starts from the
+authenticated landing page, then follows same-origin URLs discovered from the live DOM. It
+fails fast with a clear message when the app at `baseUrl` is not running.
 
 `crawl.include` is optional explicit seeding for paths the crawler should visit in addition to
 URLs discovered from the authenticated app DOM. Generic configs leave it empty; target-specific
@@ -140,12 +152,15 @@ from `@faker-js/faker` (seedable via `data.faker.seed`); the target field of a n
 stays a deterministic literal.
 
 `tt eval` runs the metric-based evaluation and writes `metrics/report.{json,md}`: model coverage,
-system-under-test code coverage (PCOV), fault-detection effectiveness (mutation score over a seeded
+system-under-test code coverage, fault-detection effectiveness (mutation score over a seeded
 fault catalogue), test-suite quality, and reliability/efficiency with a hand-written baseline
-comparison (`tests/manual/<stack>`). It reads `evaluation.stacks` to run the study across the Blade
-and React/Inertia case studies. Requires the target servers running with `COVERAGE=1` for coverage,
-and PCOV (`all.pcov` is in each `shell.nix`). Flags: `--stack`, `--repeat`, `--no-faults`,
-`--no-coverage`, `--no-baseline`.
+comparison (`tests/manual/<stack>`). By default it evaluates the config it was pointed at as a
+single stack; `--stack <name>` picks one entry of `evaluation.stacks`, and `--all-stacks` runs
+the cross-stack study over the Blade and React/Inertia case studies (hours; unreachable stacks
+are skipped). SUT coverage and fault injection switch on automatically when the app answers
+`GET /__testing/coverage` / `POST /__testing/fault/clear` (the case studies do, with
+`COVERAGE=1` and PCOV from `shell.nix`); plain apps simply get the other metric families.
+Flags: `--stack`, `--all-stacks`, `--repeat`, `--no-faults`, `--no-coverage`, `--no-baseline`.
 
 `tt init` asks for a project name, creates a slugged directory, and writes the config inside it:
 

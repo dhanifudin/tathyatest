@@ -33,7 +33,7 @@ describe('crawlOutputSchema', () => {
     };
     const raw = {
       baseUrl: 'https://www.saucedemo.com',
-      engine: 'rendered',
+      schemaVersion: 2,
       role: 'standard_user',
       crawledAt: '2026-06-27T00:00:00.000Z',
       pages: [legacyPage],
@@ -45,7 +45,7 @@ describe('crawlOutputSchema', () => {
   it('preserves controls from new crawl JSON', () => {
     const raw = {
       baseUrl: 'https://www.saucedemo.com',
-      engine: 'rendered',
+      schemaVersion: 2,
       role: 'standard_user',
       crawledAt: '2026-06-27T00:00:00.000Z',
       pages: [{
@@ -73,7 +73,7 @@ describe('crawlOutputSchema', () => {
 describe('loadCrawls role filtering', () => {
   const snapshot = (role: string, baseUrl: string) => JSON.stringify({
     baseUrl,
-    engine: 'rendered',
+    schemaVersion: 2,
     role,
     crawledAt: '2026-06-27T00:00:00.000Z',
     pages: [],
@@ -171,6 +171,26 @@ describe('crawl bootstrap', () => {
 
       expect(crawlRunner).not.toHaveBeenCalled();
       await expect(shouldRefreshCrawls(config, crawlDir, configPath)).resolves.toBe(false);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('crawls again with force even when the cached crawl is current', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'tt-crawl-bootstrap-'));
+    try {
+      const configPath = join(dir, 'tathya.config.yaml');
+      const crawlDir = join(dir, 'crawl');
+      await mkdir(crawlDir, { recursive: true });
+      await writeFile(configPath, YAML.stringify(config));
+      await writeFile(join(crawlDir, 'admin.json'), '{}');
+      await utimes(configPath, new Date('2024-01-01T00:00:00Z'), new Date('2024-01-01T00:00:00Z'));
+      await utimes(join(crawlDir, 'admin.json'), new Date('2024-01-02T00:00:00Z'), new Date('2024-01-02T00:00:00Z'));
+
+      const crawlRunner = vi.fn(async () => undefined);
+      await ensureCrawls(config, { crawlDir, configPath, crawlRunner, force: true });
+
+      expect(crawlRunner).toHaveBeenCalledTimes(1);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

@@ -9,7 +9,6 @@ import type { TestCase } from '../src/mapper.js';
 
 const config: TathyaConfig = {
   baseUrl: 'http://127.0.0.1:8000',
-  extractor: { engine: 'static' },
   output: { dir: '', language: 'ts' },
   coverage: 'all',
   oracle: { errorSelector: '.invalid-feedback, [role=alert], .text-red-600, x-input-error p' },

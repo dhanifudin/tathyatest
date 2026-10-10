@@ -4,22 +4,25 @@ import YAML from 'yaml';
 import { normalizeBaseUrl } from './login.js';
 
 const coverageSchema = z.enum(['positive', 'negative', 'edge', 'all']);
-const legacyEngineSchema = z.enum(['static', 'rendered']);
 const languageSchema = z.enum(['ts', 'js']);
 
+export const DEFAULT_ERROR_SELECTOR = '.invalid-feedback, [role=alert], .text-red-600, x-input-error p';
+
+// Only `baseUrl` and `auth.roles` are required; every other block has defaults so a config can
+// be as short as four lines. Unknown top-level keys (e.g. the pre-1.0 `extractor.engine`) are
+// stripped by zod; `loadConfig` warns about the ones it knows are obsolete.
 export const configSchema = z.object({
   baseUrl: z.preprocess((value) => (typeof value === 'string' ? normalizeBaseUrl(value) : value), z.string().url()),
-  extractor: z.object({ engine: legacyEngineSchema.optional() }).optional(),
   output: z.object({
     dir: z.string().default('tests/generated'),
     language: languageSchema.default('ts'),
-  }),
+  }).default({}),
   coverage: coverageSchema.default('all'),
   oracle: z.object({
-    errorSelector: z.string().default('.invalid-feedback, [role=alert], .text-red-600, x-input-error p'),
-  }),
+    errorSelector: z.string().default(DEFAULT_ERROR_SELECTOR),
+  }).default({}),
   auth: z.object({
-    loginPath: z.string().startsWith('/'),
+    loginPath: z.string().startsWith('/').default('/login'),
     roles: z.array(z.object({
       name: z.string().min(1),
       username: z.string().min(1),
@@ -31,7 +34,7 @@ export const configSchema = z.object({
     maxPages: z.number().int().positive().default(100),
     include: z.array(z.string()).default([]),
     exclude: z.array(z.string()).default([]),
-  }),
+  }).default({}),
   data: z.object({
     fields: z.record(z.string()).default({}),
     defaults: z.record(z.string()).default({}),
@@ -50,13 +53,15 @@ export const configSchema = z.object({
     manualBaselineSecPerCase: z.number().positive().default(300),
     baselineDir: z.string().default('tests/manual'),
     faultProject: z.string().nullable().default(null),
+    // `coverage` / `faults` left unset mean "probe the app": `tt eval` enables SUT coverage when
+    // GET /__testing/coverage answers and fault injection when POST /__testing/fault/clear does.
     stacks: z.array(z.object({
       name: z.string().min(1),
       dir: z.string().default('.'),
       config: z.string().default('tathya.config.yaml'),
       baseUrl: z.preprocess((value) => (typeof value === 'string' ? normalizeBaseUrl(value) : value), z.string().url()),
-      coverage: z.enum(['pcov', 'xdebug', 'none']).default('pcov'),
-      faults: z.boolean().default(true),
+      coverage: z.enum(['pcov', 'xdebug', 'none']).optional(),
+      faults: z.boolean().optional(),
     })).default([]),
     faults: z.object({
       enabled: z.boolean().default(true),
@@ -78,7 +83,22 @@ export type Coverage = TathyaConfig['coverage'];
 
 export async function loadConfig(path = 'tathya.config.yaml'): Promise<TathyaConfig> {
   const raw = await readFile(path, 'utf8');
-  return configSchema.parse(YAML.parse(raw));
+  return parseConfig(YAML.parse(raw), path);
+}
+
+/**
+ * Validate a parsed config document. Errors are rendered one per line as `path: message` so a
+ * typo in the YAML reads like a lint message, not a zod issue dump. Obsolete keys that zod strips
+ * silently get a one-line warning.
+ */
+export function parseConfig(document: unknown, source = 'tathya.config.yaml'): TathyaConfig {
+  if (typeof document === 'object' && document !== null && 'extractor' in document) {
+    console.warn(`[config] ${source}: "extractor" is ignored (the crawler is always Playwright) — remove it.`);
+  }
+  const result = configSchema.safeParse(document);
+  if (result.success) return result.data;
+  const lines = result.error.issues.map((issue) => `  ${issue.path.join('.') || '(root)'}: ${issue.message}`);
+  throw new Error(`Invalid config ${source}:\n${lines.join('\n')}`);
 }
 
 export function shouldIncludeCoverage(configured: Coverage, tier: 'positive' | 'negative' | 'edge'): boolean {

@@ -6,7 +6,6 @@ import type { AccessMatrix } from '../src/rbac.js';
 
 const config: TathyaConfig = {
   baseUrl: 'http://127.0.0.1:8000',
-  extractor: { engine: 'static' },
   output: { dir: '', language: 'ts' },
   coverage: 'all',
   oracle: { errorSelector: '.invalid-feedback, [role=alert], .text-red-600, x-input-error p' },
@@ -31,7 +30,7 @@ describe('mapTestCases', () => {
   it('keeps confirmation fields aligned in the base form payload', () => {
     const crawl: CrawlOutput = {
       baseUrl: config.baseUrl,
-      engine: 'static',
+      schemaVersion: 2,
       role: 'admin',
       crawledAt: '2026-06-15T00:00:00.000Z',
       pages: [
@@ -109,7 +108,7 @@ describe('mapTestCases', () => {
   it('emits blank negatives for configured required fields', () => {
     const crawl: CrawlOutput = {
       baseUrl: config.baseUrl,
-      engine: 'static',
+      schemaVersion: 2,
       role: 'admin',
       crawledAt: '2026-06-15T00:00:00.000Z',
       pages: [
@@ -180,7 +179,7 @@ describe('mapTestCases', () => {
     };
     const crawl: CrawlOutput = {
       baseUrl: config.baseUrl,
-      engine: 'rendered',
+      schemaVersion: 2,
       role: 'admin',
       crawledAt: '2026-06-15T00:00:00.000Z',
       pages: [
@@ -236,7 +235,7 @@ describe('mapTestCases', () => {
     });
     const crawl: CrawlOutput = {
       baseUrl: config.baseUrl,
-      engine: 'rendered',
+      schemaVersion: 2,
       role: 'admin',
       crawledAt: '2026-06-15T00:00:00.000Z',
       pages: [editPage(1), editPage(2), editPage(3)],
@@ -275,7 +274,7 @@ describe('mapTestCases', () => {
   it('maps non-CRUD forms and page interactions', () => {
     const crawl: CrawlOutput = {
       baseUrl: config.baseUrl,
-      engine: 'rendered',
+      schemaVersion: 2,
       role: 'admin',
       crawledAt: '2026-06-15T00:00:00.000Z',
       pages: [
@@ -331,7 +330,7 @@ describe('mapTestCases', () => {
   it('keeps multiple forms on the same page distinct by signature', () => {
     const crawl: CrawlOutput = {
       baseUrl: config.baseUrl,
-      engine: 'rendered',
+      schemaVersion: 2,
       role: 'admin',
       crawledAt: '2026-06-15T00:00:00.000Z',
       pages: [
@@ -376,7 +375,7 @@ describe('mapTestCases', () => {
   it('deduplicates identical form signatures on the same route shape', () => {
     const crawl: CrawlOutput = {
       baseUrl: config.baseUrl,
-      engine: 'rendered',
+      schemaVersion: 2,
       role: 'admin',
       crawledAt: '2026-06-15T00:00:00.000Z',
       pages: [
@@ -420,7 +419,7 @@ describe('mapTestCases', () => {
   it('does not emit form submit buttons as generic interactions', () => {
     const crawl: CrawlOutput = {
       baseUrl: config.baseUrl,
-      engine: 'rendered',
+      schemaVersion: 2,
       role: 'admin',
       crawledAt: '2026-06-15T00:00:00.000Z',
       pages: [
@@ -481,7 +480,7 @@ describe('mapTestCases', () => {
     ];
     const crawl: CrawlOutput = {
       baseUrl: config.baseUrl,
-      engine: 'rendered',
+      schemaVersion: 2,
       role: 'admin',
       crawledAt: '2026-06-15T00:00:00.000Z',
       pages: [
@@ -539,7 +538,7 @@ describe('mapTestCases', () => {
   it('does not synthesize Sauce Demo routes when they are absent from crawl output', () => {
     const crawl: CrawlOutput = {
       baseUrl: config.baseUrl,
-      engine: 'rendered',
+      schemaVersion: 2,
       role: 'admin',
       crawledAt: '2026-06-15T00:00:00.000Z',
       pages: [
@@ -571,7 +570,7 @@ describe('mapTestCases', () => {
   it('maps common pagination controls as dedicated cases', () => {
     const crawl: CrawlOutput = {
       baseUrl: config.baseUrl,
-      engine: 'rendered',
+      schemaVersion: 2,
       role: 'admin',
       crawledAt: '2026-06-15T00:00:00.000Z',
       pages: [
@@ -615,7 +614,7 @@ describe('mapTestCases', () => {
     const page = (url: string, links: ReturnType<typeof link>[]) => ({ url, title: url, forms: [], links, buttons: [], tables: [] });
     const crawl: CrawlOutput = {
       baseUrl: config.baseUrl,
-      engine: 'rendered',
+      schemaVersion: 2,
       role: 'admin',
       crawledAt: '2026-06-15T00:00:00.000Z',
       pages: [
@@ -675,7 +674,7 @@ describe('mapTestCases', () => {
     };
     const crawl: CrawlOutput = {
       baseUrl: config.baseUrl,
-      engine: 'rendered',
+      schemaVersion: 2,
       role: 'admin',
       crawledAt: '2026-06-15T00:00:00.000Z',
       pages: [page],
@@ -703,7 +702,7 @@ describe('mapTestCases', () => {
     };
     const crawlFor = (role: string): CrawlOutput => ({
       baseUrl: config.baseUrl,
-      engine: 'rendered',
+      schemaVersion: 2,
       role,
       crawledAt: '2026-06-15T00:00:00.000Z',
       pages: [
@@ -752,7 +751,7 @@ describe('mapTestCases', () => {
   it('does not treat the current-page paginator link as a pagination scenario', () => {
     const crawl: CrawlOutput = {
       baseUrl: config.baseUrl,
-      engine: 'rendered',
+      schemaVersion: 2,
       role: 'admin',
       crawledAt: '2026-06-15T00:00:00.000Z',
       pages: [
@@ -783,7 +782,7 @@ describe('mapTestCases', () => {
   it('emits select interaction cases from orphan controls and picks a representative option', () => {
     const crawl: CrawlOutput = {
       baseUrl: config.baseUrl,
-      engine: 'rendered',
+      schemaVersion: 2,
       role: 'admin',
       crawledAt: '2026-06-15T00:00:00.000Z',
       pages: [
@@ -823,7 +822,7 @@ describe('mapTestCases', () => {
   it('deduplicates query-only page routes and keeps generated titles unique', () => {
     const crawl: CrawlOutput = {
       baseUrl: config.baseUrl,
-      engine: 'rendered',
+      schemaVersion: 2,
       role: 'admin',
       crawledAt: '2026-06-15T00:00:00.000Z',
       pages: [
@@ -878,7 +877,7 @@ describe('mapTestCases', () => {
     const page = (url: string, links: ReturnType<typeof link>[]) => ({ url, title: url, forms: [], links, buttons: [], tables: [] });
     const crawl: CrawlOutput = {
       baseUrl: config.baseUrl,
-      engine: 'rendered',
+      schemaVersion: 2,
       role: 'admin',
       crawledAt: '2026-06-15T00:00:00.000Z',
       pages: [

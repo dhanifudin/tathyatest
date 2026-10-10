@@ -5,7 +5,7 @@ import type { CrawlOutput } from '../src/crawl.js';
 function crawlWith(role: string, urls: string[]): CrawlOutput {
   return {
     baseUrl: 'http://127.0.0.1:8000',
-    engine: 'rendered',
+    schemaVersion: 2,
     role,
     crawledAt: '2026-06-15T00:00:00.000Z',
     pages: urls.map((url) => ({ url, title: url, forms: [], links: [], buttons: [], tables: [] })),

@@ -17,7 +17,7 @@ const config: TathyaConfig = {
 };
 
 const crawl: CrawlOutput = {
-  baseUrl: config.baseUrl, engine: 'rendered', role: 'admin', crawledAt: '2026-06-20T00:00:00Z',
+  baseUrl: config.baseUrl, schemaVersion: 2, role: 'admin', crawledAt: '2026-06-20T00:00:00Z',
   pages: [{
     url: '/todos/create', title: 'Create', tables: [], links: [], buttons: [],
     forms: [{

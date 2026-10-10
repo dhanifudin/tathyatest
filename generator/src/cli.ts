@@ -13,51 +13,79 @@ import { runEvaluation } from './eval/runner.js';
 
 const program = new Command();
 
-program.name('tt').description('TathyaTest CLI').version('0.1.0');
+program
+  .name('tt')
+  .description('TathyaTest — generate and run Playwright functional tests from a crawl of your web app')
+  .version('0.1.0')
+  .enablePositionalOptions()
+  .showHelpAfterError('(run `tt --help` for the command list)')
+  .action(() => program.help());
 
 program.option('-c, --config <path>', 'path to the tathya config YAML', 'tathya.config.yaml');
 
-function loadCliConfig(): ReturnType<typeof loadConfig> {
-  return loadConfig(program.opts<{ config: string }>().config);
+function configPath(): string {
+  return program.opts<{ config: string }>().config;
 }
 
-program.command('init').description('write tathya.config.yaml').action(async () => {
+function loadCliConfig(): ReturnType<typeof loadConfig> {
+  return loadConfig(configPath());
+}
+
+program.command('init').description('create a project directory with a tathya.config.yaml').action(async () => {
   await runInit();
 });
 
-program.command('crawl').description('crawl configured app once per role').action(async () => {
+program.command('crawl').description('crawl the app once per role → crawl/<role>.json').action(async () => {
   const config = await loadCliConfig();
   await runCrawl(config);
 });
 
-program.command('generate').description('generate Playwright specs').action(async () => {
-  const config = await loadCliConfig();
-  await ensureCrawls(config);
-  await generateFromCrawls(config);
+program.command('generate')
+  .description('generate Playwright specs (re-crawls first when the crawl is missing or older than the config)')
+  .option('--fresh', 'crawl again even if the cached crawl looks current')
+  .action(async (options: { fresh?: boolean }) => {
+    const config = await loadCliConfig();
+    await ensureCrawls(config, { configPath: configPath(), force: options.fresh });
+    await generateFromCrawls(config);
+  });
+
+program.command('run')
+  .description('run the generated specs; extra arguments go to `playwright test` (e.g. tt run --project admin-chromium --grep @auth)')
+  .argument('[playwrightArgs...]', 'arguments forwarded to playwright test')
+  .passThroughOptions()
+  .allowUnknownOption()
+  .action(async (playwrightArgs: string[]) => {
+    await runPlaywright('test', playwrightArgs);
+  });
+
+program.command('report').description('open the HTML report of the last run').action(async () => {
+  await runPlaywright('show-report', []);
 });
 
-program.command('run').description('run generated Playwright specs').action(async () => {
-  await runPlaywright();
-});
-
-program.command('all').description('crawl, generate, and run').action(async () => {
-  const config = await loadCliConfig();
-  await ensureCrawls(config, { crawlRunner: runCrawl });
-  await generateFromCrawls(config);
-  await runPlaywright();
-});
+program.command('all')
+  .description('crawl, generate, and run')
+  .option('--fresh', 'crawl again even if the cached crawl looks current')
+  .action(async (options: { fresh?: boolean }) => {
+    const config = await loadCliConfig();
+    await ensureCrawls(config, { configPath: configPath(), crawlRunner: runCrawl, force: options.fresh });
+    await generateFromCrawls(config);
+    await runPlaywright('test', []);
+  });
 
 program.command('eval')
-  .description('run the metric-based evaluation and write metrics/report.{json,md}')
-  .option('--stack <name>', 'only evaluate the named stack')
+  .description('metric-based evaluation of this config → metrics/report.{json,md} (use --all-stacks for the cross-stack study)')
+  .option('--stack <name>', 'evaluate one entry of evaluation.stacks')
+  .option('--all-stacks', 'evaluate every entry of evaluation.stacks (skips unreachable ones)')
   .option('--repeat <n>', 'override evaluation.repeat', (value) => Number.parseInt(value, 10))
   .option('--no-faults', 'skip fault-injection effectiveness')
   .option('--no-coverage', 'skip SUT code-coverage collection')
   .option('--no-baseline', 'skip the manual baseline comparison')
-  .action(async (options: { stack?: string; repeat?: number; faults?: boolean; coverage?: boolean; baseline?: boolean }) => {
+  .action(async (options: { stack?: string; allStacks?: boolean; repeat?: number; faults?: boolean; coverage?: boolean; baseline?: boolean }) => {
     const config = await loadCliConfig();
     await runEvaluation(config, {
       stack: options.stack ?? null,
+      allStacks: options.allStacks ?? false,
+      configPath: configPath(),
       repeat: options.repeat ?? null,
       faults: options.faults,
       coverage: options.coverage,
@@ -70,14 +98,16 @@ program.parseAsync().catch((error: unknown) => {
   process.exitCode = 1;
 });
 
-function runPlaywright(): Promise<void> {
+function runPlaywright(subcommand: 'test' | 'show-report', args: string[]): Promise<void> {
+  const hasReporter = args.some((arg) => arg === '--reporter' || arg.startsWith('--reporter='));
+  const fullArgs = subcommand === 'test' && !hasReporter ? [subcommand, '--reporter=list', ...args] : [subcommand, ...args];
   return new Promise((resolve, reject) => {
     resolvePlaywrightBinary()
       .then((bin) => {
-        const child = spawn(bin, ['test', '--reporter=list'], {
+        const child = spawn(bin, fullArgs, {
           stdio: 'inherit',
           // Root playwright.config.ts + global setup honour TATHYA_CONFIG (see --config option).
-          env: { ...withPlaywrightNodePath(), TATHYA_CONFIG: program.opts<{ config: string }>().config },
+          env: { ...withPlaywrightNodePath(), TATHYA_CONFIG: configPath() },
         });
         child.on('error', reject);
         child.on('exit', (code) => {

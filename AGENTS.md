@@ -59,14 +59,15 @@ generator/src/extract/rendered.ts  ← must emit the same shape
 ```
 
 **Rule:** if you change the schema in one place, change it in both files in the same commit.
-Never add fields in the crawler without mirroring them in the validator and consumers. Use
-`"schemaVersion"` in the JSON root if a breaking change is unavoidable.
+Never add fields in the crawler without mirroring them in the validator and consumers. Bump
+`"schemaVersion"` (`CRAWL_SCHEMA_VERSION` in `crawl.ts`) when a field changes meaning or is
+removed; additive fields keep the number and get a zod default.
 
 Full schema reference:
 ```jsonc
 {
   "baseUrl": "string",
-  "engine": "rendered",
+  "schemaVersion": 2,            // contract version; v1 files carried "engine" instead (dropped on load)
   "role": "string",              // role name from config.auth.roles[].name
   "crawledAt": "ISO8601 string",
   "pages": [{

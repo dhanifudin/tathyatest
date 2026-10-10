@@ -2,11 +2,18 @@ import { mkdir, readdir, readFile, rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { z } from 'zod';
 import { renderedCrawl } from './extract/rendered.js';
+import { assertReachable } from './reachability.js';
 import type { TathyaConfig } from './config.js';
 
 export type LocatorStrategy = 'testid' | 'role' | 'label' | 'placeholder' | 'id' | 'name' | 'css';
 export type CrudOp = 'create' | 'update' | 'delete' | 'unknown';
-export type Engine = 'static' | 'rendered';
+
+/**
+ * Version of the crawl contract written by the crawler. Bump when a field changes meaning or is
+ * removed; purely additive fields keep the number. Version 1 files (which carried an `engine`
+ * field instead) still load — the obsolete key is dropped on parse.
+ */
+export const CRAWL_SCHEMA_VERSION = 2;
 
 export type Locator = { strategy: LocatorStrategy; value: string };
 export type FieldConstraints = {
@@ -67,7 +74,7 @@ export type PageModel = {
 };
 export type CrawlOutput = {
   baseUrl: string;
-  engine: Engine;
+  schemaVersion: number;
   role: string;
   crawledAt: string;
   pages: PageModel[];
@@ -92,7 +99,7 @@ const constraintsSchema = z.object({
 // type-checker without requiring `any`.
 export const crawlOutputSchema: z.ZodType<CrawlOutput, z.ZodTypeDef, unknown> = z.object({
   baseUrl: z.string(),
-  engine: z.enum(['static', 'rendered']),
+  schemaVersion: z.number().int().positive().default(1),
   role: z.string(),
   crawledAt: z.string(),
   pages: z.array(z.object({
@@ -145,6 +152,7 @@ export async function loadCrawls(dir = 'crawl', roles?: string[]): Promise<Crawl
 }
 
 export async function runCrawl(config: TathyaConfig): Promise<void> {
+  await assertReachable(config.baseUrl);
   await mkdir('crawl', { recursive: true });
   // Drop snapshots from other subjects/roles so downstream loadCrawls never mixes subjects.
   const configuredRoles = new Set(config.auth.roles.map((role) => `${role.name}.json`));
@@ -154,11 +162,19 @@ export async function runCrawl(config: TathyaConfig): Promise<void> {
   await renderedCrawl(config);
 }
 
-export async function ensureCrawls(config: TathyaConfig, options: { crawlDir?: string; configPath?: string; crawlRunner?: (config: TathyaConfig) => Promise<void> } = {}): Promise<void> {
+export type EnsureCrawlsOptions = {
+  crawlDir?: string;
+  configPath?: string;
+  crawlRunner?: (config: TathyaConfig) => Promise<void>;
+  /** Crawl again even when the cached per-role files are newer than the config (`--fresh`). */
+  force?: boolean;
+};
+
+export async function ensureCrawls(config: TathyaConfig, options: EnsureCrawlsOptions = {}): Promise<void> {
   const crawlDir = options.crawlDir ?? 'crawl';
   const configPath = options.configPath ?? 'tathya.config.yaml';
   const crawlRunner = options.crawlRunner ?? runCrawl;
-  if (await shouldRefreshCrawls(config, crawlDir, configPath)) {
+  if (options.force || await shouldRefreshCrawls(config, crawlDir, configPath)) {
     await crawlRunner(config);
   }
 }
