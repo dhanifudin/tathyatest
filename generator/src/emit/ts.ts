@@ -114,7 +114,7 @@ function helperImports(kind: TestCase['kind'], config: TathyaConfig): string[] {
     case 'auth':
       return ['test', 'performLogin', 'assertLoggedIn', 'assertLoginRejected'];
     case 'form':
-      return ['test', 'expect', 'uploadFixture', ...readOnlyExtra];
+      return ['test', 'expect', 'uploadFixture', 'expectQueryEcho', 'expectStateFlipped', ...readOnlyExtra];
     case 'interaction':
     case 'pagination':
       return ['test', 'expect', 'expectNoServerError', ...readOnlyExtra];
@@ -225,16 +225,42 @@ function formTest(testCase: FormCase, config: TathyaConfig): string {
   if (fills.length > 0) {
     lines.push(`  await test.step('Fill the form', async () => {`, ...fills.map((fill) => indent(fill, 4)), '  });');
   }
+  // A state-change form (toggle) is judged by its own control reading differently afterwards.
+  if (isStateChangeForm(testCase)) lines.push(`  const before = await ${scopedSubmitSource(testCase)}.textContent().catch(() => null);`);
   lines.push(`  await test.step('Submit', async () => {`, indent(submitClickSource(testCase), 4), '  });');
   lines.push(`  await test.step(${q(outcomeStepTitle(testCase))}, async () => {`, indent(formAssertion(testCase, config), 4), '  });');
   lines.push('});');
   return lines.join('\n');
 }
 
+/** Fieldless update forms with a labelled submit: "Mark done" → "Mark undone". */
+function isStateChangeForm(testCase: FormCase): boolean {
+  return testCase.form.fields.length === 0 && testCase.form.crudOp === 'update' && testCase.variant.name === 'valid' && Boolean(testCase.form.submit.text);
+}
+
+/** `{ "search": f_search, "status": "open" }` — the values a GET form submits, as source. */
+function submittedParamsSource(testCase: FormCase): string | null {
+  const entries: string[] = [];
+  for (const field of testCase.form.fields) {
+    const fieldValue = testCase.values[field.name];
+    if (fieldValue === undefined || ['file', 'checkbox', 'radio'].includes(field.type)) continue;
+    if (fieldValue.kind === 'runtime') entries.push(`${q(field.name)}: ${fieldVar(field.name)}`);
+    else if (fieldValue.kind === 'literal') entries.push(`${q(field.name)}: ${q(fieldValue.value)}`);
+    else {
+      const source = testCase.values[fieldValue.name];
+      if (source?.kind === 'runtime') entries.push(`${q(field.name)}: ${fieldVar(fieldValue.name)}`);
+      else if (source?.kind === 'literal') entries.push(`${q(field.name)}: ${q(source.value)}`);
+    }
+  }
+  return entries.length > 0 ? `{ ${entries.join(', ')} }` : null;
+}
+
 function outcomeStepTitle(testCase: FormCase): string {
   if (testCase.variant.name === 'delete') return 'Expect the record to be gone';
   if (testCase.variant.outcome === 'error') return 'Expect a validation error';
   if (testCase.variant.outcome === 'graceful') return 'Expect no server error';
+  if (isStateChangeForm(testCase)) return 'Expect the state to have changed';
+  if (testCase.form.method === 'GET' && testCase.variant.name === 'valid') return 'Expect the filters in the URL';
   return 'Expect the submission to succeed';
 }
 
@@ -243,14 +269,40 @@ function interactionTest(testCase: Extract<TestCase, { kind: 'interaction' }>, c
   const action = interaction.type === 'select' && interaction.optionValue !== undefined
     ? `await test.step(${q(`Select "${interaction.optionValue}" in ${interaction.label}`)}, () => target.selectOption(${q(interaction.optionValue)}));`
     : `await test.step(${q(`Click ${interaction.type} "${interaction.label}"`)}, () => target.click());`;
+  // A link with a navigable same-origin target must land there (SPA routers included); the
+  // no-server-error check alone would also pass a dead link.
+  const landing = linkLandingPath(testCase, config);
+  const landingStep = landing
+    ? `\n  await test.step(${q(`Expect to land on ${landing}`)}, () => expect(page).toHaveURL((url) => url.pathname === ${q(landing)}));`
+    : '';
   return `test(${q(testCase.title)}, ${testOptions(testCase)}, async ({ page, app }) => {
   ${loginStep(testCase, config)}
 ${openSteps(testCase.page.url, config).map((step) => `  ${step}`).join('\n')}
   const target = ${nth(locatorSource(interaction.locator), interaction.ordinal)};
   test.skip(await target.count() === 0 || !(await target.isVisible().catch(() => false)), 'interaction target is not visible');
-  ${action}
+  ${action}${landingStep}
   await test.step('Expect no server error', () => expectNoServerError(page));
 });`;
+}
+
+/**
+ * Where a link click must end up, or null when that is unknowable: fragment/javascript hrefs,
+ * and logout links (they redirect to the login page by design).
+ */
+export function linkLandingPath(testCase: Extract<TestCase, { kind: 'interaction' }>, config: Pick<TathyaConfig, 'baseUrl'>): string | null {
+  const href = testCase.interaction.href;
+  if (testCase.interaction.type !== 'link' || !href) return null;
+  const trimmed = href.trim();
+  if (trimmed === '' || trimmed.startsWith('#') || /^(javascript|mailto|tel):/i.test(trimmed)) return null;
+  let url: URL;
+  try {
+    url = new URL(trimmed, config.baseUrl);
+  } catch {
+    return null;
+  }
+  if (url.origin !== new URL(config.baseUrl).origin) return null;
+  if (/(^|\/)(logout|log-out|signout|sign-out)(\/|$)/i.test(url.pathname)) return null;
+  return url.pathname;
 }
 
 function paginationTest(testCase: Extract<TestCase, { kind: 'pagination' }>, config: TathyaConfig): string {
@@ -305,14 +357,19 @@ function submitClickSource(testCase: FormCase): string {
     lines.push(`page.once('dialog', (dialog) => { dialog.accept().catch(() => undefined); });`);
   }
   lines.push(
-    `const formScope = page.locator(${q(formActionSelector(testCase.form.action))});`,
-    `const submitControl = (await formScope.count()) > 0 ? ${locatorSource(testCase.form.submit.locator, 'formScope.first()')} : ${locatorSource(testCase.form.submit.locator)}.first();`,
+    `const submitControl = ${scopedSubmitSource(testCase)};`,
     // Controls hidden behind collapsed menus/dropdowns (e.g. a logout form inside a nav dropdown)
     // are skipped, not failed.
     `test.skip(!(await submitControl.isVisible().catch(() => false)), 'submit control is not visible');`,
     `await submitControl.click();`,
   );
   return lines.join('\n');
+}
+
+/** The submit control scoped to its form when the action identifies one, else the first match. */
+function scopedSubmitSource(testCase: FormCase): string {
+  const scope = `page.locator(${q(formActionSelector(testCase.form.action))})`;
+  return `((await ${scope}.count()) > 0 ? ${locatorSource(testCase.form.submit.locator, `${scope}.first()`)} : ${locatorSource(testCase.form.submit.locator)}.first())`;
 }
 
 // Attribute suffix match: the crawler normalizes form.action to pathname+search while the DOM
@@ -436,6 +493,13 @@ function formAssertion(testCase: FormCase, config: TathyaConfig): string {
     return errorAssertionSource(testCase.form, testCase.targetField, config.oracle.errorSelector, testCase.page.url, testCase.variant.name);
   }
   if (testCase.variant.outcome === 'graceful') return gracefulAssertionSource();
+  if (isStateChangeForm(testCase)) {
+    return `await expectStateFlipped(page, ${q(formActionSelector(testCase.form.action))}, before);`;
+  }
+  if (testCase.form.method === 'GET' && testCase.variant.name === 'valid') {
+    const params = submittedParamsSource(testCase);
+    if (params) return `await expectQueryEcho(page, ${params});`;
+  }
   const representative = representativeTextValue(testCase);
   // Only the canonical happy path asserts the echoed value: other success-outcome variants
   // (maxlength-exact, optional-omitted) submit values a list view may legitimately truncate.

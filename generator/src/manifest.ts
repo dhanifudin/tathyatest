@@ -53,7 +53,7 @@ function classify(testCase: TestCase): Omit<CaseMeta, 'mutating'> {
         targetForm: `${testCase.form.method}:${canonicalPath(testCase.form.action)}`,
         targetField: testCase.targetField?.name ?? null,
         constraintKind: constraintKindFor(testCase.variant.name),
-        assertionCount: testCase.form.crudOp === 'delete' ? 2 : 1,
+        assertionCount: formAssertionCount(testCase),
         locatorStrategy: (testCase.targetField ?? testCase.form.fields[0])?.locator.strategy ?? testCase.form.submit.locator.strategy,
         faultClass: negative ? 'validation' : 'crud',
       };
@@ -62,7 +62,7 @@ function classify(testCase: TestCase): Omit<CaseMeta, 'mutating'> {
       return {
         category: 'nav', tier: 'positive', role: testCase.role,
         route: canonicalPath(testCase.page.url), targetForm: null, targetField: null,
-        constraintKind: null, assertionCount: 1, locatorStrategy: testCase.interaction.locator.strategy,
+        constraintKind: null, assertionCount: hasLandingAssertion(testCase) ? 2 : 1, locatorStrategy: testCase.interaction.locator.strategy,
         faultClass: null,
       };
     case 'pagination':
@@ -83,6 +83,27 @@ function classify(testCase: TestCase): Omit<CaseMeta, 'mutating'> {
 
 function entryFor(testCase: TestCase, index: number): ManifestEntry {
   return { id: `t${String(index + 1).padStart(4, '0')}`, title: testCase.title, ...caseMeta(testCase) };
+}
+
+/**
+ * Mirrors emit/ts.ts formAssertion: delete → gone + graceful; fieldless update with a labelled
+ * submit → state flip + graceful; valid GET form → query echo + graceful; everything else one
+ * assertion.
+ */
+function formAssertionCount(testCase: Extract<TestCase, { kind: 'form' }>): number {
+  const { form, variant } = testCase;
+  if (form.crudOp === 'delete' && variant.name === 'delete') return 2;
+  if (variant.name !== 'valid') return 1;
+  if (form.fields.length === 0 && form.crudOp === 'update' && form.submit.text) return 2;
+  if (form.method === 'GET' && form.fields.some((field) => !['file', 'checkbox', 'radio'].includes(field.type) && testCase.values[field.name] !== undefined)) return 2;
+  return 1;
+}
+
+/** Mirrors emit/ts.ts linkLandingPath without needing the base URL: a navigable same-origin-looking href. */
+function hasLandingAssertion(testCase: Extract<TestCase, { kind: 'interaction' }>): boolean {
+  const href = testCase.interaction.href?.trim() ?? '';
+  if (testCase.interaction.type !== 'link' || href === '' || href.startsWith('#') || /^(javascript|mailto|tel|https?):/i.test(href)) return false;
+  return !/(^|\/)(logout|log-out|signout|sign-out)(\/|\?|#|$)/i.test(href.split(/[?#]/, 1)[0] ?? '');
 }
 
 function constraintKindFor(variantName: string): string | null {

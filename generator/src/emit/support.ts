@@ -122,6 +122,33 @@ export function uploadFixture(mimeType: string): { name: string; mimeType: strin
   return { name: 'tathyatest-upload.' + extension, mimeType, buffer: content };
 }
 
+/**
+ * A GET (search/filter) form round-trips its fields into the URL: every submitted value must
+ * come back in the query string (an empty value may be omitted by the app).
+ */
+export async function expectQueryEcho(page: Page, params: Record<string, string>): Promise<void> {
+  await page.waitForLoadState('domcontentloaded').catch(() => undefined);
+  const query = new URL(page.url()).searchParams;
+  for (const [key, value] of Object.entries(params)) {
+    const actual = query.get(key);
+    if (value === '') expect(actual === null || actual === '').toBe(true);
+    else expect(actual, 'query parameter ' + key).toBe(value);
+  }
+  await expectNoServerError(page);
+}
+
+/**
+ * A fieldless state-change form (toggle done/undone, archive, publish) proves it worked by its
+ * own submit control reading differently afterwards; a control that disappeared (the row moved
+ * to another list) is accepted too.
+ */
+export async function expectStateFlipped(page: Page, formSelector: string, before: string | null): Promise<void> {
+  await page.waitForLoadState('domcontentloaded').catch(() => undefined);
+  const control = page.locator(formSelector).first();
+  if (before && (await control.count()) > 0) await expect(control).not.toContainText(before);
+  await expectNoServerError(page);
+}
+
 /** The page settled and shows no server-error text. */
 export async function expectNoServerError(page: Page): Promise<void> {
   await page.waitForLoadState('domcontentloaded').catch(() => undefined);

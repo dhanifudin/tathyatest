@@ -177,11 +177,58 @@ describe('emitTs', () => {
       const spec = await readFile(join(dir, 'forms', 'profile.spec.ts'), 'utf8');
       const support = await readFile(join(dir, 'support', 'tathya.ts'), 'utf8');
 
-      expect(spec).toContain("import { test, expect, uploadFixture } from '../support/tathya.js';");
+      expect(spec).toContain("import { test, expect, uploadFixture, expectQueryEcho, expectStateFlipped } from '../support/tathya.js';");
       expect(spec).toContain('await page.getByLabel("Avatar", { exact: true }).setInputFiles(uploadFixture("image/png"));');
       expect(spec).toContain('await page.getByLabel("Avatar", { exact: true }).setInputFiles([]);');
       expect(spec).not.toContain('.fill("image/png")');
       expect(support).toContain('export function uploadFixture(mimeType: string)');
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('asserts the query echo of GET forms, the state flip of toggles, and where links land', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'tt-emit-oracles-'));
+    try {
+      const search = { name: 'search', type: 'search', label: 'Search', required: false, constraints: noConstraints, options: null, nameHints: [], locator: { strategy: 'label' as const, value: 'Search' } };
+      const status = { ...search, name: 'status', type: 'select', label: 'Status', options: [{ value: 'open', label: 'Open' }], locator: { strategy: 'label' as const, value: 'Status' } };
+      const cases: TestCase[] = [
+        {
+          kind: 'form', tier: 'positive', title: 'admin · /todos · "Apply" form → GET /todos · submits valid data successfully', role: 'admin',
+          page: emptyPage('/todos', 'Todos'),
+          form: { action: '/todos', method: 'GET', crudOp: 'unknown', noValidate: false, fields: [search, status], submit: { text: 'Apply', locator: { strategy: 'role', value: 'button:Apply' } } },
+          targetField: null, variant: { kind: 'positive', name: 'valid', value: '', outcome: 'success' },
+          values: { search: { kind: 'runtime', expr: 'faker.lorem.word()' }, status: { kind: 'literal', value: 'open' } },
+        },
+        {
+          kind: 'form', tier: 'positive', title: 'admin · /todos · "Mark done" form → POST /todos/1/toggle · submits successfully', role: 'admin',
+          page: emptyPage('/todos', 'Todos'),
+          form: { action: '/todos/1/toggle', method: 'POST', crudOp: 'update', noValidate: false, fields: [], submit: { text: 'Mark done', locator: { strategy: 'role', value: 'button:Mark done' } } },
+          targetField: null, variant: { kind: 'positive', name: 'valid', value: '', outcome: 'success' }, values: {},
+        },
+        {
+          kind: 'interaction', tier: 'positive', title: 'admin · /dashboard · follows the "Todos" link to /todos', role: 'admin',
+          page: emptyPage('/dashboard', 'Dashboard'),
+          interaction: { type: 'link', label: 'Todos', locator: { strategy: 'role', value: 'link:Todos' }, ordinal: 0, href: '/todos?status=done' },
+        },
+        {
+          kind: 'interaction', tier: 'positive', title: 'admin · /dashboard · follows the "Log Out" link to /logout', role: 'admin',
+          page: emptyPage('/dashboard', 'Dashboard'),
+          interaction: { type: 'link', label: 'Log Out', locator: { strategy: 'role', value: 'link:Log Out' }, ordinal: 0, href: '/logout' },
+        },
+      ];
+
+      await emitTs(cases, { ...config, output: { ...config.output, dir } });
+      const forms = await readFile(join(dir, 'forms', 'todos.spec.ts'), 'utf8');
+      const links = await readFile(join(dir, 'interactions', 'dashboard.spec.ts'), 'utf8');
+
+      expect(forms).toContain('await expectQueryEcho(page, { "search": f_search, "status": "open" });');
+      expect(forms).toContain('await test.step("Expect the filters in the URL", async () => {');
+      expect(forms).toContain('const before = await ((await page.locator("form[action$=\\"/todos/1/toggle\\"]").count()) > 0');
+      expect(forms).toContain('await expectStateFlipped(page, "form[action$=\\"/todos/1/toggle\\"]", before);');
+      expect(links).toContain('await test.step("Expect to land on /todos", () => expect(page).toHaveURL((url) => url.pathname === "/todos"));');
+      // Logout links redirect by design: no landing assertion.
+      expect(links).not.toContain('Expect to land on /logout');
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
