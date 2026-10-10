@@ -31,6 +31,8 @@ const resetHook: { method: 'POST' | 'GET' | 'DELETE'; path: string } | null = ${
 export type App = {
   /** Reset app data (when the app has a reset hook), drop the session, and log in as \`role\`. */
   loginAs(role: Role): Promise<void>;
+  /** Read-only runs: reuse the project's stored session when it is still valid, else log in — never reset. */
+  ensureLoggedIn(role: Role): Promise<void>;
   /** Call the app's reset hook, if one is configured. */
   resetData(): Promise<void>;
 };
@@ -47,6 +49,7 @@ export const test = base.extend<{ role: string; app: App }>({
   app: async ({ page }, use) => {
     await use({
       loginAs: (role) => loginAs(page, role),
+      ensureLoggedIn: (role) => ensureLoggedIn(page, role),
       resetData: () => resetAppData(page),
     });
   },
@@ -63,6 +66,21 @@ export async function resetAppData(page: Page): Promise<void> {
 export async function loginAs(page: Page, role: Role): Promise<void> {
   await resetAppData(page);
   await page.context().clearCookies();
+  const credentials = roleCredentials[role];
+  await performLogin(page, credentials.username, credentials.password);
+  await assertLoggedIn(page);
+}
+
+/**
+ * Open the login page: an app that still has a valid session (the project's storageState) sends
+ * an authenticated visitor elsewhere, so nothing more to do; otherwise log in. No reset hook.
+ */
+export async function ensureLoggedIn(page: Page, role: Role): Promise<void> {
+  await page.goto(loginPath);
+  await page.waitForLoadState('domcontentloaded').catch(() => undefined);
+  const expectedLoginPath = new URL(loginPath, 'http://tathyatest.local').pathname;
+  const passwordField = page.locator('input[type="password"]').first();
+  if (new URL(page.url()).pathname !== expectedLoginPath || !(await passwordField.isVisible().catch(() => false))) return;
   const credentials = roleCredentials[role];
   await performLogin(page, credentials.username, credentials.password);
   await assertLoggedIn(page);

@@ -86,7 +86,7 @@ function canonicalPath(path: string): string {
 
 function specSource(group: TestCase[], config: TathyaConfig): string {
   const kind = group[0].kind;
-  const parts: string[] = [GENERATED_HEADER, `import { ${helperImports(kind).join(', ')} } from '${SUPPORT_IMPORT}';\n`];
+  const parts: string[] = [GENERATED_HEADER, `import { ${helperImports(kind, config).join(', ')} } from '${SUPPORT_IMPORT}';\n`];
   if (kind === 'form') parts.push(fakerPreamble(config));
   // Login tests must start logged out: the role projects pre-authenticate via storageState.
   if (kind === 'auth') parts.push(`\ntest.use({ storageState: { cookies: [], origins: [] } });\n`);
@@ -108,18 +108,38 @@ function specSource(group: TestCase[], config: TathyaConfig): string {
   return parts.join('');
 }
 
-function helperImports(kind: TestCase['kind']): string[] {
+function helperImports(kind: TestCase['kind'], config: TathyaConfig): string[] {
+  const readOnlyExtra = config.mode === 'read-only' ? ['expectRouteAllowed'] : [];
   switch (kind) {
     case 'auth':
       return ['test', 'performLogin', 'assertLoggedIn', 'assertLoginRejected'];
     case 'form':
-      return ['test', 'expect'];
+      return ['test', 'expect', ...readOnlyExtra];
     case 'interaction':
     case 'pagination':
-      return ['test', 'expect', 'expectNoServerError'];
+      return ['test', 'expect', 'expectNoServerError', ...readOnlyExtra];
     case 'rbac':
       return ['test', 'expectRouteAllowed', 'expectRouteBlocked'];
   }
+}
+
+/** `app.loginAs(role)` resets + logs in; read-only runs reuse the stored session instead. */
+function loginStep(testCase: Extract<TestCase, { kind: 'form' | 'interaction' | 'pagination' | 'rbac' }>, config: TathyaConfig): string {
+  return config.mode === 'read-only'
+    ? `await test.step(${q(`Use the ${testCase.role} session`)}, () => app.ensureLoggedIn(${q(testCase.role)}));`
+    : `await test.step(${q(`Log in as ${testCase.role}`)}, () => app.loginAs(${q(testCase.role)}));`;
+}
+
+/**
+ * Open a page. In read-only mode the visit itself is a check (UptimeRobot-style): the response
+ * must be healthy, or the route must still render as a page for an SPA deep link.
+ */
+function openSteps(url: string, config: TathyaConfig): string[] {
+  if (config.mode !== 'read-only') return [`await test.step(${q(`Open ${url}`)}, () => page.goto(${q(url)}));`];
+  return [
+    `const opened = await test.step(${q(`Open ${url}`)}, () => page.goto(${q(url)}));`,
+    `await test.step(${q(`Expect ${url} to be up`)}, () => expectRouteAllowed(page, opened, ${q(canonicalPath(url))}));`,
+  ];
 }
 
 function describeTitle(testCase: TestCase): string {
@@ -162,18 +182,18 @@ function testSource(testCase: TestCase, config: TathyaConfig): string {
     case 'form':
       return formTest(testCase, config);
     case 'interaction':
-      return interactionTest(testCase);
+      return interactionTest(testCase, config);
     case 'pagination':
       return paginationTest(testCase, config);
     case 'rbac':
-      return rbacTest(testCase);
+      return rbacTest(testCase, config);
   }
 }
 
 /** `{ tag: [...], annotation: [...] }` from the same classification the manifest records. */
 function testOptions(testCase: TestCase): string {
   const meta = caseMeta(testCase);
-  const tags = [`@${meta.tier}`, `@${meta.category}`, `@role:${meta.role}`];
+  const tags = [`@${meta.tier}`, `@${meta.category}`, `@role:${meta.role}`, meta.mutating ? '@write' : '@read'];
   const annotations: { type: string; description: string }[] = [
     { type: 'tier', description: meta.tier },
     { type: 'category', description: meta.category },
@@ -198,8 +218,8 @@ function formTest(testCase: FormCase, config: TathyaConfig): string {
   const { decls, fills } = fillFormSource(testCase);
   const lines = [
     `test(${q(testCase.title)}, ${testOptions(testCase)}, async ({ page, app }) => {`,
-    `  await test.step(${q(`Log in as ${testCase.role}`)}, () => app.loginAs(${q(testCase.role)}));`,
-    `  await test.step(${q(`Open ${testCase.page.url}`)}, () => page.goto(${q(testCase.page.url)}));`,
+    `  ${loginStep(testCase, config)}`,
+    ...openSteps(testCase.page.url, config).map((step) => `  ${step}`),
   ];
   if (decls.length > 0) lines.push(...decls.map((decl) => `  ${decl}`));
   if (fills.length > 0) {
@@ -218,14 +238,14 @@ function outcomeStepTitle(testCase: FormCase): string {
   return 'Expect the submission to succeed';
 }
 
-function interactionTest(testCase: Extract<TestCase, { kind: 'interaction' }>): string {
+function interactionTest(testCase: Extract<TestCase, { kind: 'interaction' }>, config: TathyaConfig): string {
   const { interaction } = testCase;
   const action = interaction.type === 'select' && interaction.optionValue !== undefined
     ? `await test.step(${q(`Select "${interaction.optionValue}" in ${interaction.label}`)}, () => target.selectOption(${q(interaction.optionValue)}));`
     : `await test.step(${q(`Click ${interaction.type} "${interaction.label}"`)}, () => target.click());`;
   return `test(${q(testCase.title)}, ${testOptions(testCase)}, async ({ page, app }) => {
-  await test.step(${q(`Log in as ${testCase.role}`)}, () => app.loginAs(${q(testCase.role)}));
-  await test.step(${q(`Open ${testCase.page.url}`)}, () => page.goto(${q(testCase.page.url)}));
+  ${loginStep(testCase, config)}
+${openSteps(testCase.page.url, config).map((step) => `  ${step}`).join('\n')}
   const target = ${nth(locatorSource(interaction.locator), interaction.ordinal)};
   test.skip(await target.count() === 0 || !(await target.isVisible().catch(() => false)), 'interaction target is not visible');
   ${action}
@@ -241,8 +261,8 @@ function paginationTest(testCase: Extract<TestCase, { kind: 'pagination' }>, con
     ? `\n  await test.step(${q(`Expect to land on ${landing}`)}, () => expect(page).toHaveURL((url) => url.pathname + url.search === ${q(landing)}));`
     : '';
   return `test(${q(testCase.title)}, ${testOptions(testCase)}, async ({ page, app }) => {
-  await test.step(${q(`Log in as ${testCase.role}`)}, () => app.loginAs(${q(testCase.role)}));
-  await test.step(${q(`Open ${testCase.page.url}`)}, () => page.goto(${q(testCase.page.url)}));
+  ${loginStep(testCase, config)}
+${openSteps(testCase.page.url, config).map((step) => `  ${step}`).join('\n')}
   const target = ${nth(locatorSource(pagination.locator), pagination.ordinal)};
   test.skip(await target.count() === 0 || !(await target.isVisible().catch(() => false)), 'pagination target is not visible');
   await test.step(${q(stepTitle)}, () => target.click());${landingStep}
@@ -250,13 +270,13 @@ function paginationTest(testCase: Extract<TestCase, { kind: 'pagination' }>, con
 });`;
 }
 
-function rbacTest(testCase: Extract<TestCase, { kind: 'rbac' }>): string {
+function rbacTest(testCase: Extract<TestCase, { kind: 'rbac' }>, config: TathyaConfig): string {
   const routePath = canonicalPath(testCase.route);
   const outcome = testCase.expectAllowed
     ? `await test.step('Expect the route to be allowed', () => expectRouteAllowed(page, response, ${q(routePath)}));`
     : `await test.step('Expect the route to be blocked', () => expectRouteBlocked(page, response, ${q(routePath)}));`;
   return `test(${q(testCase.title)}, ${testOptions(testCase)}, async ({ page, app }) => {
-  await test.step(${q(`Log in as ${testCase.role}`)}, () => app.loginAs(${q(testCase.role)}));
+  ${loginStep(testCase, config)}
   const response = await test.step(${q(`Open ${testCase.route}`)}, () => page.goto(${q(testCase.route)}));
   ${outcome}
 });`;

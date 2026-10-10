@@ -8,7 +8,7 @@ import type { ManifestEntry } from '../src/manifest.js';
 const entry: ManifestEntry = {
   id: 't0001', title: 'admin creates a todo', category: 'crud', tier: 'negative', role: 'admin',
   route: '/todos/create', targetForm: 'POST:/todos', targetField: 'contact_email', constraintKind: 'type',
-  assertionCount: 1, locatorStrategy: 'label', faultClass: 'validation',
+  assertionCount: 1, locatorStrategy: 'label', faultClass: 'validation', mutating: true,
 };
 
 describe('relevantFromMatcher', () => {

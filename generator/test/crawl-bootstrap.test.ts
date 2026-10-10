@@ -10,6 +10,7 @@ const config: TathyaConfig = {
   baseUrl: 'http://127.0.0.1:8000',
   output: { dir: 'tests/generated', language: 'ts' },
   coverage: 'all',
+  mode: 'read-write',
   oracle: { errorSelector: '.invalid-feedback, [role=alert], .text-red-600, x-input-error p' },
   auth: {
     loginPath: '/login',

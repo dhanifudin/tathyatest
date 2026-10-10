@@ -390,6 +390,35 @@ error indicator from `oracle.errorSelector`; native validation checks HTML valid
 See [Keyword rules for test generation](#keyword-rules-for-test-generation) above for the
 exact trigger that produces each negative/edge variant.
 
+## Read-only monitoring
+
+Every generated test is tagged `@read` or `@write`. A test is *mutating* (`@write`) when running
+it can change app data: any POST/PUT/PATCH/DELETE form and all of its validation variants, a
+generic button click, and the wrong-password login. Everything a GET can do is `@read`: logging
+in, opening every crawled route, following links, paging, and submitting GET search/filter
+forms with their robustness variants.
+
+Two ways to use that:
+
+```bash
+tt run --read-only            # run the existing suite, skipping every @write test
+tt all --read-only            # crawl + generate ONLY the @read checks, then run them
+```
+
+`--read-only` on `generate`/`all` (or `mode: read-only` in the config) produces a status sweep
+over the whole crawled surface that is safe to point at staging or production: tests reuse the
+project's stored session instead of logging in each time, never call the reset hook, and assert
+that every page they open is up (healthy response, or an SPA route that still renders) before
+exercising it. Run it on a schedule — a cron line or CI job such as
+
+```bash
+*/15 * * * * cd /srv/tathya && tt all --read-only -c tathya.prod.yaml
+```
+
+turns the suite into UptimeRobot-style feature monitoring: not "does the home page answer" but
+"does every route, link, pager and search still work for every role". `tt eval` notes read-only
+runs in the report, since form/field/CRUD coverage then only describes GET forms.
+
 ## Known Gaps
 
 Custom Laravel validation rules, closure rules, FormRequest logic that is not visible in HTML,

@@ -219,7 +219,34 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
     }
   }
 
-  return cases;
+  // Read-only mode: keep the status sweep (login, route visits, links, pagination, GET forms)
+  // and drop everything that writes — safe to point at staging or production.
+  return config.mode === 'read-only' ? cases.filter((testCase) => !isMutating(testCase)) : cases;
+}
+
+/**
+ * Whether running the case can change app data. Everything a GET can do is read-only; every
+ * POST/PUT/PATCH/DELETE form (and all its validation variants), a wrong-password login (it leaves
+ * auth-failure noise), and generic button clicks (they may trigger writes) are mutating.
+ */
+export function isMutating(testCase: TestCase): boolean {
+  switch (testCase.kind) {
+    case 'auth':
+      return !testCase.expectSuccess;
+    case 'form':
+      return testCase.form.method !== 'GET';
+    case 'interaction':
+      if (testCase.interaction.type === 'button') return true;
+      // A logout link ends the session (Breeze renders one that submits the POST logout form).
+      return testCase.interaction.type === 'link' && isLogoutPath(testCase.interaction.href ?? '');
+    case 'pagination':
+    case 'rbac':
+      return false;
+  }
+}
+
+function isLogoutPath(href: string): boolean {
+  return /(^|\/)(logout|log-out|signout|sign-out)(\/|\?|#|$)/i.test(href.split(/[?#]/, 1)[0] ?? '');
 }
 
 /**

@@ -11,6 +11,7 @@ const config: TathyaConfig = {
   baseUrl: 'http://127.0.0.1:8000',
   output: { dir: '', language: 'ts' },
   coverage: 'all',
+  mode: 'read-write',
   oracle: { errorSelector: '.invalid-feedback, [role=alert], .text-red-600, x-input-error p' },
   auth: {
     loginPath: '/login',
@@ -143,7 +144,7 @@ describe('emitTs', () => {
       expect(formsSpec).toContain("await test.step(\"Expect the submission to succeed\", async () => {");
       expect(formsSpec).toContain('await expect(page.getByText(f_title).first()).toBeVisible();');
       // Tags and annotations carry the manifest classification.
-      expect(formsSpec).toContain('{ tag: ["@positive","@crud","@role:admin"], annotation: [{"type":"tier","description":"positive"},{"type":"category","description":"crud"},{"type":"route","description":"/todos/create"}] }');
+      expect(formsSpec).toContain('{ tag: ["@positive","@crud","@role:admin","@write"], annotation: [{"type":"tier","description":"positive"},{"type":"category","description":"crud"},{"type":"route","description":"/todos/create"}] }');
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -251,7 +252,7 @@ describe('emitTs', () => {
       expect(interactionsSpec).toContain('await test.step("Log in as admin", () => app.loginAs("admin"));');
       expect(interactionsSpec).toContain('await test.step("Click button \\"Add to cart\\"", () => target.click());');
       expect(interactionsSpec).toContain("await test.step('Expect no server error', () => expectNoServerError(page));");
-      expect(interactionsSpec).toContain('tag: ["@positive","@nav","@role:admin"]');
+      expect(interactionsSpec).toContain('tag: ["@positive","@nav","@role:admin","@write"]');
       expect(interactionsSpec).not.toContain('/dashboard');
     } finally {
       await rm(dir, { recursive: true, force: true });
@@ -320,6 +321,43 @@ describe('emitTs', () => {
       const withHook = await readFile(join(dir, 'support', 'tathya.ts'), 'utf8');
       expect(withHook).toContain('= {"method":"POST","path":"/__testing/reset"};');
       expect(withHook).toContain('await page.request.fetch(resetHook.path, { method: resetHook.method });');
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('tags every test @read or @write and emits read-only specs that reuse the session', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'tt-emit-readonly-'));
+    try {
+      const cases: TestCase[] = [
+        paginationCase,
+        { kind: 'rbac', tier: 'positive', title: 'admin can open /todos', role: 'admin', route: '/todos', expectAllowed: true },
+        {
+          kind: 'interaction', tier: 'positive', title: 'admin · /inventory.html · clicks the "Add to cart" button', role: 'admin',
+          page: emptyPage('/inventory.html', 'Inventory'),
+          interaction: { type: 'button', label: 'Add to cart', locator: { strategy: 'role', value: 'button:Add to cart' }, ordinal: 0 },
+        },
+      ];
+
+      await emitTs(cases, { ...config, output: { ...config.output, dir }, hooks: { reset: { method: 'POST', path: '/__testing/reset' } } });
+      const readWrite = await readFile(join(dir, 'pagination', 'products.spec.ts'), 'utf8');
+      const buttons = await readFile(join(dir, 'interactions', 'inventory-html.spec.ts'), 'utf8');
+      expect(readWrite).toContain('"@role:admin","@read"]');
+      expect(buttons).toContain('"@role:admin","@write"]');
+      expect(readWrite).toContain('app.loginAs("admin")');
+
+      await emitTs(cases, { ...config, mode: 'read-only', output: { ...config.output, dir }, hooks: { reset: { method: 'POST', path: '/__testing/reset' } } });
+      const readOnly = await readFile(join(dir, 'pagination', 'products.spec.ts'), 'utf8');
+      const rbac = await readFile(join(dir, 'rbac', 'todos.spec.ts'), 'utf8');
+      const support = await readFile(join(dir, 'support', 'tathya.ts'), 'utf8');
+      expect(readOnly).toContain('await test.step("Use the admin session", () => app.ensureLoggedIn("admin"));');
+      expect(readOnly).not.toContain('app.loginAs(');
+      expect(readOnly).toContain('const opened = await test.step("Open /products?page=1", () => page.goto("/products?page=1"));');
+      expect(readOnly).toContain('expectRouteAllowed(page, opened, "/products")');
+      expect(rbac).toContain('app.ensureLoggedIn("admin")');
+      // The session helper never calls the reset hook, even when one is configured.
+      expect(support).toContain('export async function ensureLoggedIn');
+      expect(support.slice(support.indexOf('export async function ensureLoggedIn'), support.indexOf('export async function performLogin'))).not.toContain('resetAppData');
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

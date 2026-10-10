@@ -50,6 +50,9 @@ export const configSchema = z.object({
     language: languageSchema.default('ts'),
   }).default({}),
   coverage: coverageSchema.default('all'),
+  // `read-only` keeps only non-mutating scenarios (login, route visits, links, pagination, GET
+  // search forms) — a status sweep over every feature that is safe against staging/production.
+  mode: z.enum(['read-write', 'read-only']).default('read-write'),
   oracle: z.object({
     errorSelector: z.string().default(DEFAULT_ERROR_SELECTOR),
   }).default({}),

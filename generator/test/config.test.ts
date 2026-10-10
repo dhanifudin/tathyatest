@@ -60,6 +60,12 @@ describe('configSchema', () => {
     expect(parsed.evaluation.stacks[0].config).toBe('tathya.config.yaml');
   });
 
+  it('defaults to read-write mode and accepts read-only', () => {
+    expect(parseConfig({ baseUrl: 'http://127.0.0.1:8000', auth: baseConfig.auth }).mode).toBe('read-write');
+    expect(parseConfig({ ...baseConfig, mode: 'read-only' }).mode).toBe('read-only');
+    expect(() => parseConfig({ ...baseConfig, mode: 'monitor' })).toThrow('mode:');
+  });
+
   it('has no app hooks unless the config declares them', () => {
     const minimal = parseConfig({ baseUrl: 'http://127.0.0.1:8000', auth: baseConfig.auth });
     expect(minimal.hooks).toBeUndefined();

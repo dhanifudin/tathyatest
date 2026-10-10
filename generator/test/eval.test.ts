@@ -48,7 +48,7 @@ describe('fault catalogue', () => {
     const entry: ManifestEntry = {
       id: 't', title: 'x', category: 'crud', tier: 'negative', role: 'admin', route: '/todos/create',
       targetForm: 'POST:/todos', targetField: 'title', constraintKind: 'required', assertionCount: 1,
-      locatorStrategy: 'label', faultClass: 'validation',
+      locatorStrategy: 'label', mutating: false, faultClass: 'validation',
     };
     const fault = FAULT_CATALOGUE.find((f) => f.id === 'validation_title_required')!;
     expect(fault.relevant(entry)).toBe(true);

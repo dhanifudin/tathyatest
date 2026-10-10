@@ -43,8 +43,9 @@ program.command('crawl').description('crawl the app once per role → crawl/<rol
 program.command('generate')
   .description('generate Playwright specs (re-crawls first when the crawl is missing or older than the config)')
   .option('--fresh', 'crawl again even if the cached crawl looks current')
-  .action(async (options: { fresh?: boolean }) => {
-    const config = await loadCliConfig();
+  .option('--read-only', 'generate only non-mutating checks (safe against staging/production); same as mode: read-only')
+  .action(async (options: { fresh?: boolean; readOnly?: boolean }) => {
+    const config = withMode(await loadCliConfig(), options.readOnly);
     await ensureCrawls(config, { configPath: configPath(), force: options.fresh });
     await generateFromCrawls(config);
   });
@@ -52,10 +53,12 @@ program.command('generate')
 program.command('run')
   .description('run the generated specs; extra arguments go to `playwright test` (e.g. tt run --project admin-chromium --grep @auth)')
   .argument('[playwrightArgs...]', 'arguments forwarded to playwright test')
+  .option('--read-only', 'run only tests tagged @read (skips everything that writes)')
+  .option('--write-only', 'run only tests tagged @write')
   .passThroughOptions()
   .allowUnknownOption()
-  .action(async (playwrightArgs: string[]) => {
-    await runPlaywright('test', playwrightArgs);
+  .action(async (playwrightArgs: string[], options: { readOnly?: boolean; writeOnly?: boolean }) => {
+    await runPlaywright('test', [...mutationFilterArgs(options), ...playwrightArgs]);
   });
 
 program.command('report').description('open the HTML report of the last run').action(async () => {
@@ -65,12 +68,25 @@ program.command('report').description('open the HTML report of the last run').ac
 program.command('all')
   .description('crawl, generate, and run')
   .option('--fresh', 'crawl again even if the cached crawl looks current')
-  .action(async (options: { fresh?: boolean }) => {
-    const config = await loadCliConfig();
+  .option('--read-only', 'generate and run only non-mutating checks (safe against staging/production)')
+  .action(async (options: { fresh?: boolean; readOnly?: boolean }) => {
+    const config = withMode(await loadCliConfig(), options.readOnly);
     await ensureCrawls(config, { configPath: configPath(), crawlRunner: runCrawl, force: options.fresh });
     await generateFromCrawls(config);
     await runPlaywright('test', []);
   });
+
+function withMode(config: Awaited<ReturnType<typeof loadConfig>>, readOnly: boolean | undefined) {
+  return readOnly ? { ...config, mode: 'read-only' as const } : config;
+}
+
+// `--grep-invert` composes with any `--grep` the user passes, unlike a second `--grep`.
+function mutationFilterArgs(options: { readOnly?: boolean; writeOnly?: boolean }): string[] {
+  if (options.readOnly && options.writeOnly) throw new Error('--read-only and --write-only exclude each other');
+  if (options.readOnly) return ['--grep-invert', '@write'];
+  if (options.writeOnly) return ['--grep-invert', '@read'];
+  return [];
+}
 
 program.command('eval')
   .description('metric-based evaluation of this config → metrics/report.{json,md} (use --all-stacks for the cross-stack study)')

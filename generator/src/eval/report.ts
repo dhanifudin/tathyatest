@@ -26,6 +26,9 @@ function stackMarkdown(stack: StackReport): string[] {
   const out: string[] = [`## Stack: ${stack.name}`, ''];
 
   out.push('### RQ1 — Model / generation coverage', '');
+  if (report.coverage.mode === 'read-only') {
+    out.push('- Mode: read-only — mutating cases (POST forms, button clicks, failed logins) were not generated; form, field, CRUD and constraint figures cover GET forms only');
+  }
   out.push(`- Element coverage: ${ratioPct(report.coverage.element)}`);
   out.push(`- Route coverage: ${ratioPct(report.coverage.routes)}`);
   out.push(`- Form coverage: ${ratioPct(report.coverage.forms)}`);

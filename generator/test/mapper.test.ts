@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mapTestCases, navScenarioKeysForPage } from '../src/mapper.js';
+import { isMutating, mapTestCases, navScenarioKeysForPage } from '../src/mapper.js';
 import type { CrawlOutput } from '../src/crawl.js';
 import type { TathyaConfig } from '../src/config.js';
 import type { AccessMatrix } from '../src/rbac.js';
@@ -8,6 +8,7 @@ const config: TathyaConfig = {
   baseUrl: 'http://127.0.0.1:8000',
   output: { dir: '', language: 'ts' },
   coverage: 'all',
+  mode: 'read-write',
   oracle: { errorSelector: '.invalid-feedback, [role=alert], .text-red-600, x-input-error p' },
   auth: {
     loginPath: '/login',
@@ -902,6 +903,63 @@ describe('mapTestCases', () => {
       ['next', 'link:Next &raquo;'],
     ]);
     expect(cases.filter((testCase) => testCase.kind === 'interaction')).toHaveLength(0);
+  });
+
+  it('keeps only non-mutating scenarios in read-only mode', () => {
+    const textField = {
+      name: 'title', type: 'text', label: 'Title', required: true,
+      constraints: { minlength: null, maxlength: null, min: null, max: null, step: null, pattern: null, inputmode: null, accept: null },
+      options: null, nameHints: [], locator: { strategy: 'label' as const, value: 'Title' },
+    };
+    const searchField = { ...textField, name: 'q', type: 'search', required: false, label: 'Search', locator: { strategy: 'label' as const, value: 'Search' } };
+    const crawl: CrawlOutput = {
+      baseUrl: config.baseUrl,
+      schemaVersion: 2,
+      role: 'admin',
+      crawledAt: '2026-06-15T00:00:00.000Z',
+      pages: [{
+        url: '/todos',
+        title: 'Todos',
+        forms: [
+          { action: '/todos', method: 'GET', crudOp: 'unknown', noValidate: false, fields: [searchField], submit: { text: 'Apply', locator: { strategy: 'role', value: 'button:Apply' } } },
+          { action: '/todos', method: 'POST', crudOp: 'create', noValidate: true, fields: [textField], submit: { text: 'Create', locator: { strategy: 'role', value: 'button:Create' } } },
+          { action: '/todos/1', method: 'POST', crudOp: 'delete', noValidate: false, fields: [], submit: { text: 'Delete', locator: { strategy: 'role', value: 'button:Delete' } } },
+        ],
+        links: [
+          { href: '/dashboard', text: 'Dashboard', locator: { strategy: 'role', value: 'link:Dashboard' } },
+          { href: '/todos?page=2', text: 'Next', locator: { strategy: 'role', value: 'link:Next' } },
+          { href: '/logout', text: 'Log Out', locator: { strategy: 'role', value: 'link:Log Out' } },
+        ],
+        buttons: [{ text: 'Open menu', locator: { strategy: 'role', value: 'button:Open menu' } }],
+        tables: [],
+      }],
+    };
+    const matrix: AccessMatrix = new Map([['/admin/users', { route: '/admin/users', reachableBy: ['other'] }]]);
+
+    const all = mapTestCases([crawl], matrix, config);
+    const readOnly = mapTestCases([crawl], matrix, { ...config, mode: 'read-only' });
+
+    expect(all.some((testCase) => isMutating(testCase))).toBe(true);
+    expect(readOnly.every((testCase) => !isMutating(testCase))).toBe(true);
+    expect(readOnly.map((testCase) => testCase.title)).toEqual([
+      'admin logs in with valid credentials',
+      'admin can open /todos',
+      'admin · /todos · "Apply" form → GET /todos · submits valid data successfully',
+      'admin · /todos · "Apply" form → GET /todos · q survives a very long value',
+      'admin · /todos · "Apply" form → GET /todos · q survives unicode input',
+      'admin · /todos · "Apply" form → GET /todos · q survives surrounding whitespace',
+      'admin · /todos · "Apply" form → GET /todos · q can be left out',
+      'admin · /todos · goes to the next page',
+      'admin · /todos · follows the "Dashboard" link to /dashboard',
+      'admin is blocked from /admin/users',
+    ]);
+    // Dropped: the wrong-password login, every POST form case, the generic button click, and
+    // the logout link (it ends the session).
+    expect(all.length - readOnly.length).toBeGreaterThan(5);
+    expect(all.some((testCase) => testCase.kind === 'interaction' && testCase.interaction.href === '/logout' && isMutating(testCase))).toBe(true);
+    expect(readOnly.some((testCase) => testCase.kind === 'interaction' && testCase.interaction.type === 'button')).toBe(false);
+    expect(readOnly.some((testCase) => testCase.kind === 'form' && testCase.form.method === 'POST')).toBe(false);
+    expect(readOnly.some((testCase) => testCase.kind === 'auth' && !testCase.expectSuccess)).toBe(false);
   });
 
   it('treats different query parameter values as distinct interaction scenarios', () => {

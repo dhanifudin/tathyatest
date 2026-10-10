@@ -9,6 +9,7 @@ const config: TathyaConfig = {
   baseUrl: 'http://127.0.0.1:8000',
   output: { dir: '', language: 'ts' },
   coverage: 'all',
+  mode: 'read-write',
   oracle: { errorSelector: '.text-red-600' },
   auth: { loginPath: '/login', roles: [{ name: 'admin', username: 'a', password: 'b' }, { name: 'user', username: 'c', password: 'd' }] },
   crawl: { maxDepth: 3, maxPages: 100, include: [], exclude: [] },
@@ -29,9 +30,9 @@ const crawl: CrawlOutput = {
 };
 
 const manifest: ManifestEntry[] = [
-  { id: 't1', title: 'create valid', category: 'crud', tier: 'positive', role: 'admin', route: '/todos/create', targetForm: 'POST:/todos', targetField: null, constraintKind: null, assertionCount: 1, locatorStrategy: 'label', faultClass: 'crud' },
-  { id: 't2', title: 'create title required', category: 'crud', tier: 'negative', role: 'admin', route: '/todos/create', targetForm: 'POST:/todos', targetField: 'title', constraintKind: 'required', assertionCount: 1, locatorStrategy: 'label', faultClass: 'validation' },
-  { id: 't3', title: 'user blocked admin', category: 'rbac', tier: 'negative', role: 'user', route: '/todos/create', targetForm: null, targetField: null, constraintKind: null, assertionCount: 1, locatorStrategy: null, faultClass: 'authz' },
+  { id: 't1', title: 'create valid', category: 'crud', tier: 'positive', role: 'admin', route: '/todos/create', targetForm: 'POST:/todos', targetField: null, constraintKind: null, assertionCount: 1, locatorStrategy: 'label', mutating: false, faultClass: 'crud' },
+  { id: 't2', title: 'create title required', category: 'crud', tier: 'negative', role: 'admin', route: '/todos/create', targetForm: 'POST:/todos', targetField: 'title', constraintKind: 'required', assertionCount: 1, locatorStrategy: 'label', mutating: false, faultClass: 'validation' },
+  { id: 't3', title: 'user blocked admin', category: 'rbac', tier: 'negative', role: 'user', route: '/todos/create', targetForm: null, targetField: null, constraintKind: null, assertionCount: 1, locatorStrategy: null, mutating: false, faultClass: 'authz' },
 ];
 
 const matrix: AccessMatrix = new Map([['/todos/create', { route: '/todos/create', reachableBy: ['admin'] }]]);

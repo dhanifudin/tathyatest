@@ -1,4 +1,4 @@
-import type { TestCase } from './mapper.js';
+import { isMutating, type TestCase } from './mapper.js';
 
 export type ManifestCategory = 'auth' | 'crud' | 'nav' | 'rbac';
 export type ManifestTier = 'positive' | 'negative' | 'edge';
@@ -22,6 +22,8 @@ export type ManifestEntry = {
   assertionCount: number;
   locatorStrategy: string | null;
   faultClass: FaultClass | null;
+  /** Running the test can change app data (POST forms, button clicks, failed logins). */
+  mutating: boolean;
 };
 
 export function buildManifest(cases: TestCase[]): ManifestEntry[] {
@@ -32,6 +34,10 @@ export function buildManifest(cases: TestCase[]): ManifestEntry[] {
 export type CaseMeta = Omit<ManifestEntry, 'id' | 'title'>;
 
 export function caseMeta(testCase: TestCase): CaseMeta {
+  return { ...classify(testCase), mutating: isMutating(testCase) };
+}
+
+function classify(testCase: TestCase): Omit<CaseMeta, 'mutating'> {
   switch (testCase.kind) {
     case 'auth':
       return {

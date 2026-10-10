@@ -32,6 +32,8 @@ export type MetricsInput = {
 };
 
 export type CoverageMetrics = {
+  /** `read-only` runs skip every mutating case; form/field/CRUD figures then describe GET forms only. */
+  mode: 'read-write' | 'read-only';
   routes: Ratio;
   forms: Ratio;
   fields: Ratio;
@@ -225,6 +227,7 @@ function coverageMetrics(input: MetricsInput): CoverageMetrics {
   const exercisedPresent = [...exercisedConstraints].filter((kind) => presentConstraints.has(kind));
 
   return {
+    mode: config.mode,
     routes,
     forms,
     fields,
