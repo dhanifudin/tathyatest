@@ -199,7 +199,7 @@ every tier that `config.coverage` enables. Default is `all`.
 **Constraints:**
 - Assert error **state** (element visible, field `:invalid`), never exact message text.
 - Edge payloads are robustness-only. No `<script>`, `'--`, `OR 1=1`, or injection strings.
-- One titled test per variant: `"<page> <form> — <field> <variant> → <outcome>"`.
+- One titled test per variant, phrased as a scenario: `"<role> · <page> · \"<submit>\" form → <METHOD> <action> · <field> rejects an empty value"` — see `humanVariant` in `mapper.ts`; titles must stay globally unique (the manifest joins on them).
 
 ---
 

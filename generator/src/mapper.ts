@@ -72,7 +72,7 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
     cases.push({
       kind: 'auth',
       tier: 'positive',
-      title: `login ${role.name} valid -> success`,
+      title: `${role.name} logs in with valid credentials`,
       role: role.name,
       username: role.username,
       password: role.password,
@@ -82,7 +82,7 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
       cases.push({
         kind: 'auth',
         tier: 'negative',
-        title: `login ${role.name} wrong-password -> error`,
+        title: `${role.name} is rejected with a wrong password`,
         role: role.name,
         username: role.username,
         password: `${role.password}-wrong`,
@@ -110,7 +110,7 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
       cases.push({
         kind: 'rbac',
         tier: 'positive',
-        title: `${crawl.role} can visit ${canonicalPageUrl} -> allowed`,
+        title: `${crawl.role} can open ${canonicalPageUrl}`,
         role: crawl.role,
         route: canonicalPageUrl,
         expectAllowed: true,
@@ -122,13 +122,13 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
         const formSignature = formTitleSignature(form);
         const formOrdinal = (formSignatureOrdinals.get(formSignature) ?? 0) + 1;
         formSignatureOrdinals.set(formSignature, formOrdinal);
-        const formTitleBase = formSignatureCounts.get(formSignature)! > 1 ? `${formSignature} #${formOrdinal}` : formSignature;
+        const formTitleBase = formLabel(form, formSignatureCounts.get(formSignature)! > 1 ? formOrdinal : null);
         if (form.fields.length > 0) {
           const baseValues = buildBaseValues(form, config);
           cases.push({
             kind: 'form',
             tier: 'positive',
-            title: `${crawl.role} ${canonicalPageUrl} ${formTitleBase} - valid -> success`,
+            title: `${crawl.role} · ${canonicalPageUrl} · ${formTitleBase} · submits valid data successfully`,
             role: crawl.role,
             page,
             form,
@@ -165,7 +165,7 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
               cases.push({
                 kind: 'form',
                 tier: variant.kind,
-                title: `${crawl.role} ${canonicalPageUrl} ${formTitleBase} - ${field.name} ${variant.name} -> ${variant.outcome}`,
+                title: `${crawl.role} · ${canonicalPageUrl} · ${formTitleBase} · ${humanVariant(field, variant)}`,
                 role: crawl.role,
                 page,
                 form,
@@ -179,7 +179,7 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
           cases.push({
             kind: 'form',
             tier: 'positive',
-            title: `${crawl.role} ${canonicalPageUrl} ${formTitleBase} -> success`,
+            title: `${crawl.role} · ${canonicalPageUrl} · ${formTitleBase} · ${form.crudOp === 'delete' ? 'deletes the record' : 'submits successfully'}`,
             role: crawl.role,
             page,
             form,
@@ -209,7 +209,7 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
           cases.push({
             kind: 'rbac',
             tier: 'negative',
-            title: `${role} cannot visit ${route} -> blocked`,
+            title: `${role} is blocked from ${route}`,
             role,
             route,
             expectAllowed: false,
@@ -275,7 +275,7 @@ function interactionCasesForPage(role: string, page: PageModel, canonicalPageUrl
     cases.push({
       kind: 'interaction',
       tier: 'positive',
-      title: `${role} ${canonicalPageUrl} link ${target} -> handled`,
+      title: `${role} · ${canonicalPageUrl} · follows the ${link.text ? `"${normalizeTitleText(link.text)}" link` : 'link'} to ${target}`,
       role,
       page,
       interaction: {
@@ -298,7 +298,7 @@ function interactionCasesForPage(role: string, page: PageModel, canonicalPageUrl
     cases.push({
       kind: 'interaction',
       tier: 'positive',
-      title: `${role} ${canonicalPageUrl} button ${label} -> handled`,
+      title: `${role} · ${canonicalPageUrl} · clicks the "${label}" button`,
       role,
       page,
       interaction: {
@@ -322,7 +322,7 @@ function interactionCasesForPage(role: string, page: PageModel, canonicalPageUrl
     cases.push({
       kind: 'interaction',
       tier: 'positive',
-      title: `${role} ${canonicalPageUrl} select ${label} -> handled`,
+      title: `${role} · ${canonicalPageUrl} · selects ${representative ? `"${representative.label || representative.value}"` : 'an option'} in the ${label} control`,
       role,
       page,
       interaction: {
@@ -423,11 +423,10 @@ function paginationCasesForPage(role: string, page: PageModel, canonicalPageUrl:
   for (const control of paginationControls) {
     if (seen.has(control.action)) continue;
     seen.add(control.action);
-    const titleBase = paginationTitleBase(role, canonicalPageUrl, control.action, control.label);
     cases.push({
       kind: 'pagination',
       tier: 'positive',
-      title: `${titleBase} -> handled`,
+      title: paginationTitle(role, canonicalPageUrl, control.action, control.label),
       role,
       page,
       pagination: {
@@ -464,10 +463,47 @@ function canonicalPath(path: string): string {
 }
 
 
-function paginationTitleBase(role: string, canonicalPageUrl: string, action: 'first' | 'previous' | 'next' | 'last' | 'page', label: string): string {
-  return action === 'page'
-    ? `${role} ${canonicalPageUrl} pagination page ${label}`
-    : `${role} ${canonicalPageUrl} pagination ${action}`;
+function paginationTitle(role: string, canonicalPageUrl: string, action: 'first' | 'previous' | 'next' | 'last' | 'page', label: string): string {
+  // Numbered labels come as "2", "Page 2", or an accessible name like "Go to page 2".
+  const number = normalizePaginationLabel(label).match(/\d+/)?.[0] ?? normalizeTitleText(label);
+  const move = action === 'page' ? `goes to page ${number}` : `goes to the ${action} page`;
+  return `${role} · ${canonicalPageUrl} · ${move}`;
+}
+
+/**
+ * `"Create" form → POST /todos`, with ` #n` when the same page repeats an identical form (two
+ * logout forms in a header and a drawer, say). Titles stay unique because the role, the page,
+ * this label, and the field/variant phrase are all part of them.
+ */
+function formLabel(form: Form, ordinal: number | null): string {
+  const submitText = normalizeTitleText(form.submit.text);
+  const label = `${submitText ? `"${submitText}" form` : 'form'} → ${form.method} ${canonicalPath(form.action)}`;
+  return ordinal === null ? label : `${label} #${ordinal}`;
+}
+
+/** The scenario phrase for one field variant, e.g. `title rejects an empty value`. */
+export function humanVariant(field: Pick<Field, 'name' | 'type'>, variant: Pick<FieldVariant, 'name' | 'outcome'>): string {
+  const name = field.name;
+  switch (variant.name) {
+    case 'valid': return `${name} accepts a valid value`;
+    case 'required-empty': return `${name} rejects an empty value`;
+    case 'pattern-fail': return `${name} rejects a value that breaks its pattern`;
+    case 'minlength-minus-one': return `${name} rejects a value one character short of the minimum length`;
+    case 'maxlength-plus-one': return `${name} rejects a value one character over the maximum length`;
+    case 'maxlength-exact': return `${name} accepts a value at exactly the maximum length`;
+    case 'very-long': return `${name} survives a very long value`;
+    case 'min-minus-one': return `${name} rejects a value below the minimum`;
+    case 'max-plus-one': return `${name} rejects a value above the maximum`;
+    case 'unicode': return `${name} survives unicode input`;
+    case 'whitespace': return `${name} survives surrounding whitespace`;
+    case 'invalid-option': return `${name} rejects an option that is not offered`;
+    case 'duplicate': return `${name} rejects a duplicate value`;
+    case 'confirmation-mismatch': return `${name} rejects a mismatched confirmation`;
+    case 'optional-omitted': return `${name} can be left out`;
+    default:
+      if (variant.name.endsWith('-format')) return `${name} rejects a malformed ${variant.name.slice(0, -'-format'.length)}`;
+      return `${name} ${variant.name} (expects ${variant.outcome})`;
+  }
 }
 
 function controlLabel(text: string | null, fallback: string): string {

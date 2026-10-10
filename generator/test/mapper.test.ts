@@ -318,12 +318,12 @@ describe('mapTestCases', () => {
     const form = cases.find((testCase) => testCase.kind === 'form' && testCase.variant.name === 'valid');
     const interactions = cases.filter((testCase) => testCase.kind === 'interaction');
 
-    expect(form?.title).toBe('admin /inventory.html form [action /search; method GET; submit Search; fields q] - valid -> success');
+    expect(form?.title).toBe('admin · /inventory.html · "Search" form → GET /search · submits valid data successfully');
     expect(interactions).toHaveLength(2);
     expect(interactions.map((testCase) => testCase.interaction.ordinal)).toEqual([0, 0]);
     expect(interactions.map((testCase) => testCase.title)).toEqual([
-      'admin /inventory.html link /cart.html -> handled',
-      'admin /inventory.html button Add to cart -> handled',
+      'admin · /inventory.html · follows the "Cart" link to /cart.html',
+      'admin · /inventory.html · clicks the "Add to cart" button',
     ]);
   });
 
@@ -366,8 +366,8 @@ describe('mapTestCases', () => {
     const formTitles = cases.filter((testCase) => testCase.kind === 'form').map((testCase) => testCase.title);
 
     expect(formTitles).toEqual([
-      'admin /basket form [action /basket; method GET; submit Redeem] -> success',
-      'admin /basket form [action /basket; method GET; submit Continue to checkout] -> success',
+      'admin · /basket · "Redeem" form → GET /basket · submits successfully',
+      'admin · /basket · "Continue to checkout" form → GET /basket · submits successfully',
     ]);
     expect(new Set(formTitles).size).toBe(formTitles.length);
   });
@@ -411,7 +411,7 @@ describe('mapTestCases', () => {
     const formTitles = cases.filter((testCase) => testCase.kind === 'form').map((testCase) => testCase.title);
 
     expect(formTitles).toEqual([
-      'admin /basket form [action /basket; method GET; submit Checkout] -> success',
+      'admin · /basket · "Checkout" form → GET /basket · submits successfully',
     ]);
     expect(new Set(formTitles).size).toBe(formTitles.length);
   });
@@ -461,7 +461,7 @@ describe('mapTestCases', () => {
     const interactions = cases.filter((testCase) => testCase.kind === 'interaction');
 
     expect(interactions.map((testCase) => testCase.title)).toEqual([
-      'admin /todos button Open menu -> handled',
+      'admin · /todos · clicks the "Open menu" button',
     ]);
   });
 
@@ -525,13 +525,13 @@ describe('mapTestCases', () => {
     const updateForms = cases.filter((testCase) => testCase.kind === 'form' && testCase.form.crudOp === 'update');
 
     expect(updateForms.map((testCase) => testCase.title)).toEqual([
-      'admin /todos/2/edit form [action /todos/2; method POST; submit Update; fields title] - valid -> success',
-      'admin /todos/2/edit form [action /todos/2; method POST; submit Update; fields title] - title required-empty -> error',
-      'admin /todos/2/edit form [action /todos/2; method POST; submit Update; fields title] - title maxlength-plus-one -> error',
-      'admin /todos/2/edit form [action /todos/2; method POST; submit Update; fields title] - title maxlength-exact -> success',
-      'admin /todos/2/edit form [action /todos/2; method POST; submit Update; fields title] - title very-long -> graceful',
-      'admin /todos/2/edit form [action /todos/2; method POST; submit Update; fields title] - title unicode -> graceful',
-      'admin /todos/2/edit form [action /todos/2; method POST; submit Update; fields title] - title whitespace -> graceful',
+      'admin · /todos/2/edit · "Update" form → POST /todos/2 · submits valid data successfully',
+      'admin · /todos/2/edit · "Update" form → POST /todos/2 · title rejects an empty value',
+      'admin · /todos/2/edit · "Update" form → POST /todos/2 · title rejects a value one character over the maximum length',
+      'admin · /todos/2/edit · "Update" form → POST /todos/2 · title accepts a value at exactly the maximum length',
+      'admin · /todos/2/edit · "Update" form → POST /todos/2 · title survives a very long value',
+      'admin · /todos/2/edit · "Update" form → POST /todos/2 · title survives unicode input',
+      'admin · /todos/2/edit · "Update" form → POST /todos/2 · title survives surrounding whitespace',
     ]);
   });
 
@@ -599,11 +599,11 @@ describe('mapTestCases', () => {
 
     // One representative per action: page 3 collapses into the page-2 numbered-jump scenario.
     expect(pagination.map((testCase) => testCase.title)).toEqual([
-      'admin /products pagination page 2 -> handled',
-      'admin /products pagination first -> handled',
-      'admin /products pagination previous -> handled',
-      'admin /products pagination next -> handled',
-      'admin /products pagination last -> handled',
+      'admin · /products · goes to page 2',
+      'admin · /products · goes to the first page',
+      'admin · /products · goes to the previous page',
+      'admin · /products · goes to the next page',
+      'admin · /products · goes to the last page',
     ]);
     expect(new Set(pagination.map((testCase) => testCase.title)).size).toBe(pagination.length);
     expect(interactions).toHaveLength(0);
@@ -630,10 +630,10 @@ describe('mapTestCases', () => {
     // once for the role, not once per source page; the ?status filter link stays distinct
     // from the bare /todos target because its query KEY differs.
     expect(interactions.map((testCase) => testCase.title)).toEqual([
-      'admin /todos link /todos/1/edit -> handled',
-      'admin /todos link /dashboard -> handled',
-      'admin /dashboard link /todos -> handled',
-      'admin /dashboard link /todos?status=done -> handled',
+      'admin · /todos · follows the "Edit" link to /todos/1/edit',
+      'admin · /todos · follows the "Dashboard" link to /dashboard',
+      'admin · /dashboard · follows the "Todos" link to /todos',
+      'admin · /dashboard · follows the "Done" link to /todos?status=done',
     ]);
   });
 
@@ -775,7 +775,7 @@ describe('mapTestCases', () => {
     const pagination = cases.filter((testCase) => testCase.kind === 'pagination');
 
     expect(pagination.map((testCase) => testCase.title)).toEqual([
-      'admin /todos pagination page 2 -> handled',
+      'admin · /todos · goes to page 2',
     ]);
   });
 
@@ -814,7 +814,7 @@ describe('mapTestCases', () => {
     const selects = cases.filter((testCase) => testCase.kind === 'interaction' && testCase.interaction.type === 'select');
 
     expect(selects).toHaveLength(1);
-    expect(selects[0].title).toBe('admin /inventory.html select testid:product-sort-container -> handled');
+    expect(selects[0].title).toBe('admin · /inventory.html · selects "Price (high to low)" in the testid:product-sort-container control');
     // Representative option: last non-empty value (hilo)
     expect(selects[0].interaction.optionValue).toBe('hilo');
   });
@@ -863,9 +863,9 @@ describe('mapTestCases', () => {
     // item=1 and item=2 are distinct signatures (different query values) and both survive;
     // item=3 lives only on the sort=za page, which is skipped entirely as a duplicate page.
     expect(interactions.map((testCase) => testCase.title)).toEqual([
-      'admin /inventory.html link /inventory.html?item=1 -> handled',
-      'admin /inventory.html link /inventory.html?item=2 -> handled',
-      'admin /inventory.html button Add to cart -> handled',
+      'admin · /inventory.html · follows the link to /inventory.html?item=1',
+      'admin · /inventory.html · follows the link to /inventory.html?item=2',
+      'admin · /inventory.html · clicks the "Add to cart" button',
     ]);
     expect(interactions).toHaveLength(3);
     expect(new Set(titles).size).toBe(titles.length);
@@ -925,8 +925,8 @@ describe('mapTestCases', () => {
 
     // Same route, same query KEY, different VALUE — two distinct data scenarios, not one.
     expect(interactions.map((testCase) => testCase.title)).toEqual([
-      'admin /todos link /todos?status=done -> handled',
-      'admin /todos link /todos?status=pending -> handled',
+      'admin · /todos · follows the "Done" link to /todos?status=done',
+      'admin · /todos · follows the "Pending" link to /todos?status=pending',
     ]);
   });
 });

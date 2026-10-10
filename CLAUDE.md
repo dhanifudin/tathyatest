@@ -246,7 +246,7 @@ Breaking this order produces brittle tests. Never use positional selectors.
 | `negative` | `coverage: negative\|all` | wrong password, required-empty, format violation, pattern-fail, length/range ±1, RBAC blocked route, duplicate unique, confirmation mismatch; use `data.requiredFields` to force blank negatives for missed fields |
 | `edge` | `coverage: edge\|all` | boundary-exact, very-long (10×maxlength), unicode, leading/trailing whitespace, omit optional fields |
 
-- Each variant = one titled test: `"<page> <form> — <field> <variant> → <outcome>"`.
+- Each variant = one titled test that reads as a scenario: `"<role> · <page> · \"<submit>\" form → <METHOD> <action> · <field> <what it rejects/accepts/survives>"` (see `humanVariant` in `mapper.ts`); leaf titles are globally unique because `tt eval` joins outcomes to the manifest by title.
 - Negative tests must assert error **state** (error element visible OR `validity.valid===false`),
   never exact message text.
 - `oracle.ts` branches on `form.noValidate`: `true` → DOM error via `oracle.errorSelector`;
