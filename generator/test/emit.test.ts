@@ -150,6 +150,43 @@ describe('emitTs', () => {
     }
   });
 
+  it('uploads an in-memory fixture for file inputs instead of filling them', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'tt-emit-file-'));
+    try {
+      const avatar = {
+        name: 'avatar', type: 'file', label: 'Avatar', required: true, constraints: { ...noConstraints, accept: 'image/*' },
+        options: null, nameHints: [], locator: { strategy: 'label' as const, value: 'Avatar' },
+      };
+      const form = { action: '/profile', method: 'POST' as const, crudOp: 'update' as const, noValidate: true, fields: [avatar], submit: { text: 'Save', locator: { strategy: 'role' as const, value: 'button:Save' } } };
+      const cases: TestCase[] = [
+        {
+          kind: 'form', tier: 'positive', title: 'admin · /profile · "Save" form → POST /profile · submits valid data successfully', role: 'admin',
+          page: emptyPage('/profile', 'Profile'), form, targetField: null,
+          variant: { kind: 'positive', name: 'valid', value: '', outcome: 'success' },
+          values: { avatar: { kind: 'literal', value: 'image/png' } },
+        },
+        {
+          kind: 'form', tier: 'negative', title: 'admin · /profile · "Save" form → POST /profile · avatar rejects an empty value', role: 'admin',
+          page: emptyPage('/profile', 'Profile'), form, targetField: avatar,
+          variant: { kind: 'negative', name: 'required-empty', value: '', outcome: 'error' },
+          values: { avatar: { kind: 'literal', value: '' } },
+        },
+      ];
+
+      await emitTs(cases, { ...config, output: { ...config.output, dir } });
+      const spec = await readFile(join(dir, 'forms', 'profile.spec.ts'), 'utf8');
+      const support = await readFile(join(dir, 'support', 'tathya.ts'), 'utf8');
+
+      expect(spec).toContain("import { test, expect, uploadFixture } from '../support/tathya.js';");
+      expect(spec).toContain('await page.getByLabel("Avatar", { exact: true }).setInputFiles(uploadFixture("image/png"));');
+      expect(spec).toContain('await page.getByLabel("Avatar", { exact: true }).setInputFiles([]);');
+      expect(spec).not.toContain('.fill("image/png")');
+      expect(support).toContain('export function uploadFixture(mimeType: string)');
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it('forces invalid select values through a temporary option', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'tt-emit-'));
     try {

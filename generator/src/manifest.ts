@@ -94,6 +94,8 @@ function constraintKindFor(variantName: string): string | null {
   if (variantName.startsWith('maxlength')) return 'maxlength';
   if (variantName.startsWith('min-')) return 'min';
   if (variantName.startsWith('max-')) return 'max';
+  if (variantName === 'step-misaligned') return 'step';
+  if (variantName === 'accept-mismatch') return 'accept';
   if (variantName === 'invalid-option') return 'option';
   if (variantName === 'duplicate') return 'unique';
   if (variantName === 'confirmation-mismatch') return 'confirmation';

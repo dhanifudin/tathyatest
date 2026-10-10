@@ -59,6 +59,10 @@ function baseExpr(field: Field): string {
       return passwordExpr(field);
     case 'color':
       return 'faker.color.rgb()';
+    case 'file':
+      // Never reached: fieldgen hands file inputs a MIME-type literal, the emitter uploads a
+      // fixture. Kept so a stray call still yields a harmless string.
+      return "'text/plain'";
     default:
       return loremWordsExpr(field);
   }

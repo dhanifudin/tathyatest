@@ -606,7 +606,11 @@ function constraintKindsOfField(field: Field, config: TathyaConfig): string[] {
   if (field.constraints.min !== null) kinds.push('min');
   if (field.constraints.max !== null) kinds.push('max');
   if (field.constraints.pattern !== null) kinds.push('pattern');
-  if (['email', 'url', 'number', 'tel'].includes(field.type)) kinds.push('type');
+  if (field.constraints.step !== null && ['number', 'range'].includes(field.type)) kinds.push('step');
+  if (field.constraints.accept !== null && field.type === 'file') kinds.push('accept');
+  // Mirrors fieldgen's FORMAT_VARIANT_TYPES: number/date/color inputs sanitise bad input natively,
+  // so no format variant exists for them and they must not count as a present constraint.
+  if (['email', 'url', 'tel'].includes(field.type)) kinds.push('type');
   if (field.options?.length) kinds.push('option');
   if (config.data.unique.includes(field.name)) kinds.push('unique');
   if (field.nameHints.includes('confirmation') || config.data.confirmFields.includes(field.name)) kinds.push('confirmation');

@@ -114,7 +114,7 @@ function helperImports(kind: TestCase['kind'], config: TathyaConfig): string[] {
     case 'auth':
       return ['test', 'performLogin', 'assertLoggedIn', 'assertLoginRejected'];
     case 'form':
-      return ['test', 'expect', ...readOnlyExtra];
+      return ['test', 'expect', 'uploadFixture', ...readOnlyExtra];
     case 'interaction':
     case 'pagination':
       return ['test', 'expect', 'expectNoServerError', ...readOnlyExtra];
@@ -350,6 +350,11 @@ function fillFormSource(testCase: FormCase): { decls: string[]; fills: string[] 
       return [`await ${loc}.fill(${runtimeExpr});`];
     }
     const value = fieldValue.kind === 'literal' ? fieldValue.value : '';
+    // File pickers cannot be filled: the literal is a MIME type → upload a fixture of it, or
+    // clear the selection for the required-empty negative.
+    if (field.type === 'file') {
+      return [value === '' ? `await ${loc}.setInputFiles([]);` : `await ${loc}.setInputFiles(uploadFixture(${q(value)}));`];
+    }
     if (field.type === 'radio') {
       if (testCase.targetField?.name === field.name && testCase.variant.name === 'required-empty') {
         return [`await page.locator(${q(`[name="${field.name}"]`)}).evaluateAll((elements) => {

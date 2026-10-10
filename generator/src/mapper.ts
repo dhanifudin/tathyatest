@@ -153,7 +153,9 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
               // confirmation mismatch is server-side semantics (both fields stay individually
               // valid); and whether the server round-trips a visible error is unknowable at
               // generation time.
-              const nativeUnfalsifiable = ['maxlength-plus-one', 'invalid-option', 'confirmation-mismatch'];
+              // `accept` is a picker hint, not a constraint the browser validates, so an
+              // accept-mismatch is likewise only observable through the app's own error display.
+              const nativeUnfalsifiable = ['maxlength-plus-one', 'invalid-option', 'confirmation-mismatch', 'accept-mismatch'];
               if (!form.noValidate && nativeUnfalsifiable.includes(variant.name)) continue;
               if (!shouldIncludeCoverage(config.coverage, variant.kind)) continue;
               const variantKey = `${routeShape(canonicalPageUrl)}:${formShapeKey(form)}:${field.name}:${variant.name}`;
@@ -521,6 +523,8 @@ export function humanVariant(field: Pick<Field, 'name' | 'type'>, variant: Pick<
     case 'very-long': return `${name} survives a very long value`;
     case 'min-minus-one': return `${name} rejects a value below the minimum`;
     case 'max-plus-one': return `${name} rejects a value above the maximum`;
+    case 'step-misaligned': return `${name} rejects a value off the step grid`;
+    case 'accept-mismatch': return `${name} rejects a file of a type it does not accept`;
     case 'unicode': return `${name} survives unicode input`;
     case 'whitespace': return `${name} survives surrounding whitespace`;
     case 'invalid-option': return `${name} rejects an option that is not offered`;

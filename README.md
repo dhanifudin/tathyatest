@@ -273,14 +273,16 @@ row is one generated test case:
 |---|---|---|---|---|
 | always | `valid` | positive | a realistic value for the field's type | success |
 | `required` (or `data.requiredFields`) | `required-empty` | negative | empty string | error |
-| `type` is `email`, `url`, `number`, or `tel` | `<type>-format` | negative | a value of the wrong shape for that type | error |
-| `pattern` attribute present | `pattern-fail` | negative | a string that violates the pattern | error |
+| `type` is `email`, `url`, or `tel` | `<type>-format` | negative | a value of the wrong shape for that type | error |
+| `pattern` attribute present | `pattern-fail` | negative | the first of a fixed candidate list that fails the anchored pattern (skipped when the pattern is invalid or nothing fails it) | error |
 | `minlength` set | `minlength-minus-one` | negative | one character short of the minimum | error |
 | `maxlength` set | `maxlength-plus-one` | negative | one character past the maximum | error |
 | `maxlength` set | `maxlength-exact` | edge | a format-valid value of exactly that length | success |
 | `maxlength` set (or not, for text-like fields) | `very-long` | edge | ~10× the limit, or 10,000 chars with no limit | graceful (no 500) |
-| `min` set | `min-minus-one` | negative | one below the minimum | error |
-| `max` set | `max-plus-one` | negative | one above the maximum | error |
+| `min` set | `min-minus-one` | negative | one unit below the minimum in the field's own format: −1, −1 day (`date`), −1 minute (`time`, `datetime-local`), −1 month, −1 week; skipped when the boundary cannot be parsed | error |
+| `max` set | `max-plus-one` | negative | one unit above the maximum, same rules | error |
+| `step` set on `number`/`range` | `step-misaligned` | negative | `min` (or 0) + half a step | error |
+| `type=file` with `accept` | `accept-mismatch` | negative | a fixture upload of a MIME type the `accept` list rejects | error |
 | text-like field | `unicode` | edge | mixed-script/emoji string | graceful |
 | text-like field | `whitespace` | edge | the valid value padded with leading/trailing spaces | graceful |
 | field has `<option>`s (select/radio) | `invalid-option` | negative | an option value that doesn't exist | error |
@@ -297,8 +299,15 @@ Supporting keyword lists:
   length/format variants and instead pair with their source field.
 - **Natively unfalsifiable variants**: on a form without `novalidate`, the browser's own
   constraint validation blocks submission before JS runs, so `maxlength-plus-one`,
-  `invalid-option`, and `confirmation-mismatch` are skipped — they'd never reach the
-  server-side oracle.
+  `invalid-option`, `confirmation-mismatch`, and `accept-mismatch` (`accept` is a picker
+  hint, not a validated constraint) are skipped — they'd never reach the server-side oracle.
+- **No format negative for `number`, `date`/`time`/`month`/`week`, or `color` inputs**: the
+  browser sanitises a malformed value to empty before the app ever sees it (and Playwright
+  refuses to type it), so the case is covered by `required-empty`, `min`/`max`, and `step`
+  instead.
+- **File inputs** are never `fill()`ed: the valid value is a MIME type the `accept` list
+  allows (`image/*` → `image/png`, `.pdf` → `application/pdf`, none → `text/plain`) and the
+  emitted test uploads a tiny in-memory fixture of it via `setInputFiles`.
 
 ![Field constraint to generated test variant: each trigger (required, type, pattern, length, range, options, confirmation, optional) fans out to its negative/edge/positive variant name](docs/diagrams/constraint-variants.svg)
 

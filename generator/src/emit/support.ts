@@ -111,6 +111,17 @@ export async function assertLoginRejected(page: Page): Promise<void> {
   await expect(page.locator(errorSelector).first()).toBeVisible();
 }
 
+/** A small in-memory file of the given MIME type for \`setInputFiles\` (no fixture files on disk). */
+export function uploadFixture(mimeType: string): { name: string; mimeType: string; buffer: Buffer } {
+  const extension = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'application/pdf': 'pdf', 'text/plain': 'txt', 'text/csv': 'csv', 'application/json': 'json' }[mimeType] ?? 'bin';
+  const content = mimeType === 'image/png'
+    ? Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64')
+    : mimeType === 'application/pdf'
+      ? Buffer.from('%PDF-1.4\\n1 0 obj<</Type/Catalog>>endobj\\ntrailer<</Root 1 0 R>>\\n%%EOF\\n')
+      : Buffer.from('TathyaTest upload fixture\\n');
+  return { name: 'tathyatest-upload.' + extension, mimeType, buffer: content };
+}
+
 /** The page settled and shows no server-error text. */
 export async function expectNoServerError(page: Page): Promise<void> {
   await page.waitForLoadState('domcontentloaded').catch(() => undefined);
