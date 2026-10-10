@@ -50,7 +50,7 @@ describe('init project helpers', () => {
       language: 'ts',
     });
 
-    expect(config.crawl).toEqual({ maxDepth: 3, maxPages: 100, include: [], exclude: [] });
+    expect(config.crawl).toEqual({ maxDepth: 3, maxPages: 100, include: [], exclude: [], inferRestRoutes: true });
     expect(config).not.toHaveProperty('extractor');
     expect(config.hooks).toEqual({ reset: null });
     expect(config.oracle.errorSelector).toContain('[aria-invalid="true"]');

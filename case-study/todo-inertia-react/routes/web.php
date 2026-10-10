@@ -57,7 +57,8 @@ Route::withoutMiddleware(ValidateCsrfToken::class)->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard');
     Route::put('/todos/{todo}/toggle', [TodoController::class, 'toggle'])->name('todos.toggle');
-    Route::resource('todos', TodoController::class);
+    // No show page in this case study (see the Blade routes for why the generator flagged it).
+    Route::resource('todos', TodoController::class)->except(['show']);
     Route::get('/admin/users', AdminUserController::class)->middleware('role:admin')->name('admin.users');
 });
 

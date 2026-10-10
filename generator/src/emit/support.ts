@@ -189,6 +189,24 @@ export async function expectRouteAllowed(page: Page, response: Response | null, 
 }
 
 /**
+ * A route the generator inferred from REST conventions (\`/todos/7/edit\` ⇒ \`/todos/7\`) rather than
+ * crawled. An app that simply has no such page answers 404 — nothing to test, skip. A 5xx is a
+ * declared-but-broken route and fails like any other.
+ */
+export async function expectInferredRouteOpens(page: Page, response: Response | null, routePath: string): Promise<void> {
+  const status = response?.status() ?? 200;
+  // 404 (no such page) or 405 (the path exists for other verbs only) with no app content behind
+  // it: the convention does not hold for this app. Same-origin links/forms are the signal — a
+  // framework debug page has buttons and external links but no app navigation.
+  if (status === 404 || status === 405) {
+    const sameOriginLinks = await page.locator('a[href]').evaluateAll((anchors) => anchors.filter((anchor) => (anchor as HTMLAnchorElement).origin === location.origin).length);
+    const navigable = sameOriginLinks + (await page.locator('form, select').count());
+    test.skip(navigable === 0, 'inferred route is not implemented by the app (HTTP ' + status + ')');
+  }
+  await expectRouteAllowed(page, response, routePath);
+}
+
+/**
  * Blocked = a direct denial status, or — since page.goto resolves redirect chains — a 2xx on a
  * DIFFERENT path; either way the body is graceful.
  */

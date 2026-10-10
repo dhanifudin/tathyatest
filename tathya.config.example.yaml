@@ -32,6 +32,7 @@ crawl:
   maxPages: 100
   include: []           # extra paths to visit besides what the crawler discovers from the DOM
   exclude: []           # path prefixes never to visit (e.g. /logout)
+  inferRestRoutes: true # /r/<id>/edit or DELETE /r/<id> ⇒ also visit /r/<id>; off for apps without show pages
 data:
   fields:               # pinned valid values by field name (otherwise faker generates them)
     title: Buy groceries

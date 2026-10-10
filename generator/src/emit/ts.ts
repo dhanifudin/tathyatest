@@ -119,7 +119,7 @@ function helperImports(kind: TestCase['kind'], config: TathyaConfig): string[] {
     case 'pagination':
       return ['test', 'expect', 'expectNoServerError', ...readOnlyExtra];
     case 'rbac':
-      return ['test', 'expectRouteAllowed', 'expectRouteBlocked'];
+      return ['test', 'expect', 'expectRouteAllowed', 'expectRouteBlocked', 'expectInferredRouteOpens'];
   }
 }
 
@@ -342,9 +342,19 @@ ${openSteps(testCase.page.url, config).map((step) => `  ${step}`).join('\n')}
 
 function rbacTest(testCase: Extract<TestCase, { kind: 'rbac' }>, config: TathyaConfig): string {
   const routePath = canonicalPath(testCase.route);
-  const outcome = testCase.expectAllowed
-    ? `await test.step('Expect the route to be allowed', () => expectRouteAllowed(page, response, ${q(routePath)}));`
-    : `await test.step('Expect the route to be blocked', () => expectRouteBlocked(page, response, ${q(routePath)}));`;
+  if (testCase.affordance) {
+    const { affordance } = testCase;
+    return `test(${q(testCase.title)}, ${testOptions(testCase)}, async ({ page, app }) => {
+  ${loginStep(testCase, config)}
+${openSteps(affordance.page.url, config).map((step) => `  ${step}`).join('\n')}
+  await test.step(${q(`Expect no "${affordance.label}" link`)}, () => expect(${locatorSource(affordance.locator)}).toHaveCount(0));
+});`;
+  }
+  const outcome = testCase.inferred
+    ? `await test.step('Expect the inferred route to open (skips on a clean 404)', () => expectInferredRouteOpens(page, response, ${q(routePath)}));`
+    : testCase.expectAllowed
+      ? `await test.step('Expect the route to be allowed', () => expectRouteAllowed(page, response, ${q(routePath)}));`
+      : `await test.step('Expect the route to be blocked', () => expectRouteBlocked(page, response, ${q(routePath)}));`;
   return `test(${q(testCase.title)}, ${testOptions(testCase)}, async ({ page, app }) => {
   ${loginStep(testCase, config)}
   const response = await test.step(${q(`Open ${testCase.route}`)}, () => page.goto(${q(testCase.route)}));

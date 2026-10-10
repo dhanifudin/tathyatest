@@ -67,6 +67,10 @@ export type TestCase =
       role: string;
       route: string;
       expectAllowed: boolean;
+      /** UI-level denial: a link another role gets on this page must be absent for this role. */
+      affordance?: { label: string; locator: Locator; href: string; page: PageModel };
+      /** Route inferred from REST conventions rather than crawled: a clean 404 skips, a 5xx fails. */
+      inferred?: boolean;
     };
 
 export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config: TathyaConfig): TestCase[] {
@@ -214,9 +218,11 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
       cases.push(...paginationCasesForPage(crawl.role, page, canonicalPageUrl, crawl.baseUrl));
       cases.push(...interactionCasesForPage(crawl.role, page, canonicalPageUrl, crawl.baseUrl, seenInteractions));
     }
+    if (config.crawl.inferRestRoutes) cases.push(...inferredShowRouteCases(crawl, seenPages));
   }
 
   if (shouldIncludeCoverage(config.coverage, 'negative')) {
+    cases.push(...affordanceCases(crawls));
     const roles = config.auth.roles.map((role) => role.name);
     const seenBlockedRoutes = new Set<string>();
     for (const entry of matrix.values()) {
@@ -244,6 +250,96 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
   // Read-only mode: keep the status sweep (login, route visits, links, pagination, GET forms)
   // and drop everything that writes — safe to point at staging or production.
   return config.mode === 'read-only' ? cases.filter((testCase) => !isMutating(testCase)) : cases;
+}
+
+/**
+ * REST convention: `/todos/7/edit` and `DELETE /todos/7` imply a `/todos/7` show route that no
+ * page linked to (the crawl only follows links). One allowed-route case per unseen shape.
+ */
+function inferredShowRouteCases(crawl: CrawlOutput, seenPages: Set<string>): TestCase[] {
+  const candidates: { route: string; from: string }[] = [];
+  for (const page of crawl.pages) {
+    const path = canonicalPath(page.url);
+    const edit = /^(.*\/\d+)\/edit\/?$/.exec(path);
+    if (edit) candidates.push({ route: edit[1], from: path });
+    for (const form of page.forms) {
+      if (form.crudOp !== 'delete') continue;
+      const action = canonicalPath(form.action).replace(/\/$/, '');
+      if (/\/\d+$/.test(action)) candidates.push({ route: action, from: `the delete form on ${path}` });
+    }
+  }
+  const done = new Set<string>();
+  const cases: TestCase[] = [];
+  for (const candidate of candidates) {
+    const key = `${crawl.role}:${routeShape(candidate.route)}`;
+    if (seenPages.has(key) || done.has(key)) continue;
+    done.add(key);
+    cases.push({
+      kind: 'rbac',
+      tier: 'positive',
+      title: `${crawl.role} can open ${candidate.route} (inferred from ${candidate.from})`,
+      role: crawl.role,
+      route: candidate.route,
+      expectAllowed: true,
+      inferred: true,
+    });
+  }
+  return cases;
+}
+
+/**
+ * RBAC at the UI level: on a page shape that several roles reach, a link one role gets and
+ * another does not (the admin-only "Users" link in the navbar) must stay absent for the latter.
+ * Links only — button labels can legitimately differ per role (the account menu shows the
+ * user's name) — and never pagination or logout links.
+ */
+function affordanceCases(crawls: CrawlOutput[]): TestCase[] {
+  type RoleLinks = Map<string, { page: PageModel; links: Map<string, PageModel['links'][number]> }>;
+  const byShape = new Map<string, RoleLinks>();
+  for (const crawl of crawls) {
+    for (const page of crawl.pages) {
+      const shape = routeShape(canonicalPath(page.url));
+      const roles = byShape.get(shape) ?? new Map();
+      if (roles.has(crawl.role)) continue;
+      const links = new Map<string, PageModel['links'][number]>();
+      for (const link of page.links) {
+        const target = resolveHrefPathAndSearch(link.href, crawl.baseUrl);
+        if (isPaginationCandidate(link.text, link.locator.value, link.href, page.url, crawl.baseUrl) || isLogoutPath(target)) continue;
+        links.set(targetShapeKey(link.href, crawl.baseUrl), link);
+      }
+      roles.set(crawl.role, { page, links });
+      byShape.set(shape, roles);
+    }
+  }
+
+  // One negative per role and link target: the navbar's admin-only link is the same denial on
+  // every page that carries the navbar, so the first page shape that shows the gap owns it.
+  const seen = new Set<string>();
+  const cases: TestCase[] = [];
+  for (const roles of byShape.values()) {
+    if (roles.size < 2) continue;
+    for (const [role, { page, links }] of roles) {
+      for (const [other, otherSide] of roles) {
+        if (other === role) continue;
+        for (const [key, link] of otherSide.links) {
+          if (links.has(key) || seen.has(`${role}|${key}`)) continue;
+          seen.add(`${role}|${key}`);
+          const target = resolveHrefPathAndSearch(link.href, crawls.find((crawl) => crawl.role === other)?.baseUrl ?? '');
+          const label = normalizeTitleText(link.text) || target;
+          cases.push({
+            kind: 'rbac',
+            tier: 'negative',
+            title: `${role} does not see the "${label}" link to ${target} on ${canonicalPath(page.url)}`,
+            role,
+            route: canonicalPath(page.url),
+            expectAllowed: false,
+            affordance: { label, locator: link.locator, href: link.href, page },
+          });
+        }
+      }
+    }
+  }
+  return cases;
 }
 
 /**

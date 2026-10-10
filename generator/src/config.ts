@@ -69,6 +69,10 @@ export const configSchema = z.object({
     maxPages: z.number().int().positive().default(100),
     include: z.array(z.string()).default([]),
     exclude: z.array(z.string()).default([]),
+    // REST convention: a crawled /r/<id>/edit page or a DELETE /r/<id> form implies a /r/<id>
+    // show route nobody linked to; visit it as an allowed-route case. Turn off for apps that
+    // expose edit/delete without a show page.
+    inferRestRoutes: z.boolean().default(true),
   }).default({}),
   data: z.object({
     fields: z.record(z.string()).default({}),

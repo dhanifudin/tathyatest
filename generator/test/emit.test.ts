@@ -17,7 +17,7 @@ const config: TathyaConfig = {
     loginPath: '/login',
     roles: [{ name: 'admin', username: 'admin@example.com', password: 'password' }],
   },
-  crawl: { maxDepth: 3, maxPages: 100, include: [], exclude: [] },
+  crawl: { maxDepth: 3, maxPages: 100, include: [], exclude: [], inferRestRoutes: true },
   data: { fields: {}, defaults: {}, unique: [], duplicates: {}, requiredFields: [], confirmFields: [], faker: { locale: 'en', seed: null } },
   evaluation: { outDir: 'metrics', repeat: 1, manualBaselineSecPerCase: 300, baselineDir: 'tests/manual', faultProject: null, stacks: [], faults: { enabled: true, classes: ['validation', 'authz', 'crud', 'pagination', 'auth'] } },
 };
@@ -379,6 +379,15 @@ describe('emitTs', () => {
       expect(adminUsers).toContain('page.goto("/admin/users?page=2")');
       expect(adminUsers).toContain('expectRouteBlocked(page, response, "/admin/users")');
       expect(cart).toContain('expectRouteAllowed(page, response, "/cart.html")');
+
+      await emitTs([{
+        kind: 'rbac', tier: 'negative', title: 'user does not see the "Users" link to /admin/users on /dashboard', role: 'user', route: '/dashboard', expectAllowed: false,
+        affordance: { label: 'Users', locator: { strategy: 'role', value: 'link:Users' }, href: '/admin/users', page: emptyPage('/dashboard', 'Dashboard') },
+      }], { ...config, output: { ...config.output, dir } });
+      const affordance = await readFile(join(dir, 'rbac', 'dashboard.spec.ts'), 'utf8');
+      expect(affordance).toContain('await test.step("Open /dashboard", () => page.goto("/dashboard"));');
+      expect(affordance).toContain('await test.step("Expect no \\"Users\\" link", () => expect(page.getByRole("link", { name: "Users" })).toHaveCount(0));');
+      expect(affordance).toContain('"@negative","@rbac","@role:user","@read"');
       // The oracle logic itself lives once, in the support module.
       expect(support).toContain("expect(await page.locator('a, button, form, select, input').count()).toBeGreaterThan(0);");
       expect(support).toContain('expect([401, 403, 404]).toContain(status);');

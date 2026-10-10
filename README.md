@@ -376,6 +376,17 @@ generic faker expression instead (`email`, `url`, `tel`, `number`, `range`, `dat
 
 - A link or button is treated as a plain **interaction** test only if it isn't already
   classified as pagination and isn't a form's own submit control.
+- **REST show routes are inferred** (`crawl.inferRestRoutes`, default on): a crawled
+  `/todos/7/edit` page or a `DELETE /todos/7` form implies a `/todos/7` page nobody linked
+  to; it gets an allowed-route case titled `… (inferred from /todos/7/edit)`. An app that has
+  no such page answers 404/405 with no app content behind it — the test then skips itself, so a
+  wrong inference never fails a run — while a declared-but-broken route (5xx) fails like any
+  other. Set `inferRestRoutes: false` to skip the inference entirely.
+- **RBAC affordances**: on a page shape that several roles reach, a link one role gets and
+  another doesn't (the admin-only "Users" navbar link) becomes a negative for the latter —
+  `user does not see the "Users" link to /admin/users on /dashboard` asserts the locator has
+  zero matches. Links only (button labels legitimately differ per role, e.g. the account menu
+  shows the user's name); pagination and logout links are ignored.
 - Interaction links are deduplicated by route shape plus **sorted query keys** (values
   dropped) — so `/todos?status=done` and `/todos?status=pending` stay distinct test
   targets, but `/todos?status=done&sort=asc` and `/todos?sort=asc&status=done` collapse

@@ -14,7 +14,7 @@ const config: TathyaConfig = {
     loginPath: '/login',
     roles: [{ name: 'admin', username: 'admin@example.com', password: 'password' }],
   },
-  crawl: { maxDepth: 3, maxPages: 100, include: [], exclude: [] },
+  crawl: { maxDepth: 3, maxPages: 100, include: [], exclude: [], inferRestRoutes: true },
   data: {
     fields: { contact_email: 'contact@example.com' },
     defaults: { text: 'Sample', email: 'user@example.com', number: '1', date: '2026-06-15' },
@@ -262,8 +262,10 @@ describe('mapTestCases', () => {
     const blocked = cases.filter((testCase) => testCase.kind === 'rbac' && !testCase.expectAllowed);
     const interactions = cases.filter((testCase) => testCase.kind === 'interaction');
 
-    // /todos/1..3/edit collapse to one representative page: one allowed case, one interaction set.
-    expect(allowed.map((testCase) => testCase.route)).toEqual(['/todos/1/edit']);
+    // /todos/1..3/edit collapse to one representative page: one allowed case, one interaction set,
+    // plus the show route REST inference derives from the first edit page.
+    expect(allowed.map((testCase) => testCase.route)).toEqual(['/todos/1/edit', '/todos/1']);
+    expect(allowed[1].inferred).toBe(true);
     expect(interactions).toHaveLength(1);
     // Blocked: /todos/{1,2}/edit are ONE ownership scenario for "user"; /admin/users is another.
     expect(blocked.map((testCase) => `${testCase.role}:${testCase.route}`).sort()).toEqual([
@@ -951,6 +953,7 @@ describe('mapTestCases', () => {
       'admin · /todos · "Apply" form → GET /todos · q can be left out',
       'admin · /todos · goes to the next page',
       'admin · /todos · follows the "Dashboard" link to /dashboard',
+      'admin can open /todos/1 (inferred from the delete form on /todos)',
       'admin is blocked from /admin/users',
     ]);
     // Dropped: the wrong-password login, every POST form case, the generic button click, and
@@ -993,6 +996,50 @@ describe('mapTestCases', () => {
     expect(isMutating(auth[2])).toBe(true);
     expect(forms).toHaveLength(0);
     expect(links.map((testCase) => testCase.title)).toEqual(['admin · /dashboard · follows the "Todos" link to /todos']);
+  });
+
+  it('infers unlinked REST show routes from edit pages and delete forms', () => {
+    const deleteForm = { action: '/todos/4', method: 'POST' as const, crudOp: 'delete' as const, noValidate: false, fields: [], submit: { text: 'Delete', locator: { strategy: 'role' as const, value: 'button:Delete' } } };
+    const crawl: CrawlOutput = {
+      baseUrl: config.baseUrl, schemaVersion: 2, role: 'admin', crawledAt: '2026-06-15T00:00:00.000Z',
+      pages: [
+        { url: '/todos', title: 'Todos', forms: [deleteForm], links: [], buttons: [], tables: [] },
+        { url: '/todos/7/edit', title: 'Edit', forms: [], links: [], buttons: [], tables: [] },
+        { url: '/notes/2/edit', title: 'Edit', forms: [], links: [], buttons: [], tables: [] },
+        { url: '/notes/2', title: 'Note', forms: [], links: [], buttons: [], tables: [] },
+      ],
+    };
+
+    const inferred = mapTestCases([crawl], new Map(), config).filter((testCase) => testCase.kind === 'rbac' && /inferred/.test(testCase.title));
+    expect(inferred.map((testCase) => testCase.title)).toEqual([
+      'admin can open /todos/4 (inferred from the delete form on /todos)',
+    ]);
+    expect(inferred[0].route).toBe('/todos/4');
+    // /notes/:id was crawled, so nothing is inferred for it; the flag turns inference off.
+    expect(mapTestCases([crawl], new Map(), { ...config, crawl: { ...config.crawl, inferRestRoutes: false } }).some((testCase) => /inferred/.test(testCase.title))).toBe(false);
+  });
+
+  it('derives RBAC affordance negatives from links one role has and another lacks', () => {
+    const link = (href: string, text: string) => ({ href, text, locator: { strategy: 'role' as const, value: `link:${text}` } });
+    const dashboard = (role: string, links: ReturnType<typeof link>[]): CrawlOutput => ({
+      baseUrl: config.baseUrl, schemaVersion: 2, role, crawledAt: '2026-06-15T00:00:00.000Z',
+      pages: [{ url: '/dashboard', title: 'Dashboard', forms: [], links, buttons: [], tables: [] }],
+    });
+    const twoRoles: TathyaConfig = { ...config, auth: { ...config.auth, roles: [...config.auth.roles, { name: 'user', username: 'user@example.com', password: 'password' }] } };
+    const crawls = [
+      dashboard('admin', [link('/todos', 'Todos'), link('/admin/users', 'Users'), link('/todos?page=2', 'Next'), link('/logout', 'Log Out')]),
+      dashboard('user', [link('/todos', 'Todos'), link('/logout', 'Log Out')]),
+    ];
+
+    const affordances = mapTestCases(crawls, new Map(), twoRoles).filter((testCase) => testCase.kind === 'rbac' && testCase.affordance);
+
+    expect(affordances.map((testCase) => testCase.title)).toEqual([
+      'user does not see the "Users" link to /admin/users on /dashboard',
+    ]);
+    expect(affordances[0].affordance?.locator).toEqual({ strategy: 'role', value: 'link:Users' });
+    expect(isMutating(affordances[0])).toBe(false);
+    // Negatives off ⇒ no affordance cases either.
+    expect(mapTestCases(crawls, new Map(), { ...twoRoles, coverage: 'positive' }).some((testCase) => testCase.kind === 'rbac' && testCase.affordance)).toBe(false);
   });
 
   it('treats different query parameter values as distinct interaction scenarios', () => {

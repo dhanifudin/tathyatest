@@ -33,7 +33,7 @@ describe('configSchema', () => {
     expect(parsed.output).toEqual({ dir: 'tests/generated', language: 'ts' });
     expect(parsed.coverage).toBe('all');
     expect(parsed.oracle.errorSelector).toContain('[role=alert]');
-    expect(parsed.crawl).toEqual({ maxDepth: 3, maxPages: 100, include: [], exclude: [] });
+    expect(parsed.crawl).toEqual({ maxDepth: 3, maxPages: 100, include: [], exclude: [], inferRestRoutes: true });
     expect(parsed.data.faker).toEqual({ locale: 'en', seed: null });
     expect(parsed.evaluation.stacks).toEqual([]);
   });

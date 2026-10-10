@@ -58,7 +58,7 @@ export function buildInitConfig(input: InitConfigInput) {
     coverage: 'all',
     oracle: { errorSelector: DEFAULT_ERROR_SELECTOR },
     auth: { loginPath: input.loginPath, roles: input.roles },
-    crawl: { maxDepth: 3, maxPages: 100, include: [], exclude: [] },
+    crawl: { maxDepth: 3, maxPages: 100, include: [], exclude: [], inferRestRoutes: true },
     data: {
       fields: { title: 'Buy groceries', body: 'Milk, eggs, bread' },
       defaults: { text: 'Sample', email: 'user@example.com', number: '1' },

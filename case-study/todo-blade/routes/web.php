@@ -56,7 +56,9 @@ Route::withoutMiddleware(ValidateCsrfToken::class)->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::view('/dashboard', 'dashboard')->name('dashboard');
     Route::put('/todos/{todo}/toggle', [TodoController::class, 'toggle'])->name('todos.toggle');
-    Route::resource('todos', TodoController::class);
+    // No show page in this case study: declaring it would route GET /todos/{todo} to a missing
+    // controller action (a 500 the generator's inferred-route check rightly flagged).
+    Route::resource('todos', TodoController::class)->except(['show']);
     Route::get('/admin/users', AdminUserController::class)->middleware('role:admin')->name('admin.users');
 });
 

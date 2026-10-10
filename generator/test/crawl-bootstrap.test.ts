@@ -16,7 +16,7 @@ const config: TathyaConfig = {
     loginPath: '/login',
     roles: [{ name: 'admin', username: 'admin@example.com', password: 'password' }],
   },
-  crawl: { maxDepth: 3, maxPages: 100, include: [], exclude: [] },
+  crawl: { maxDepth: 3, maxPages: 100, include: [], exclude: [], inferRestRoutes: true },
   data: { fields: {}, defaults: {}, unique: [], duplicates: {}, requiredFields: [], confirmFields: [], faker: { locale: 'en', seed: null } },
   evaluation: { outDir: 'metrics', repeat: 1, manualBaselineSecPerCase: 300, baselineDir: 'tests/manual', faultProject: null, stacks: [], faults: { enabled: true, classes: ['validation', 'authz', 'crud', 'pagination', 'auth'] } },
 };

@@ -78,7 +78,7 @@ function classify(testCase: TestCase): Omit<CaseMeta, 'mutating'> {
       return {
         category: 'rbac', tier: testCase.tier, role: testCase.role,
         route: canonicalPath(testCase.route), targetForm: null, targetField: null,
-        constraintKind: null, assertionCount: 1, locatorStrategy: null, faultClass: 'authz',
+        constraintKind: null, assertionCount: 1, locatorStrategy: testCase.affordance?.locator.strategy ?? null, faultClass: 'authz',
       };
   }
 }
