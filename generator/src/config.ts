@@ -6,13 +6,45 @@ import { normalizeBaseUrl } from './login.js';
 const coverageSchema = z.enum(['positive', 'negative', 'edge', 'all']);
 const languageSchema = z.enum(['ts', 'js']);
 
-export const DEFAULT_ERROR_SELECTOR = '.invalid-feedback, [role=alert], .text-red-600, x-input-error p';
+// Framework-neutral error indicators: ARIA (`aria-invalid`, `role=alert`), Bootstrap
+// (`.invalid-feedback`, `.is-invalid`), common hand-rolled classes, and the Tailwind/Breeze pair the
+// case studies use. Apps with their own convention override `oracle.errorSelector`.
+export const DEFAULT_ERROR_SELECTOR = '[aria-invalid="true"], [role=alert], .invalid-feedback, .is-invalid, .error-message, .field-error, .text-red-600, x-input-error p';
+
+/** Endpoints `tt eval` talks to for fault injection and SUT coverage; override per project. */
+export const DEFAULT_CONTROL_PLANE = {
+  fault: '/__testing/fault',
+  faultClear: '/__testing/fault/clear',
+  coverage: '/__testing/coverage',
+  coverageReset: '/__testing/coverage/reset',
+};
+
+const controlPlaneSchema = z.object({
+  fault: z.string().startsWith('/').default(DEFAULT_CONTROL_PLANE.fault),
+  faultClear: z.string().startsWith('/').default(DEFAULT_CONTROL_PLANE.faultClear),
+  coverage: z.string().startsWith('/').default(DEFAULT_CONTROL_PLANE.coverage),
+  coverageReset: z.string().startsWith('/').default(DEFAULT_CONTROL_PLANE.coverageReset),
+});
+export type ControlPlane = z.infer<typeof controlPlaneSchema>;
+
+export function controlPlaneOf(config: Pick<TathyaConfig, 'evaluation'>): ControlPlane {
+  return config.evaluation.controlPlane ?? { ...DEFAULT_CONTROL_PLANE };
+}
 
 // Only `baseUrl` and `auth.roles` are required; every other block has defaults so a config can
 // be as short as four lines. Unknown top-level keys (e.g. the pre-1.0 `extractor.engine`) are
 // stripped by zod; `loadConfig` warns about the ones it knows are obsolete.
 export const configSchema = z.object({
   baseUrl: z.preprocess((value) => (typeof value === 'string' ? normalizeBaseUrl(value) : value), z.string().url()),
+  // Optional endpoints of the app under test that the generated specs may call. `reset` restores
+  // seed data before each test (the case studies expose POST /__testing/reset). Leave it out for
+  // apps without such an endpoint — tests then run against whatever state the app holds.
+  hooks: z.object({
+    reset: z.object({
+      method: z.enum(['POST', 'GET', 'DELETE']).default('POST'),
+      path: z.string().startsWith('/'),
+    }).nullable().default(null),
+  }).optional(),
   output: z.object({
     dir: z.string().default('tests/generated'),
     language: languageSchema.default('ts'),
@@ -63,9 +95,14 @@ export const configSchema = z.object({
       coverage: z.enum(['pcov', 'xdebug', 'none']).optional(),
       faults: z.boolean().optional(),
     })).default([]),
+    // Paths of the eval control plane on the app under test (defaults shown in DEFAULT_CONTROL_PLANE).
+    controlPlane: controlPlaneSchema.optional(),
     faults: z.object({
       enabled: z.boolean().default(true),
       classes: z.array(z.enum(['validation', 'authz', 'crud', 'pagination', 'auth'])).default(['validation', 'authz', 'crud', 'pagination', 'auth']),
+      // JSON file with the app's own fault catalogue (see eval/faults.ts FaultCatalogueFile);
+      // entries are merged over the built-in Laravel case-study catalogue by id.
+      catalogue: z.string().optional(),
     }).default({ enabled: true, classes: ['validation', 'authz', 'crud', 'pagination', 'auth'] }),
   }).default({
     outDir: 'metrics',

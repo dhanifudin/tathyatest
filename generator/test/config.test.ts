@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { configSchema, parseConfig } from '../src/config.js';
+import { configSchema, controlPlaneOf, DEFAULT_CONTROL_PLANE, DEFAULT_ERROR_SELECTOR, parseConfig } from '../src/config.js';
 
 const baseConfig = {
   baseUrl: 'http://127.0.0.1:8000',
@@ -58,6 +58,32 @@ describe('configSchema', () => {
     expect(parsed.evaluation.stacks[0].coverage).toBeUndefined();
     expect(parsed.evaluation.stacks[0].faults).toBeUndefined();
     expect(parsed.evaluation.stacks[0].config).toBe('tathya.config.yaml');
+  });
+
+  it('has no app hooks unless the config declares them', () => {
+    const minimal = parseConfig({ baseUrl: 'http://127.0.0.1:8000', auth: baseConfig.auth });
+    expect(minimal.hooks).toBeUndefined();
+
+    const withReset = parseConfig({ ...baseConfig, hooks: { reset: { path: '/__testing/reset' } } });
+    expect(withReset.hooks).toEqual({ reset: { method: 'POST', path: '/__testing/reset' } });
+
+    expect(() => parseConfig({ ...baseConfig, hooks: { reset: { path: 'reset' } } })).toThrow('hooks.reset.path');
+  });
+
+  it('defaults the eval control plane and lets a project override single paths', () => {
+    const defaults = parseConfig({ baseUrl: 'http://127.0.0.1:8000', auth: baseConfig.auth });
+    expect(controlPlaneOf(defaults)).toEqual(DEFAULT_CONTROL_PLANE);
+    expect(defaults.evaluation.faults.catalogue).toBeUndefined();
+
+    const custom = parseConfig({ ...baseConfig, evaluation: { controlPlane: { fault: '/qa/fault' }, faults: { catalogue: 'faults.json' } } });
+    expect(controlPlaneOf(custom)).toEqual({ ...DEFAULT_CONTROL_PLANE, fault: '/qa/fault' });
+    expect(custom.evaluation.faults.catalogue).toBe('faults.json');
+  });
+
+  it('ships a framework-neutral default error selector', () => {
+    expect(DEFAULT_ERROR_SELECTOR).toContain('[aria-invalid="true"]');
+    expect(DEFAULT_ERROR_SELECTOR).toContain('.invalid-feedback');
+    expect(DEFAULT_ERROR_SELECTOR).toContain('.text-red-600');
   });
 
   it('renders validation errors one per line as path: message', () => {

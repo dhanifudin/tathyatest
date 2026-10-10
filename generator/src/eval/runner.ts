@@ -1,7 +1,7 @@
 import { chdir, cwd } from 'node:process';
 import { access, mkdir, readdir, writeFile } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
-import { loadConfig, type TathyaConfig } from '../config.js';
+import { controlPlaneOf, DEFAULT_CONTROL_PLANE, loadConfig, type ControlPlane, type TathyaConfig } from '../config.js';
 import { loadCrawls, runCrawl } from '../crawl.js';
 import { assertReachable, isReachable } from '../reachability.js';
 import { buildAccessMatrix } from '../rbac.js';
@@ -9,7 +9,7 @@ import { mapTestCases } from '../mapper.js';
 import { emit } from '../emit/index.js';
 import { buildManifest } from '../manifest.js';
 import { computeMetrics, type FaultRun, type SuiteRun, type SutCoverage, type MetricsInput } from '../metrics.js';
-import { faultsForClasses } from './faults.js';
+import { faultsForClasses, loadFaultCatalogue, type FaultSpec } from './faults.js';
 import { runPlaywrightJson } from './playwright.js';
 import { renderReportJson, renderReportMarkdown, type StackReport } from './report.js';
 import { analyzeBaselineDir } from './baseline-static.js';
@@ -80,13 +80,16 @@ export function stackNameFor(configPath: string): string {
  * A stack declares `coverage` / `faults` only when it wants to override detection: left unset,
  * the app is probed for the control-plane endpoints `tt eval` relies on.
  */
-export async function detectCapabilities(stack: Pick<StackConfig, 'baseUrl' | 'coverage' | 'faults'>): Promise<{ coverage: boolean; faults: boolean }> {
+export async function detectCapabilities(
+  stack: Pick<StackConfig, 'baseUrl' | 'coverage' | 'faults'>,
+  plane: ControlPlane = { ...DEFAULT_CONTROL_PLANE },
+): Promise<{ coverage: boolean; faults: boolean }> {
   const coverage = stack.coverage !== undefined
     ? stack.coverage !== 'none'
-    : await control(stack.baseUrl, 'GET', '/__testing/coverage');
+    : await control(stack.baseUrl, 'GET', plane.coverage);
   const faults = stack.faults !== undefined
     ? stack.faults
-    : await control(stack.baseUrl, 'POST', '/__testing/fault/clear');
+    : await control(stack.baseUrl, 'POST', plane.faultClear);
   return { coverage, faults };
 }
 
@@ -100,11 +103,13 @@ async function runStack(stack: StackConfig, rootConfig: TathyaConfig, options: E
   try {
     const config = await loadConfig(stack.config);
     const repeat = options.repeat ?? rootConfig.evaluation.repeat;
-    const capabilities = await detectCapabilities(stack);
+    const plane = controlPlaneOf(rootConfig);
+    const catalogue = await loadFaultCatalogue(rootConfig.evaluation.faults.catalogue);
+    const capabilities = await detectCapabilities(stack, plane);
     console.log(`[eval] SUT coverage: ${capabilities.coverage ? 'on' : 'off'}; fault injection: ${capabilities.faults ? 'on' : 'off'}${stack.coverage === undefined && stack.faults === undefined ? ' (probed)' : ''}`);
     const collectCoverage = options.coverage !== false && capabilities.coverage;
 
-    if (collectCoverage) await control(stack.baseUrl, 'POST', '/__testing/coverage/reset');
+    if (collectCoverage) await control(stack.baseUrl, 'POST', plane.coverageReset);
 
     const crawlMs = await timed(() => runCrawl(config));
     const roleNames = config.auth.roles.map((role) => role.name);
@@ -129,12 +134,12 @@ async function runStack(stack: StackConfig, rootConfig: TathyaConfig, options: E
 
     const baselineRuns = options.baseline !== false ? await runBaseline(config, repeat) : [];
     const baselineStatic = await analyzeBaselineDir(config.evaluation.baselineDir);
-    const sutCoverage = collectCoverage ? await fetchCoverage(stack.baseUrl) : null;
+    const sutCoverage = collectCoverage ? await fetchCoverage(stack.baseUrl, plane.coverage) : null;
     // Skip fault injection when the app has no fault endpoint (probed or `faults: false`) or when
     // disabled by flag/config.
     const runFaultsEnabled = capabilities.faults && options.faults !== false && rootConfig.evaluation.faults.enabled;
-    const faultRuns = runFaultsEnabled ? await runFaults(stack, rootConfig, config, manifest) : [];
-    const baselineFaultRuns = runFaultsEnabled ? await runBaselineFaults(stack, rootConfig, config) : [];
+    const faultRuns = runFaultsEnabled ? await runFaults(stack, rootConfig, config, manifest, plane, catalogue) : [];
+    const baselineFaultRuns = runFaultsEnabled ? await runBaselineFaults(stack, rootConfig, config, plane, catalogue) : [];
 
     const input: MetricsInput = {
       config, manifest, crawls, matrix, runs, baselineRuns, baselineStatic,
@@ -175,15 +180,15 @@ async function runBaseline(config: TathyaConfig, repeat: number): Promise<SuiteR
  * A fault is killed when any baseline test fails while the fault is active.
  * Localization accuracy is not computed (baseline titles don't map to the fault catalogue).
  */
-async function runBaselineFaults(stack: StackConfig, rootConfig: TathyaConfig, config: TathyaConfig): Promise<FaultRun[]> {
+async function runBaselineFaults(stack: StackConfig, rootConfig: TathyaConfig, config: TathyaConfig, plane: ControlPlane, catalogue: FaultSpec[]): Promise<FaultRun[]> {
   const dir = config.evaluation.baselineDir;
   if (!(await hasSpecs(dir))) return [];
-  const faults = faultsForClasses(rootConfig.evaluation.faults.classes);
+  const faults = faultsForClasses(rootConfig.evaluation.faults.classes, catalogue);
   const standaloneConfig = join(dir, 'playwright.config.ts');
   const hasConfig = await access(standaloneConfig).then(() => true).catch(() => false);
   const faultRuns: FaultRun[] = [];
   for (const fault of faults) {
-    const set = await control(stack.baseUrl, 'POST', '/__testing/fault', { id: fault.id });
+    const set = await control(stack.baseUrl, 'POST', plane.fault, { id: fault.id });
     if (!set) {
       console.warn(`[eval] could not activate fault ${fault.id} for baseline; skipping`);
       continue;
@@ -193,7 +198,7 @@ async function runBaselineFaults(stack: StackConfig, rootConfig: TathyaConfig, c
       : await runPlaywrightJson({ cwd: '.', env: { TATHYA_TESTDIR: dir } });
     faultRuns.push({ id: fault.id, faultClass: fault.faultClass, outcomes: suite.outcomes });
   }
-  await control(stack.baseUrl, 'POST', '/__testing/fault/clear');
+  await control(stack.baseUrl, 'POST', plane.faultClear);
   return faultRuns;
 }
 
@@ -207,9 +212,9 @@ async function hasSpecs(dir: string): Promise<boolean> {
   }
 }
 
-async function runFaults(stack: StackConfig, rootConfig: TathyaConfig, config: TathyaConfig, manifest: ReturnType<typeof buildManifest>): Promise<FaultRun[]> {
+async function runFaults(stack: StackConfig, rootConfig: TathyaConfig, config: TathyaConfig, manifest: ReturnType<typeof buildManifest>, plane: ControlPlane, catalogue: FaultSpec[]): Promise<FaultRun[]> {
   const byTitle = new Map(manifest.map((entry) => [entry.title, entry] as const));
-  const faults = faultsForClasses(rootConfig.evaluation.faults.classes);
+  const faults = faultsForClasses(rootConfig.evaluation.faults.classes, catalogue);
   // faultProject names a browser (e.g. chromium); with per-role projects the real project names
   // are `${role}-${browser}`, and every role must still run so role-dependent faults (authz) hit
   // their relevant tests.
@@ -227,7 +232,7 @@ async function runFaults(stack: StackConfig, rootConfig: TathyaConfig, config: T
       faultRuns.push({ id: fault.id, faultClass: fault.faultClass, outcomes: [] });
       continue;
     }
-    const set = await control(stack.baseUrl, 'POST', '/__testing/fault', { id: fault.id });
+    const set = await control(stack.baseUrl, 'POST', plane.fault, { id: fault.id });
     if (!set) {
       console.warn(`[eval] could not activate fault ${fault.id}; skipping`);
       continue;
@@ -240,7 +245,7 @@ async function runFaults(stack: StackConfig, rootConfig: TathyaConfig, config: T
     });
     faultRuns.push({ id: fault.id, faultClass: fault.faultClass, outcomes: relevant });
   }
-  await control(stack.baseUrl, 'POST', '/__testing/fault/clear');
+  await control(stack.baseUrl, 'POST', plane.faultClear);
   return faultRuns;
 }
 
@@ -248,9 +253,9 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-async function fetchCoverage(baseUrl: string): Promise<SutCoverage | null> {
+async function fetchCoverage(baseUrl: string, path: string): Promise<SutCoverage | null> {
   try {
-    const response = await fetch(new URL('/__testing/coverage', baseUrl));
+    const response = await fetch(new URL(path, baseUrl));
     if (!response.ok) return null;
     const data = await response.json() as Partial<Record<'lines' | 'branches' | 'functions' | 'routes', { covered: number; total: number }>>;
     return {

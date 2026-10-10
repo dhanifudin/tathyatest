@@ -1,9 +1,12 @@
-import type { FaultClass, ManifestEntry } from '../manifest.js';
+import { readFile } from 'node:fs/promises';
+import { z } from 'zod';
+import type { FaultClass, ManifestCategory, ManifestEntry, ManifestTier } from '../manifest.js';
 
 /**
- * One seeded fault. `id` must match a toggle in the case study's `FaultRegistry` (activated via
- * `POST /__testing/fault`). `relevant` selects, from the generated manifest, the tests that *should*
- * detect this fault; the fault is "killed" if any relevant test fails while it is active.
+ * One seeded fault. `id` must match a toggle the app under test exposes on its fault endpoint
+ * (`evaluation.controlPlane.fault`, activated with `{ id }`). `relevant` selects, from the generated
+ * manifest, the tests that *should* detect this fault; the fault is "killed" if any relevant test
+ * fails while it is active.
  */
 export type FaultSpec = {
   id: string;
@@ -12,6 +15,57 @@ export type FaultSpec = {
   relevant: (entry: ManifestEntry) => boolean;
 };
 
+/**
+ * Declarative form of `relevant`, used by per-project catalogue files
+ * (`evaluation.faults.catalogue`): every given field must match the manifest entry.
+ */
+export type FaultMatcher = {
+  category: ManifestCategory;
+  tier?: ManifestTier;
+  constraintKind?: string;
+  targetField?: string;
+  /** Substring match on the target field name, e.g. "email". */
+  targetFieldIncludes?: string;
+  faultClass?: FaultClass;
+};
+
+const faultClassSchema = z.enum(['validation', 'authz', 'crud', 'pagination', 'auth']);
+const matcherSchema = z.object({
+  category: z.enum(['auth', 'crud', 'nav', 'rbac']),
+  tier: z.enum(['positive', 'negative', 'edge']).optional(),
+  constraintKind: z.string().optional(),
+  targetField: z.string().optional(),
+  targetFieldIncludes: z.string().optional(),
+  faultClass: faultClassSchema.optional(),
+});
+const catalogueFileSchema = z.array(z.object({
+  id: z.string().min(1),
+  faultClass: faultClassSchema,
+  description: z.string().default(''),
+  relevant: matcherSchema,
+}));
+export type FaultCatalogueFile = z.infer<typeof catalogueFileSchema>;
+
+export function relevantFromMatcher(matcher: FaultMatcher): (entry: ManifestEntry) => boolean {
+  return (entry) =>
+    entry.category === matcher.category
+    && (matcher.tier === undefined || entry.tier === matcher.tier)
+    && (matcher.constraintKind === undefined || entry.constraintKind === matcher.constraintKind)
+    && (matcher.targetField === undefined || entry.targetField === matcher.targetField)
+    && (matcher.targetFieldIncludes === undefined || (entry.targetField?.includes(matcher.targetFieldIncludes) ?? false))
+    && (matcher.faultClass === undefined || entry.faultClass === matcher.faultClass);
+}
+
+export function faultSpecsFromFile(entries: FaultCatalogueFile): FaultSpec[] {
+  return entries.map((entry) => ({
+    id: entry.id,
+    faultClass: entry.faultClass,
+    description: entry.description,
+    relevant: relevantFromMatcher(entry.relevant),
+  }));
+}
+
+/** Built-in catalogue for the Laravel case studies (toggles live in their FaultRegistry). */
 export const FAULT_CATALOGUE: FaultSpec[] = [
   {
     id: 'validation_title_required',
@@ -69,7 +123,23 @@ export const FAULT_CATALOGUE: FaultSpec[] = [
   },
 ];
 
-export function faultsForClasses(classes: FaultClass[]): FaultSpec[] {
+/**
+ * The catalogue a run uses: the built-in one, with entries from `evaluation.faults.catalogue`
+ * (a JSON file) merged over it by id — same id replaces, new ids append.
+ */
+export async function loadFaultCatalogue(cataloguePath: string | undefined): Promise<FaultSpec[]> {
+  if (!cataloguePath) return FAULT_CATALOGUE;
+  const parsed = catalogueFileSchema.parse(JSON.parse(await readFile(cataloguePath, 'utf8')));
+  return mergeCatalogues(FAULT_CATALOGUE, faultSpecsFromFile(parsed));
+}
+
+export function mergeCatalogues(base: FaultSpec[], extra: FaultSpec[]): FaultSpec[] {
+  const byId = new Map(base.map((fault) => [fault.id, fault] as const));
+  for (const fault of extra) byId.set(fault.id, fault);
+  return [...byId.values()];
+}
+
+export function faultsForClasses(classes: FaultClass[], catalogue: FaultSpec[] = FAULT_CATALOGUE): FaultSpec[] {
   const enabled = new Set(classes);
-  return FAULT_CATALOGUE.filter((fault) => enabled.has(fault.faultClass));
+  return catalogue.filter((fault) => enabled.has(fault.faultClass));
 }

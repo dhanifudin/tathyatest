@@ -1,4 +1,6 @@
 baseUrl: http://127.0.0.1:8000
+hooks:
+  reset: { method: POST, path: /__testing/reset }   # case-study endpoint that reseeds the DB before every test
 output:
   dir: tests/generated
   language: ts

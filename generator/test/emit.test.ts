@@ -443,6 +443,26 @@ describe('emitTs', () => {
     }
   });
 
+  it('calls the app reset hook only when the config declares one', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'tt-emit-hooks-'));
+    try {
+      const cases: TestCase[] = [{
+        kind: 'rbac', tier: 'positive', title: 'admin can open /todos', role: 'admin', route: '/todos', expectAllowed: true,
+      }];
+
+      await emitTs(cases, { ...config, output: { ...config.output, dir } });
+      const withoutHook = await readFile(join(dir, 'rbac', 'rbac.spec.ts'), 'utf8');
+      expect(withoutHook).not.toContain('__testing');
+      expect(withoutHook).toContain('async function resetAndLogin');
+
+      await emitTs(cases, { ...config, output: { ...config.output, dir }, hooks: { reset: { method: 'POST', path: '/__testing/reset' } } });
+      const withHook = await readFile(join(dir, 'rbac', 'rbac.spec.ts'), 'utf8');
+      expect(withHook).toContain('await page.request.fetch("/__testing/reset", { method: "POST" });');
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it('emits JavaScript specs in the forms and interactions folders', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'tt-emit-js-'));
     try {

@@ -1,8 +1,9 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { chromium, type Page } from '@playwright/test';
-import { CRAWL_SCHEMA_VERSION, type CrawlOutput, type FieldConstraints, type Locator, type PageModel } from '../crawl.js';
+import { CRAWL_SCHEMA_VERSION, type CrawlOutput, type FieldConstraints, type Form, type Locator, type PageModel } from '../crawl.js';
 import type { TathyaConfig } from '../config.js';
+import { classifyCrudOp, type CrudSignals } from '../crud.js';
 import { inferLoginControlsOnPage, playwrightLocator } from '../login-runtime.js';
 
 type DomPageModel = Omit<PageModel, 'url'>;
@@ -274,13 +275,23 @@ async function extractPage(page: Page): Promise<DomPageModel> {
       const url = new URL(href, location.href);
       return url.origin === location.origin ? `${url.pathname}${url.search}` : '';
     };
-    const crudFor = (form: HTMLFormElement): 'create' | 'update' | 'delete' | 'unknown' => {
-      const method = form.querySelector<HTMLInputElement>('input[name="_method"]')?.value.toUpperCase();
-      if (method === 'PUT' || method === 'PATCH') return 'update';
-      if (method === 'DELETE') return 'delete';
-      if ((form.method || 'GET').toUpperCase() === 'POST') return 'create';
-      return 'unknown';
+    // Only the raw signals are read here; `classifyCrudOp` (src/crud.ts) turns them into a crudOp
+    // back in Node, where the rules are unit-tested.
+    const hxVerb = (el: Element | null): string | null => {
+      if (!el) return null;
+      for (const name of ['hx-delete', 'hx-put', 'hx-patch', 'hx-post']) {
+        if (el.hasAttribute(name)) return name.slice(3);
+      }
+      return null;
     };
+    const crudSignalsFor = (form: HTMLFormElement, submit: Element | null, action: string, submitText: string | null) => ({
+      method: ((form.method || 'GET').toUpperCase() === 'GET' ? 'GET' : 'POST') as 'GET' | 'POST',
+      spoofedMethod: form.querySelector<HTMLInputElement>('input[name="_method"]')?.value ?? null,
+      turboMethod: attr(form, 'data-turbo-method') ?? (submit ? attr(submit, 'data-turbo-method') : null),
+      hxMethod: hxVerb(form) ?? hxVerb(submit),
+      action,
+      submitText,
+    });
     // CSS visibility at the crawl viewport: responsive layouts ship duplicates (a mobile
     // paginator plus a desktop one) and the mapper must prefer the control a desktop test
     // can actually click.
@@ -316,14 +327,16 @@ async function extractPage(page: Page): Promise<DomPageModel> {
         const submit = form.querySelector<HTMLButtonElement | HTMLInputElement>('button[type="submit"], input[type="submit"]')
           ?? form.querySelector<HTMLButtonElement>('button:not([type])');
         const action = new URL(form.action || location.href, location.href);
+        const actionPath = `${action.pathname}${action.search}`;
+        const submitText = submit ? (submit instanceof HTMLInputElement ? submit.value : text(submit)) || null : null;
         return {
-          action: `${action.pathname}${action.search}`,
+          action: actionPath,
           method: ((form.method || 'GET').toUpperCase() === 'GET' ? 'GET' : 'POST') as 'GET' | 'POST',
-          crudOp: crudFor(form),
+          crudSignals: crudSignalsFor(form, submit, actionPath, submitText),
           noValidate: form.noValidate,
           fields,
           submit: {
-            text: submit ? (submit instanceof HTMLInputElement ? submit.value : text(submit)) || null : null,
+            text: submitText,
             locator: submit ? locatorFor(submit, 'button') : { strategy: 'css', value: 'button[type="submit"]' },
           },
         };
@@ -371,7 +384,12 @@ async function extractPage(page: Page): Promise<DomPageModel> {
         })),
     };
   });
-  return enrichAccessibility(page, model as DomPageModel);
+  const raw = model as Omit<DomPageModel, 'forms'> & { forms: (Omit<Form, 'crudOp'> & { crudSignals: CrudSignals })[] };
+  const classified: DomPageModel = {
+    ...raw,
+    forms: raw.forms.map(({ crudSignals, ...form }) => ({ ...form, crudOp: classifyCrudOp(crudSignals) })),
+  };
+  return enrichAccessibility(page, classified);
 }
 
 async function enrichAccessibility(page: Page, model: DomPageModel): Promise<DomPageModel> {

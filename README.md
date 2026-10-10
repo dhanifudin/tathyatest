@@ -1,8 +1,13 @@
 # TathyaTest (tt)
 
-TathyaTest generates Playwright specs from a Playwright crawl of a web app. It crawls once per RBAC role,
-extracts a normalized element model into `crawl/<role>.json`, maps that model against a dataset and
-access matrix, and emits Playwright tests for positive, negative, and edge coverage.
+TathyaTest generates Playwright specs from a Playwright crawl of any web app that has a login
+form — server-rendered (Laravel, Rails, Django, Spring, …) or a single-page app. It crawls once per
+RBAC role, extracts a normalized element model into `crawl/<role>.json`, maps that model against a
+dataset and access matrix, and emits Playwright tests for positive, negative, and edge coverage.
+Nothing in the generator assumes a framework: CRUD classification, locators, pagination, and
+validation variants are keyword rules over the rendered DOM (listed below), and the only app
+endpoint a generated test ever calls is the optional `hooks.reset`. The Laravel Blade/Inertia apps
+under `case-study/` and SauceDemo are evaluation subjects, not the target.
 
 ## Layout
 
@@ -136,6 +141,10 @@ auth:
   roles:
     - { name: admin, username: admin@example.com, password: password }
 ```
+
+If the app exposes an endpoint that restores its test data, declare it under `hooks.reset`
+(`{ method: POST, path: /__testing/reset }` for the case studies) and every generated test
+calls it before logging in; without it, tests run against whatever state the app holds.
 
 `tt crawl` logs in once per configured role with a real Chromium (Playwright), starts from the
 authenticated landing page, then follows same-origin URLs discovered from the live DOM. It
@@ -295,19 +304,23 @@ Supporting keyword lists:
 
 ### 3. CRUD-operation classification
 
-`generator/src/extract/rendered.ts` reads a form's Laravel-style method-spoofing hidden
-field to classify its CRUD operation — submit-button text is never used for this:
+The crawler records a form's raw signals and `generator/src/crud.ts` classifies them in
+Node (pure, unit-tested), framework-neutrally, in this precedence:
 
 ```
-hidden input[name="_method"] = PUT or PATCH  -->  update
-hidden input[name="_method"] = DELETE        -->  delete
-no _method, form method = POST               -->  create
-form method = GET                            -->  unknown
+1. explicit verb        hidden _method (Laravel/Rails/Symfony/Spring), data-turbo-method (Rails
+                        Turbo), hx-put|hx-patch|hx-delete (HTMX):  PUT|PATCH -> update, DELETE -> delete
+2. form method = GET    -> unknown (search / filter form; never mutates)
+3. action-path segment  delete|destroy|remove -> delete;  update|edit -> update;
+                        create|store|new|add -> create
+4. submit-button text   delete|remove|destroy -> delete;  update|save changes|edit -> update;
+                        create|add|save|submit -> create
+5. any other POST       -> create
 ```
 
 This feeds the mapper: update forms never get a `duplicate` negative variant (editing a
 record to its own existing value isn't a real uniqueness violation), and a fieldless
-delete form (just a `_method=DELETE` button) gets a dedicated `delete` positive case
+delete form (e.g. a lone `_method=DELETE` button) gets a dedicated `delete` positive case
 instead of the generic `valid` label.
 
 ### 4. Pagination keywords

@@ -2,6 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { confirm, intro, isCancel, outro, password, select, text } from '@clack/prompts';
 import YAML from 'yaml';
+import { DEFAULT_ERROR_SELECTOR } from './config.js';
 import { normalizeBaseUrl } from './login.js';
 
 type PromptValue = string | symbol;
@@ -12,6 +13,8 @@ type InitConfigInput = {
   language: string;
   fakerLocale?: string;
   fakerSeed?: number | null;
+  /** Path of an endpoint that resets the app's seed data (blank/undefined = the app has none). */
+  resetPath?: string | null;
 };
 
 function mustString(value: PromptValue, label: string): string {
@@ -47,11 +50,13 @@ export function initProjectPaths(projectName: string, cwd = '.'): { projectDir: 
 }
 
 export function buildInitConfig(input: InitConfigInput) {
+  const resetPath = input.resetPath?.trim();
   return {
     baseUrl: input.baseUrl,
+    hooks: { reset: resetPath ? { method: 'POST', path: resetPath } : null },
     output: { dir: 'tests/generated', language: input.language },
     coverage: 'all',
-    oracle: { errorSelector: '.invalid-feedback, [role=alert], .text-red-600, x-input-error p' },
+    oracle: { errorSelector: DEFAULT_ERROR_SELECTOR },
     auth: { loginPath: input.loginPath, roles: input.roles },
     crawl: { maxDepth: 3, maxPages: 100, include: [], exclude: [] },
     data: {
@@ -102,7 +107,13 @@ export async function runInit(): Promise<void> {
   const fakerSeed = seedInput.trim() === '' ? null : Number.parseInt(seedInput.trim(), 10);
   if (fakerSeed !== null && !Number.isFinite(fakerSeed)) throw new Error('Faker seed must be an integer or blank');
 
-  const config = buildInitConfig({ baseUrl, loginPath, roles, language, fakerLocale, fakerSeed });
+  const resetPath = mustString(await text({
+    message: 'Endpoint that resets the app\'s test data before each test (blank = none, e.g. /__testing/reset)',
+    initialValue: '',
+  }), 'Reset endpoint');
+  if (resetPath.trim() && !resetPath.trim().startsWith('/')) throw new Error('Reset endpoint must be a path starting with /');
+
+  const config = buildInitConfig({ baseUrl, loginPath, roles, language, fakerLocale, fakerSeed, resetPath });
 
   await mkdir(paths.outputDir, { recursive: true });
   await writeFile(paths.configPath, YAML.stringify(config));

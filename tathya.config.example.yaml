@@ -9,6 +9,9 @@
 #       - { name: admin, username: admin@example.com, password: password }
 
 baseUrl: http://127.0.0.1:8000
+hooks:                  # optional endpoints of the app the generated specs may call
+  reset: { method: POST, path: /__testing/reset }   # reseeds test data before every test; omit or
+                                                    # set `reset: null` for apps without one
 output:
   dir: tests/generated
   language: ts          # ts | js

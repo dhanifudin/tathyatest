@@ -180,13 +180,16 @@ function roleLoginHelpers(config: TathyaConfig): string {
 }
 
 function roleLoginHelpersFromEntries(
-  config: Pick<TathyaConfig, 'auth'>,
+  config: Pick<TathyaConfig, 'auth' | 'hooks'>,
   entries: Array<readonly [string, { username: string; password: string }]>,
 ): string {
   const credentials = Object.fromEntries(entries);
+  // The reset hook is the only app endpoint the specs may call, and only when the config
+  // declares one (the case studies reseed their database; a third-party app has nothing to call).
+  const reset = config.hooks?.reset;
+  const resetLine = reset ? `  await page.request.fetch(${JSON.stringify(reset.path)}, { method: ${JSON.stringify(reset.method)} });\n` : '';
   return loginHelperSource(config) + `const roleCredentials = ${JSON.stringify(credentials, null, 2)};\n\nasync function resetAndLogin(page: import('@playwright/test').Page, role: keyof typeof roleCredentials) {
-  await page.request.post('/__testing/reset');
-  await page.context().clearCookies();
+${resetLine}  await page.context().clearCookies();
   const credentials = roleCredentials[role];
   await performLogin(page, credentials.username, credentials.password);
   await assertLoginSucceeded(page);

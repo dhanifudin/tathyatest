@@ -52,7 +52,21 @@ describe('init project helpers', () => {
 
     expect(config.crawl).toEqual({ maxDepth: 3, maxPages: 100, include: [], exclude: [] });
     expect(config).not.toHaveProperty('extractor');
-    expect(JSON.stringify(config)).not.toMatch(/\/todos|\/dashboard|\/admin/);
+    expect(config.hooks).toEqual({ reset: null });
+    expect(config.oracle.errorSelector).toContain('[aria-invalid="true"]');
+    expect(JSON.stringify(config)).not.toMatch(/\/todos|\/dashboard|\/admin|__testing/);
+  });
+
+  it('records a reset hook when the app offers one', () => {
+    const config = buildInitConfig({
+      baseUrl: 'http://127.0.0.1:8000',
+      loginPath: '/login',
+      roles: [{ name: 'admin', username: 'admin@example.com', password: 'password' }],
+      language: 'ts',
+      resetPath: ' /__testing/reset ',
+    });
+
+    expect(config.hooks).toEqual({ reset: { method: 'POST', path: '/__testing/reset' } });
   });
 
   it('infers Sauce Demo login controls from rendered DOM', () => {

@@ -1,6 +1,8 @@
 # CLAUDE.md — TathyaTest (tt)
 
-Automated Playwright test-case generator for functional testing of MVC web apps.
+Automated Playwright test-case generator for functional testing of web apps — any server-rendered
+or single-page app with a login form. The generator is framework-agnostic; the Laravel Blade/Inertia
+apps under `case-study/` and SauceDemo are evaluation subjects, not the target.
 
 **Pipeline:**
 ```
@@ -180,6 +182,10 @@ npx playwright test --ui       # interactive UI mode
   computation in `metrics.ts`/`stats.ts`. `eval/playwright.ts`'s `parsePlaywrightJson` is pure.
 - `oracle.ts` is pure. It returns assertion code strings, not Playwright calls.
 - `mapper.ts` must never read files or spawn processes — it receives already-loaded data.
+- Nothing framework-specific in code paths. Emitted specs call no app endpoint except the optional
+  `config.hooks.reset`; `tt eval` reaches the app through `evaluation.controlPlane` paths
+  (defaults `/__testing/*`); CRUD classification lives in `src/crud.ts` as documented keyword
+  rules. Laravel-only knowledge belongs in the case studies and their example configs.
 - `emit/ts.ts` and `emit/js.ts` must produce syntactically valid Playwright specs. Run
   `tsc --noEmit` against emitted TS to verify before calling generation "done".
 - Generated specs go in `tests/generated/`. Never manually edit files in that directory —

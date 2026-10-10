@@ -8,9 +8,10 @@ specific task it has been given.
 
 ## Project in one paragraph
 
-TathyaTest generates Playwright test specs automatically. It crawls a target web app once per
-RBAC role using the Playwright crawler, extracts a normalized element model, maps it against
-a dataset and an access-control matrix, and emits
+TathyaTest generates Playwright test specs automatically for any web app with a login form —
+server-rendered or SPA; the generator assumes no framework (the Laravel case studies are evaluation
+subjects). It crawls a target web app once per RBAC role using the Playwright crawler, extracts a
+normalized element model, maps it against a dataset and an access-control matrix, and emits
 Playwright `@playwright/test` specs covering the positive → negative → edge spectrum. The
 generated specs are then executed cross-browser (Chromium, Firefox, WebKit) to produce a
 Pass/Fail report. The user-facing binary is `tt`; its subcommands are `init`, `crawl`,
