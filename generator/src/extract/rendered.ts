@@ -510,15 +510,3 @@ function normalizePath(url: string, baseUrl: string): string {
 function pathOnly(path: string): string {
   return new URL(path, 'http://tathyatest.local').pathname || '/';
 }
-
-export function normalizeInternalURL(raw: string, currentUrl: string, baseUrl: string): string {
-  if (raw.trim() === '') return '';
-  try {
-    const url = new URL(raw, currentUrl);
-    const root = new URL(baseUrl);
-    if (url.origin !== root.origin || !['http:', 'https:'].includes(url.protocol)) return '';
-    return `${url.pathname}${url.search}`;
-  } catch {
-    return '';
-  }
-}

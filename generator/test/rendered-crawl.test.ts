@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assertRenderedLoginSucceeded, isMeaningfulErrorPage, normalizeInternalURL, renderedCrawlSeeds, shouldExtractCrawlPage } from '../src/extract/rendered.js';
+import { assertRenderedLoginSucceeded, isMeaningfulErrorPage, renderedCrawlSeeds, shouldExtractCrawlPage } from '../src/extract/rendered.js';
 
 const baseConfig = {
   auth: {
@@ -10,17 +10,6 @@ const baseConfig = {
 };
 
 describe('rendered crawl URL normalization', () => {
-  it('preserves same-origin paths and queries while dropping hashes', () => {
-    expect(normalizeInternalURL('/inventory.html?sort=az#items', 'https://www.saucedemo.com/', 'https://www.saucedemo.com/')).toBe('/inventory.html?sort=az');
-    expect(normalizeInternalURL('cart.html', 'https://www.saucedemo.com/inventory.html', 'https://www.saucedemo.com/')).toBe('/cart.html');
-  });
-
-  it('rejects external and non-navigational URLs', () => {
-    expect(normalizeInternalURL('https://example.com/inventory.html', 'https://www.saucedemo.com/', 'https://www.saucedemo.com/')).toBe('');
-    expect(normalizeInternalURL('mailto:test@example.com', 'https://www.saucedemo.com/', 'https://www.saucedemo.com/')).toBe('');
-    expect(normalizeInternalURL('javascript:void(0)', 'https://www.saucedemo.com/', 'https://www.saucedemo.com/')).toBe('');
-  });
-
   it('seeds rendered crawl from post-login landing and does not invent case-study paths', () => {
     expect(renderedCrawlSeeds(baseConfig, '/inventory.html')).toEqual(['/inventory.html']);
     expect(renderedCrawlSeeds({ ...baseConfig, auth: { ...baseConfig.auth, loginPath: '/login' } }, '/inventory.html')).toEqual(['/inventory.html', '/']);

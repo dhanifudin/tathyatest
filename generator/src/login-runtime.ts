@@ -1,6 +1,7 @@
-import { chromium, type Locator as PlaywrightLocator, type Page } from '@playwright/test';
+import type { Locator as PlaywrightLocator, Page } from '@playwright/test';
 import { inferLoginControlsFromHtml, type LoginControls, type LoginLocator } from './login.js';
 
+/** Turn a stored login-control locator into a live Playwright locator (same chain as locator.ts). */
 export function playwrightLocator(page: Page, locator: LoginLocator): PlaywrightLocator {
   switch (locator.strategy) {
     case 'testid':
@@ -20,19 +21,6 @@ export function playwrightLocator(page: Page, locator: LoginLocator): Playwright
       return page.locator(`[name="${cssEscape(locator.value)}"]`);
     case 'css':
       return page.locator(locator.value);
-  }
-}
-
-export async function inferLoginControls(baseUrl: string, loginPath: string): Promise<ReturnType<typeof inferLoginControlsFromHtml>> {
-  const browser = await chromium.launch();
-  try {
-    const page = await browser.newPage({ baseURL: baseUrl });
-    await page.goto(loginPath);
-    return inferLoginControlsOnPage(page);
-  } catch {
-    return inferLoginControlsFromHtml('');
-  } finally {
-    await browser.close();
   }
 }
 

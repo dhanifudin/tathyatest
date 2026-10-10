@@ -215,7 +215,10 @@ data:
 
 ---
 
-## Phase 4 — Go static engine (`crawler/` → `tt-crawler`)
+## Phase 4 — Go static engine (`crawler/` → `tt-crawler`) — historical, removed
+
+> The Go crawler and the `extractor.engine` switch were removed; the Playwright crawler is the
+> only engine and the crawl contract is versioned by `schemaVersion` instead of `engine`.
 
 4.1. `go mod init`; deps: `gocolly/colly/v2`, `PuerkitoBio/goquery`, `gopkg.in/yaml.v3`.
 
@@ -377,6 +380,43 @@ data:
       `/__testing/coverage`). Hand-written baseline suites in `tests/manual/{blade,inertia}`.
 
 ---
+
+## Phase 12 — Gap closure after the knowledge-graph review (2026-10)
+
+A graphify code graph of `generator/` was cross-checked against this plan, `AGENTS.md`, the
+live crawl, the generated manifest and the eval report. The gaps found and the work that closed
+them (each its own commit):
+
+12.1. **Ease of use.** Engine vestige removed (`schemaVersion` in the crawl contract); `tt eval`
+      evaluates the current config by default (`--stack`, `--all-stacks` for the study) and probes
+      the app for coverage/fault endpoints; preflight reachability; four-line minimal config;
+      `tt run` forwards Playwright arguments, `tt report`, `--fresh`, bare `tt` prints help.
+
+12.2. **Framework-agnostic generator.** No app endpoint hard-coded in emitted specs
+      (`hooks.reset`, `evaluation.controlPlane`); CRUD classification as pure keyword rules in
+      `crud.ts` (`_method`, Turbo/HTMX verbs, path and submit-text keywords); generic error
+      selector; fault catalogue loadable from JSON; Laravel apps documented as case studies.
+
+12.3. **Readable Playwright output.** Shared `support/tathya.ts` (fixtures, login, oracle
+      helpers), one spec file per category and route shape, `describe` groups with one role gate,
+      `test.step` phases, tags (`@tier`, `@category`, `@role:x`, `@read|@write`) and annotations,
+      human-readable scenario titles.
+
+12.4. **Read-only mode** (`mode: read-only`, `tt generate|all --read-only`, `tt run --read-only`)
+      for UptimeRobot-style feature checks against staging/production.
+
+12.5. **Variant correctness.** Date/time/month/week boundaries shifted in their own format,
+      pattern breakers verified against the pattern, `step-misaligned`, file inputs uploaded via
+      fixtures with `accept-mismatch`, no unfalsifiable format negatives.
+
+12.6. **Deeper oracles.** GET forms assert their query echo, toggles their state flip, links their
+      landing path; logout forms are auth scenarios with a "protected page needs login again"
+      oracle.
+
+12.7. **Discovery.** REST show routes inferred from edit pages/delete forms (self-skipping on a
+      clean 404/405); RBAC affordance negatives from the per-role link diff.
+
+Remaining documented gaps live in `AGENTS.md` → "Documented gaps".
 
 ## Out of scope (this prototype)
 Non-functional testing, mobile, CI/CD, AI-assisted mapping (later roadmap years); multi-app dataset

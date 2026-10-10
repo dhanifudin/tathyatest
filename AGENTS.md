@@ -289,6 +289,14 @@ The following are known limitations of the first prototype, intentionally out of
 - **Security/injection testing** — out of scope; `edge` payloads are robustness-only.
 - **Non-functional testing** (performance, load, security audits) — out of scope.
 - **Mobile/native apps** — out of scope.
+- **Pre-authentication flows** (registration, forgot/reset password, email verification) — the
+  crawler logs in first and only walks the authenticated surface; only the login form itself is
+  exercised (valid, wrong password, logout).
+- **Cross-field and conditional validation** (date ranges, "required when X is set", totals) —
+  not expressible as per-field HTML constraints; the generator emits one field variant at a time.
+- **Malformed values for `number`/date-like/`color` inputs** — browsers sanitise them to empty
+  before submission (and Playwright refuses to type them), so there is no format negative for
+  those types; `required-empty`, `min`/`max` and `step` cover them instead.
 
 Do not add features to address these gaps without explicit instruction. Document any new gap
 discovered in this file under this section.

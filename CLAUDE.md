@@ -27,7 +27,9 @@ tt/
 │       ├── cli.ts        # commander dispatcher
 │       ├── init.ts       # tt init wizard (@clack/prompts)
 │       ├── config.ts     # zod-validated config loader
-│       ├── crawl.ts      # per-role crawl contract + dispatcher
+│       ├── crawl.ts      # per-role crawl contract (schemaVersion) + dispatcher
+│       ├── crud.ts       # pure: form signals → crudOp (framework-neutral keyword rules)
+│       ├── reachability.ts  # preflight: fail fast when baseUrl is down
 │       ├── extract/
 │       │   └── rendered.ts  # Playwright crawler → crawl.json
 │       ├── rbac.ts       # per-role diff → access matrix
@@ -40,9 +42,13 @@ tt/
 │       ├── stats.ts      # pure: mean/CI/Mann-Whitney U/rank-biserial/Fleiss κ
 │       ├── metrics.ts    # pure: five-family computeMetrics (coverage/SUT/faults/quality/reliability)
 │       ├── eval/         # runner.ts + faults.ts + report.ts + playwright.ts + baseline-static.ts
-│       └── emit/         # ts.ts + js.ts — TestCase → spec source (+ manifest via index.ts)
+│       ├── emit/         # ts.ts (specs, one file per route) + support.ts (shared helpers/fixtures
+│       │                 # module) + js.ts (transpiled tree) + index.ts (manifest)
+│       ├── cli.ts        # commander command tree (buildProgram); main.ts parses it for bin/tt
+│       └── main.ts
 ├── crawl/                # runtime output: admin.json, user.json, ...
-├── tests/generated/      # runtime output: auth/, crud/, rbac/ specs + manifest.json
+├── tests/generated/      # runtime output: auth/ forms/ interactions/ pagination/ rbac/ specs (one
+│                         # file per route shape), support/tathya.ts, manifest.json
 ├── tests/manual/         # hand-written baseline suites (blade/, inertia/) for the eval comparison
 ├── tests/baseline-public/
 │   └── saucedemo/        # 3 public MIT Playwright suites (git submodules, pinned SHA)

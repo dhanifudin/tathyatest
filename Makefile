@@ -2,7 +2,7 @@ SHELL := /bin/sh
 
 ROOT := $(CURDIR)
 GENERATOR_DIR := $(ROOT)/generator
-TT := node $(GENERATOR_DIR)/dist/cli.js
+TT := node $(GENERATOR_DIR)/dist/main.js
 
 .PHONY: help install uninstall build generator-install generator-uninstall verify generator-test tt-help clean baseline-init
 
