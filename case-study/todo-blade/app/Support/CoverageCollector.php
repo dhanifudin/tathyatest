@@ -63,6 +63,9 @@ class CoverageCollector
 
         foreach (self::phpFiles(app_path()) as $file) {
             $rel = substr($file, strlen(base_path()) + 1);
+            if (self::isInstrumentation($rel)) {
+                continue;
+            }
             $covered = $executed[$rel] ?? [];
             $analysis = self::analyze($file);
 
@@ -250,6 +253,17 @@ class CoverageCollector
     }
 
     /** @return string[] */
+    /**
+     * The evaluation harness (this collector, the fault registry, the coverage middleware) is not
+     * application behavior: counting its lines would inflate the denominator with code no user flow
+     * can reach.
+     */
+    private static function isInstrumentation(string $relativePath): bool
+    {
+        return str_starts_with($relativePath, 'app/Support/')
+            || $relativePath === 'app/Http/Middleware/CoverageMiddleware.php';
+    }
+
     private static function phpFiles(string $dir): array
     {
         $files = [];
