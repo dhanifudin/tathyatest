@@ -74,6 +74,8 @@ export type ReliabilityMetrics = {
   flakeRate: number;
   crossBrowserKappa: number;
   passRate: number;
+  /** Tests (as "title [project]") that failed or changed status across repeats on the clean build. */
+  unstable: string[];
 };
 
 export type EfficiencyMetrics = {
@@ -390,7 +392,7 @@ function reliabilityMetrics(input: MetricsInput): ReliabilityMetrics {
 export function reliabilityOf(runs: SuiteRun[]): ReliabilityMetrics {
   const repeats = runs.length;
   if (repeats === 0) {
-    return { repeats: 0, flakeRate: 0, crossBrowserKappa: 1, passRate: 0 };
+    return { repeats: 0, flakeRate: 0, crossBrowserKappa: 1, passRate: 0, unstable: [] };
   }
 
   // Flake: per (title, project), status differs across repeats.
@@ -408,8 +410,13 @@ export function reliabilityOf(runs: SuiteRun[]): ReliabilityMetrics {
     }
   }
   let flaky = 0;
-  for (const statuses of statusByKey.values()) {
+  const unstable: string[] = [];
+  for (const [key, statuses] of statusByKey) {
     if (statuses.size > 1) flaky += 1;
+    if (statuses.size > 1 || statuses.has('failed')) {
+      const [project, ...title] = key.split('::');
+      unstable.push(`${title.join('::')} [${project}]`);
+    }
   }
 
   return {
@@ -417,6 +424,7 @@ export function reliabilityOf(runs: SuiteRun[]): ReliabilityMetrics {
     flakeRate: statusByKey.size === 0 ? 0 : flaky / statusByKey.size,
     crossBrowserKappa: crossBrowserAgreement(runs[0]),
     passRate: counted === 0 ? 0 : passed / counted,
+    unstable: unstable.sort(),
   };
 }
 

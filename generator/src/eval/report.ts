@@ -82,6 +82,7 @@ function stackMarkdown(stack: StackReport): string[] {
   out.push(`- Flake rate: ${pct(report.reliability.flakeRate)}`);
   out.push(`- Cross-browser agreement (Fleiss κ): ${report.reliability.crossBrowserKappa.toFixed(3)}`);
   out.push(`- Pass rate: ${pct(report.reliability.passRate)}`);
+  out.push(`- Tests failing or flaky on the clean build: ${report.reliability.unstable.length === 0 ? 'none' : `${report.reliability.unstable.length} (${report.reliability.unstable.join('; ')})`}`);
   out.push(`- Crawl: ${ms(report.efficiency.crawlMs)}; generate: ${ms(report.efficiency.generateMs)}; execute: ${ms(report.efficiency.executeMs.mean)} ± ${ms(report.efficiency.executeMs.marginOfError)} (95% CI, n=${report.efficiency.executeMs.n})`);
   out.push(`- Throughput: ${report.efficiency.throughputPerSec.toFixed(2)} tests/s over ${report.efficiency.testCount} tests`);
   out.push(`- Time-savings ratio vs manual: ${report.efficiency.timeSavingsRatio.toFixed(1)}× (sensitivity ${report.efficiency.timeSavingsRange.low.toFixed(1)}–${report.efficiency.timeSavingsRange.high.toFixed(1)}×)`);

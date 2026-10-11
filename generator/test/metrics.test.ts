@@ -167,6 +167,26 @@ describe('reliabilityOf', () => {
     expect(r.repeats).toBe(2);
   });
 
+  it('lists unstable tests and stays empty on a clean build', () => {
+    const mixed = [
+      { outcomes: [
+        { title: 'login', project: 'chromium', status: 'passed' as const, durationMs: 1 },
+        { title: 'always bad', project: 'firefox', status: 'failed' as const, durationMs: 1 },
+        { title: 'maybe', project: 'webkit', status: 'passed' as const, durationMs: 1 },
+        { title: 'only here', project: 'webkit', status: 'skipped' as const, durationMs: 0 },
+      ] },
+      { outcomes: [
+        { title: 'login', project: 'chromium', status: 'passed' as const, durationMs: 1 },
+        { title: 'always bad', project: 'firefox', status: 'failed' as const, durationMs: 1 },
+        { title: 'maybe', project: 'webkit', status: 'failed' as const, durationMs: 1 },
+        { title: 'only here', project: 'webkit', status: 'skipped' as const, durationMs: 0 },
+      ] },
+    ];
+    expect(reliabilityOf(mixed).unstable).toEqual(['always bad [firefox]', 'maybe [webkit]']);
+    const clean = { outcomes: [{ title: 'login', project: 'chromium', status: 'passed' as const, durationMs: 1 }] };
+    expect(reliabilityOf([clean, clean]).unstable).toEqual([]);
+  });
+
   it('returns zero flake rate when all runs agree', () => {
     const run = { outcomes: [{ title: 'login', project: 'chromium', status: 'passed' as const, durationMs: 100 }] };
     const r = reliabilityOf([run, run]);

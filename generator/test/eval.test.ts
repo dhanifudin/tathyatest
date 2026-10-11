@@ -68,7 +68,7 @@ function fakeReport(overrides: Partial<MetricsReport> = {}): MetricsReport {
     sutCoverage: { lines: r(0.78), branches: r(0.64), functions: r(0.9), routes: r(0.88) },
     faults: { total: 8, killed: 7, mutationScore: 0.875, byClass: { validation: { total: 4, killed: 4, score: 1 } }, localizationAccuracy: 0.9, perFault: [], detectable: { total: 8, killed: 7, score: 0.875 }, controls: { total: 0, survived: 0 } },
     quality: { testCount: 16, assertionDensity: 1.2, locatorDistribution: { role: 8, label: 6, css: 2 }, brittleLocatorRatio: 0.125, locatorRobustness: 0.8, smellIncidence: 0 },
-    reliability: { repeats: 3, flakeRate: 0.01, crossBrowserKappa: 0.94, passRate: 0.98 },
+    reliability: { repeats: 3, flakeRate: 0.01, crossBrowserKappa: 0.94, passRate: 0.98, unstable: [] },
     efficiency: { crawlMs: 1200, generateMs: 300, executeMs: { n: 3, mean: 4000, stddev: 100, marginOfError: 248, lower: 3752, upper: 4248 }, totalSeconds: 5.5, testCount: 16, perTestMs: 250, throughputPerSec: 4, timeSavingsRatio: 160, timeSavingsRange: { low: 80, high: 240 } },
     baseline: {
       available: false, generatedTests: 16, manualTests: 0, durationMannWhitney: null,
