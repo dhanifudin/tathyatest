@@ -102,6 +102,9 @@ export async function performLogin(page: Page, username: string, password: strin
 /** Logged in = we left the login page, or the password field is gone. */
 export async function assertLoggedIn(page: Page): Promise<void> {
   const expectedLoginPath = new URL(loginPath, 'http://tathyatest.local').pathname;
+  // A slow browser (WebKit under load) may still be mid-redirect after the click; give it time to
+  // leave the login page before judging. Only successful-login paths call this, so rejected logins stay fast.
+  await page.waitForURL((url) => url.pathname !== expectedLoginPath, { timeout: 15000 }).catch(() => undefined);
   if (new URL(page.url()).pathname !== expectedLoginPath) return;
   await expect(page.locator('input[type="password"], input[autocomplete="current-password"], input[name*="password"], input[id*="password"], input[placeholder*="Password"]').first()).not.toBeVisible();
 }

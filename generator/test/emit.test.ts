@@ -394,6 +394,7 @@ describe('emitTs', () => {
       expect(support).toContain('expect(new URL(page.url()).pathname).not.toBe(blockedPath);');
       expect(support).toContain("not.toContainText(/(internal )?server error|whoops, looks like something went wrong/i);");
       expect(support).toContain("expect(response.status(), 'server answered ' + response.status()).toBeLessThan(500);");
+      expect(support).toContain("await page.waitForURL((url) => url.pathname !== expectedLoginPath, { timeout: 15000 })");
       expect(support).not.toContain("/500|server error|exception/i");
       // The title heuristic must survive the template literal: real backslashes in the emitted regex.
       const titleRegex = /\.not\.toMatch\((\/.*\/)\);/.exec(support)?.[1];
