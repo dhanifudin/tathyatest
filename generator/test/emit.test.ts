@@ -392,7 +392,16 @@ describe('emitTs', () => {
       expect(support).toContain("expect(await page.locator('a, button, form, select, input').count()).toBeGreaterThan(0);");
       expect(support).toContain('expect([401, 403, 404]).toContain(status);');
       expect(support).toContain('expect(new URL(page.url()).pathname).not.toBe(blockedPath);');
-      expect(support).toContain("not.toContainText(/500|server error|exception/i);");
+      expect(support).toContain("not.toContainText(/(internal )?server error|whoops, looks like something went wrong/i);");
+      expect(support).toContain("expect(response.status(), 'server answered ' + response.status()).toBeLessThan(500);");
+      expect(support).not.toContain("/500|server error|exception/i");
+      // The title heuristic must survive the template literal: real backslashes in the emitted regex.
+      const titleRegex = /\.not\.toMatch\((\/.*\/)\);/.exec(support)?.[1];
+      expect(titleRegex).toContain('\\s*5\\d\\d\\b');
+      const pattern = new RegExp(titleRegex!.slice(1, -1));
+      expect(pattern.test('Prices from $1,500')).toBe(false);
+      expect(pattern.test('500 | Server Error')).toBe(true);
+      expect(pattern.test('BadMethodCallException')).toBe(true);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

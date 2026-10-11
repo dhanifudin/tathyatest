@@ -166,11 +166,18 @@ export async function expectStateFlipped(page: Page, formSelector: string, befor
   await expectNoServerError(page);
 }
 
-/** The page settled and shows no server-error text. */
-export async function expectNoServerError(page: Page): Promise<void> {
+/**
+ * The page settled and is not a server-error page. The response status is the primary signal; the
+ * text check only looks at error-page shapes (the title, or an explicit "server error" phrase), so
+ * a healthy page that merely mentions "500" or "exception" in its content does not fail.
+ */
+export async function expectNoServerError(page: Page, response?: Response | null): Promise<void> {
+  if (response) expect(response.status(), 'server answered ' + response.status()).toBeLessThan(500);
   await page.waitForLoadState('domcontentloaded').catch(() => undefined);
   await page.waitForLoadState('networkidle').catch(() => undefined);
-  await expect(page.locator('body')).not.toContainText(/500|server error|exception/i);
+  const title = await page.title().catch(() => '');
+  expect(title, 'page title looks like a server error').not.toMatch(/^\\s*5\\d\\d\\b|server error|\\b[A-Z]\\w*Exception\\b/);
+  await expect(page.locator('body')).not.toContainText(/(internal )?server error|whoops, looks like something went wrong/i);
 }
 
 /**
@@ -185,7 +192,7 @@ export async function expectRouteAllowed(page: Page, response: Response | null, 
     expect(new URL(page.url()).pathname).toBe(routePath);
     expect(await page.locator('a, button, form, select, input').count()).toBeGreaterThan(0);
   }
-  await expectNoServerError(page);
+  await expectNoServerError(page, response);
 }
 
 /**
@@ -217,7 +224,7 @@ export async function expectRouteBlocked(page: Page, response: Response | null, 
   } else {
     expect([401, 403, 404]).toContain(status);
   }
-  await expectNoServerError(page);
+  await expectNoServerError(page, response);
 }
 
 function loginLocator(page: Page, locator: LoginLocator) {
