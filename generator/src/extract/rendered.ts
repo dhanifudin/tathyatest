@@ -7,6 +7,9 @@ import { classifyCrudOp, type CrudSignals } from '../crud.js';
 import { inferLoginControlsOnPage, playwrightLocator } from '../login-runtime.js';
 import { canonicalPath } from '../util/paths.js';
 
+/** How long the crawler waits for the URL to change after submitting the login form. */
+const LOGIN_REDIRECT_TIMEOUT_MS = 5000;
+
 type DomPageModel = Omit<PageModel, 'url'>;
 
 export async function renderedCrawl(config: TathyaConfig): Promise<void> {
@@ -32,7 +35,7 @@ async function login(page: Page, config: TathyaConfig, roleName: string, usernam
   await playwrightLocator(page, controls.password).fill(password);
   const beforePath = normalizePath(page.url(), config.baseUrl);
   await Promise.all([
-    page.waitForURL((url) => normalizePath(url.toString(), config.baseUrl) !== beforePath, { timeout: 5000 }).catch(() => undefined),
+    page.waitForURL((url) => normalizePath(url.toString(), config.baseUrl) !== beforePath, { timeout: LOGIN_REDIRECT_TIMEOUT_MS }).catch(() => undefined),
     playwrightLocator(page, controls.submit).click(),
   ]);
   await page.waitForLoadState('domcontentloaded').catch(() => undefined);

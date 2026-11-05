@@ -11,6 +11,7 @@ import { faultsForClasses, loadFaultCatalogue, type FaultSpec } from './faults.j
 import { runPlaywrightJson } from './playwright.js';
 import { renderReportJson, renderReportMarkdown, type StackReport } from './report.js';
 import { analyzeBaselineDir } from './baseline-static.js';
+import { log } from '../logger.js';
 import { escapeRegExp } from '../util/escape.js';
 
 type StackConfig = TathyaConfig['evaluation']['stacks'][number];
@@ -33,17 +34,17 @@ export async function runEvaluation(rootConfig: TathyaConfig, options: EvalOptio
   for (const stack of stacks) {
     if (!(await isReachable(stack.baseUrl))) {
       if (options.allStacks) {
-        console.warn(`[eval] stack "${stack.name}" (${stack.baseUrl}) is not reachable — skipping`);
+        log.warn(`[eval] stack "${stack.name}" (${stack.baseUrl}) is not reachable — skipping`);
         continue;
       }
       await assertReachable(stack.baseUrl);
     }
-    console.log(`\n[eval] stack "${stack.name}" (${stack.baseUrl})`);
+    log.info(`\n[eval] stack "${stack.name}" (${stack.baseUrl})`);
     reports.push({ name: stack.name, report: await runStack(stack, rootConfig, options) });
   }
   if (reports.length === 0) throw new Error('[eval] no reachable stack to evaluate');
   await writeReports(rootConfig.evaluation.outDir, reports);
-  console.log(`\n[eval] wrote ${join(rootConfig.evaluation.outDir, 'report.md')}`);
+  log.info(`\n[eval] wrote ${join(rootConfig.evaluation.outDir, 'report.md')}`);
 }
 
 /**
@@ -105,7 +106,7 @@ async function runStack(stack: StackConfig, rootConfig: TathyaConfig, options: E
     const plane = controlPlaneOf(rootConfig);
     const catalogue = await loadFaultCatalogue(rootConfig.evaluation.faults.catalogue);
     const capabilities = await detectCapabilities(stack, plane);
-    console.log(`[eval] SUT coverage: ${capabilities.coverage ? 'on' : 'off'}; fault injection: ${capabilities.faults ? 'on' : 'off'}${stack.coverage === undefined && stack.faults === undefined ? ' (probed)' : ''}`);
+    log.info(`[eval] SUT coverage: ${capabilities.coverage ? 'on' : 'off'}; fault injection: ${capabilities.faults ? 'on' : 'off'}${stack.coverage === undefined && stack.faults === undefined ? ' (probed)' : ''}`);
     const collectCoverage = options.coverage !== false && capabilities.coverage;
 
     if (collectCoverage) await control(stack.baseUrl, 'POST', plane.coverageReset);
@@ -183,7 +184,7 @@ async function runBaselineFaults(stack: StackConfig, rootConfig: TathyaConfig, c
   for (const fault of faults) {
     const set = await control(stack.baseUrl, 'POST', plane.fault, { id: fault.id });
     if (!set) {
-      console.warn(`[eval] could not activate fault ${fault.id} for baseline; skipping`);
+      log.warn(`[eval] could not activate fault ${fault.id} for baseline; skipping`);
       continue;
     }
     const suite = hasConfig
@@ -227,7 +228,7 @@ async function runFaults(stack: StackConfig, rootConfig: TathyaConfig, config: T
     }
     const set = await control(stack.baseUrl, 'POST', plane.fault, { id: fault.id });
     if (!set) {
-      console.warn(`[eval] could not activate fault ${fault.id}; skipping`);
+      log.warn(`[eval] could not activate fault ${fault.id}; skipping`);
       continue;
     }
     const grep = relevantEntries.map((entry) => escapeRegExp(entry.title)).join('|');

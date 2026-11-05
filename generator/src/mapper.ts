@@ -74,6 +74,12 @@ export type TestCase =
       inferred?: boolean;
     };
 
+/**
+ * Variants a browser's own constraint validation blocks before the request leaves the page: on a form
+ * without `novalidate` they could never reach the server-side oracle, so they are not generated.
+ */
+const NATIVELY_UNFALSIFIABLE_VARIANTS = ['maxlength-plus-one', 'invalid-option', 'confirmation-mismatch', 'accept-mismatch'];
+
 export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config: TathyaConfig): TestCase[] {
   const cases: TestCase[] = [];
   for (const role of config.auth.roles) {
@@ -164,8 +170,7 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
               // generation time.
               // `accept` is a picker hint, not a constraint the browser validates, so an
               // accept-mismatch is likewise only observable through the app's own error display.
-              const nativeUnfalsifiable = ['maxlength-plus-one', 'invalid-option', 'confirmation-mismatch', 'accept-mismatch'];
-              if (!form.noValidate && nativeUnfalsifiable.includes(variant.name)) continue;
+              if (!form.noValidate && NATIVELY_UNFALSIFIABLE_VARIANTS.includes(variant.name)) continue;
               if (!shouldIncludeCoverage(config.coverage, variant.kind)) continue;
               const variantKey = `${routeShape(canonicalPageUrl)}:${formShapeKey(form)}:${field.name}:${variant.name}`;
               if (seenVariants.has(variantKey)) continue;

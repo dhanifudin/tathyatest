@@ -2,6 +2,8 @@ import { readFile } from 'node:fs/promises';
 import { z } from 'zod';
 import YAML from 'yaml';
 import { normalizeBaseUrl } from './login.js';
+import { FAULT_CLASSES } from './fault-classes.js';
+import { log } from './logger.js';
 
 const coverageSchema = z.enum(['positive', 'negative', 'edge', 'all']);
 const languageSchema = z.enum(['ts', 'js']);
@@ -106,11 +108,11 @@ export const configSchema = z.object({
     controlPlane: controlPlaneSchema.optional(),
     faults: z.object({
       enabled: z.boolean().default(true),
-      classes: z.array(z.enum(['validation', 'authz', 'crud', 'pagination', 'auth'])).default(['validation', 'authz', 'crud', 'pagination', 'auth']),
+      classes: z.array(z.enum(FAULT_CLASSES)).default([...FAULT_CLASSES]),
       // JSON file with the app's own fault catalogue (see eval/faults.ts FaultCatalogueFile);
       // entries are merged over the built-in Laravel case-study catalogue by id.
       catalogue: z.string().optional(),
-    }).default({ enabled: true, classes: ['validation', 'authz', 'crud', 'pagination', 'auth'] }),
+    }).default({ enabled: true, classes: [...FAULT_CLASSES] }),
   }).default({
     outDir: 'metrics',
     repeat: 1,
@@ -118,7 +120,7 @@ export const configSchema = z.object({
     baselineDir: 'tests/manual',
     faultProject: null,
     stacks: [],
-    faults: { enabled: true, classes: ['validation', 'authz', 'crud', 'pagination', 'auth'] },
+    faults: { enabled: true, classes: [...FAULT_CLASSES] },
   }),
 });
 
@@ -137,7 +139,7 @@ export async function loadConfig(path = 'tathya.config.yaml'): Promise<TathyaCon
  */
 export function parseConfig(document: unknown, source = 'tathya.config.yaml'): TathyaConfig {
   if (typeof document === 'object' && document !== null && 'extractor' in document) {
-    console.warn(`[config] ${source}: "extractor" is ignored (the crawler is always Playwright) — remove it.`);
+    log.warn(`[config] ${source}: "extractor" is ignored (the crawler is always Playwright) — remove it.`);
   }
   const result = configSchema.safeParse(document);
   if (result.success) return result.data;

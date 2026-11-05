@@ -3,7 +3,9 @@
  * `tt eval`: fail fast with a plain message when the target app is not up, instead of letting
  * Playwright time out page by page.
  */
-export async function isReachable(baseUrl: string, timeoutMs = 5000): Promise<boolean> {
+const REACHABILITY_TIMEOUT_MS = 5000;
+
+export async function isReachable(baseUrl: string, timeoutMs = REACHABILITY_TIMEOUT_MS): Promise<boolean> {
   try {
     // Any HTTP answer — even a 500 or a redirect — means a server is listening; only connection
     // failures and timeouts count as unreachable.

@@ -1,9 +1,10 @@
 import { isMutating, type TestCase } from './mapper.js';
 import { canonicalPath } from './util/paths.js';
+import type { FaultClass } from './fault-classes.js';
 
 export type ManifestCategory = 'auth' | 'crud' | 'nav' | 'rbac';
 export type ManifestTier = 'positive' | 'negative' | 'edge';
-export type FaultClass = 'validation' | 'authz' | 'crud' | 'pagination' | 'auth';
+export type { FaultClass } from './fault-classes.js';
 
 /**
  * One entry per generated test. `title` is the exact `test(...)` title, so it joins directly

@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { z } from 'zod';
 import type { FaultClass, ManifestCategory, ManifestEntry, ManifestTier } from '../manifest.js';
+import { FAULT_CLASSES } from '../fault-classes.js';
 
 /**
  * One seeded fault. `id` must match a toggle the app under test exposes on its fault endpoint
@@ -37,7 +38,7 @@ export type FaultMatcher = {
   titleIncludes?: string;
 };
 
-const faultClassSchema = z.enum(['validation', 'authz', 'crud', 'pagination', 'auth']);
+const faultClassSchema = z.enum(FAULT_CLASSES);
 const matcherSchema = z.object({
   category: z.enum(['auth', 'crud', 'nav', 'rbac']),
   tier: z.enum(['positive', 'negative', 'edge']).optional(),
