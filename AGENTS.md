@@ -43,6 +43,7 @@ Pass/Fail report. The user-facing binary is `tt`; its subcommands are `init`, `c
 | `tests/manual/` | TS (committed) | Hand-written baseline suites (`blade/`, `inertia/`) | — |
 | `tests/baseline-public/saucedemo/` | TS (git submodules) | Three independent MIT-licensed Playwright suites; EQ5 baseline for the SauceDemo subject. See `SOURCES.md`. | — |
 | `metrics/` | JSON/MD (runtime) | `tt eval` report — **generated, never hand-edited** | — |
+| `docs/prd/` | Markdown | PRDs for the framework-adapter work (Cypress first). Any adapter must keep the manifest parity invariants (unique titles, tag set, assertion counts) — see `docs/prd/01-framework-adapters-architecture.md` | — |
 
 ---
 

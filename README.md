@@ -441,6 +441,13 @@ turns the suite into UptimeRobot-style feature monitoring: not "does the home pa
 "does every route, link, pager and search still work for every role". `tt eval` notes read-only
 runs in the report, since form/field/CRUD coverage then only describes GET forms.
 
+## Roadmap: other test frameworks
+
+The generator targets Playwright today. Supporting Cypress (and other frameworks) through an adapter
+layer is specified in [`docs/prd/`](docs/prd/README.md): architecture, scenario-plan and emitter
+interface, runner and evaluation integration, the Cypress adapter, config and CLI changes, test
+strategy, and a milestone roadmap.
+
 ## Known Gaps
 
 Custom Laravel validation rules, closure rules, FormRequest logic that is not visible in HTML,

@@ -59,7 +59,8 @@ tt/
 ├── tathya.config.yaml    # gitignored (has creds) — see tathya.config.example.yaml
 ├── tathya.saucedemo.config.yaml   # SauceDemo eval subject (creds are public, can commit)
 └── docs/
-    └── implementation-plan.md
+    ├── implementation-plan.md
+    └── prd/              # PRDs for framework adapters (Cypress first); start at prd/README.md
 ```
 
 ---
