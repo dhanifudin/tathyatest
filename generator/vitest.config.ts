@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 export default defineConfig({
   server: {
@@ -6,5 +6,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    // The golden directory holds generated *.spec.ts files; they are data, not tests of this repo.
+    exclude: [...configDefaults.exclude, 'test/fixtures/**'],
   },
 });

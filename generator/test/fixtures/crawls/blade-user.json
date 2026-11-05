@@ -1,0 +1,6126 @@
+{
+  "baseUrl": "http://127.0.0.1:8000",
+  "schemaVersion": 2,
+  "role": "user",
+  "crawledAt": "2026-11-05T06:22:29.437Z",
+  "pages": [
+    {
+      "url": "/dashboard",
+      "title": "TathyaTodo",
+      "forms": [
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        }
+      ],
+      "links": [
+        {
+          "href": "/dashboard",
+          "text": "Tathya Todo",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Tathya Todo"
+          },
+          "visible": true
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": true
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": false
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": false
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        }
+      ],
+      "buttons": [
+        {
+          "text": "User",
+          "locator": {
+            "strategy": "role",
+            "value": "button:User"
+          },
+          "visible": true
+        },
+        {
+          "text": "",
+          "locator": {
+            "strategy": "css",
+            "value": "button"
+          },
+          "visible": false
+        }
+      ],
+      "tables": [],
+      "controls": []
+    },
+    {
+      "url": "/",
+      "title": "TathyaTodo",
+      "forms": [],
+      "links": [
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos",
+          "text": "Open todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Open todos"
+          },
+          "visible": true
+        }
+      ],
+      "buttons": [],
+      "tables": [],
+      "controls": []
+    },
+    {
+      "url": "/todos",
+      "title": "TathyaTodo",
+      "forms": [
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/todos",
+          "method": "GET",
+          "noValidate": false,
+          "fields": [
+            {
+              "name": "search",
+              "type": "search",
+              "label": "Search todos",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Search todos"
+              }
+            },
+            {
+              "name": "status",
+              "type": "select",
+              "label": "Filter",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": [
+                {
+                  "value": "all",
+                  "label": "All"
+                },
+                {
+                  "value": "undone",
+                  "label": "Undone"
+                },
+                {
+                  "value": "done",
+                  "label": "Done"
+                }
+              ],
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Filter"
+              }
+            }
+          ],
+          "submit": {
+            "text": "Apply",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Apply"
+            }
+          },
+          "crudOp": "unknown"
+        },
+        {
+          "action": "/todos/13/toggle",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Mark done",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Mark done"
+            }
+          },
+          "crudOp": "update"
+        },
+        {
+          "action": "/todos/13",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Delete",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Delete"
+            }
+          },
+          "crudOp": "delete"
+        },
+        {
+          "action": "/todos/14/toggle",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Mark undone",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Mark undone"
+            }
+          },
+          "crudOp": "update"
+        },
+        {
+          "action": "/todos/14",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Delete",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Delete"
+            }
+          },
+          "crudOp": "delete"
+        },
+        {
+          "action": "/todos/15/toggle",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Mark done",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Mark done"
+            }
+          },
+          "crudOp": "update"
+        },
+        {
+          "action": "/todos/15",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Delete",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Delete"
+            }
+          },
+          "crudOp": "delete"
+        },
+        {
+          "action": "/todos/16/toggle",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Mark done",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Mark done"
+            }
+          },
+          "crudOp": "update"
+        },
+        {
+          "action": "/todos/16",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Delete",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Delete"
+            }
+          },
+          "crudOp": "delete"
+        },
+        {
+          "action": "/todos/17/toggle",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Mark undone",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Mark undone"
+            }
+          },
+          "crudOp": "update"
+        },
+        {
+          "action": "/todos/17",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Delete",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Delete"
+            }
+          },
+          "crudOp": "delete"
+        },
+        {
+          "action": "/todos/18/toggle",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Mark done",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Mark done"
+            }
+          },
+          "crudOp": "update"
+        },
+        {
+          "action": "/todos/18",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Delete",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Delete"
+            }
+          },
+          "crudOp": "delete"
+        },
+        {
+          "action": "/todos/19/toggle",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Mark done",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Mark done"
+            }
+          },
+          "crudOp": "update"
+        },
+        {
+          "action": "/todos/19",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Delete",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Delete"
+            }
+          },
+          "crudOp": "delete"
+        },
+        {
+          "action": "/todos/20/toggle",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Mark done",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Mark done"
+            }
+          },
+          "crudOp": "update"
+        },
+        {
+          "action": "/todos/20",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Delete",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Delete"
+            }
+          },
+          "crudOp": "delete"
+        },
+        {
+          "action": "/todos/21/toggle",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Mark undone",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Mark undone"
+            }
+          },
+          "crudOp": "update"
+        },
+        {
+          "action": "/todos/21",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Delete",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Delete"
+            }
+          },
+          "crudOp": "delete"
+        },
+        {
+          "action": "/todos/22/toggle",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Mark done",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Mark done"
+            }
+          },
+          "crudOp": "update"
+        },
+        {
+          "action": "/todos/22",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Delete",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Delete"
+            }
+          },
+          "crudOp": "delete"
+        }
+      ],
+      "links": [
+        {
+          "href": "/dashboard",
+          "text": "Tathya Todo",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Tathya Todo"
+          },
+          "visible": true
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": true
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": false
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": false
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        },
+        {
+          "href": "/todos/create",
+          "text": "New todo",
+          "locator": {
+            "strategy": "role",
+            "value": "link:New todo"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos",
+          "text": "Reset",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Reset"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos/13/edit",
+          "text": "Edit",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Edit"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos/14/edit",
+          "text": "Edit",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Edit"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos/15/edit",
+          "text": "Edit",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Edit"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos/16/edit",
+          "text": "Edit",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Edit"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos/17/edit",
+          "text": "Edit",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Edit"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos/18/edit",
+          "text": "Edit",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Edit"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos/19/edit",
+          "text": "Edit",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Edit"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos/20/edit",
+          "text": "Edit",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Edit"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos/21/edit",
+          "text": "Edit",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Edit"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos/22/edit",
+          "text": "Edit",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Edit"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos?page=2",
+          "text": "Next",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Next"
+          },
+          "visible": false
+        },
+        {
+          "href": "/todos?page=2",
+          "text": "2",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Go to page 2"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos?page=2",
+          "text": "",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Next"
+          },
+          "visible": true
+        }
+      ],
+      "buttons": [
+        {
+          "text": "User",
+          "locator": {
+            "strategy": "role",
+            "value": "button:User"
+          },
+          "visible": true
+        },
+        {
+          "text": "",
+          "locator": {
+            "strategy": "css",
+            "value": "button"
+          },
+          "visible": false
+        },
+        {
+          "text": "Apply",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Apply"
+          },
+          "visible": true
+        },
+        {
+          "text": "Mark done",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Mark done"
+          },
+          "visible": true
+        },
+        {
+          "text": "Delete",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Delete"
+          },
+          "visible": true
+        },
+        {
+          "text": "Mark undone",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Mark undone"
+          },
+          "visible": true
+        },
+        {
+          "text": "Delete",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Delete"
+          },
+          "visible": true
+        },
+        {
+          "text": "Mark done",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Mark done"
+          },
+          "visible": true
+        },
+        {
+          "text": "Delete",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Delete"
+          },
+          "visible": true
+        },
+        {
+          "text": "Mark done",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Mark done"
+          },
+          "visible": true
+        },
+        {
+          "text": "Delete",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Delete"
+          },
+          "visible": true
+        },
+        {
+          "text": "Mark undone",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Mark undone"
+          },
+          "visible": true
+        },
+        {
+          "text": "Delete",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Delete"
+          },
+          "visible": true
+        },
+        {
+          "text": "Mark done",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Mark done"
+          },
+          "visible": true
+        },
+        {
+          "text": "Delete",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Delete"
+          },
+          "visible": true
+        },
+        {
+          "text": "Mark done",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Mark done"
+          },
+          "visible": true
+        },
+        {
+          "text": "Delete",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Delete"
+          },
+          "visible": true
+        },
+        {
+          "text": "Mark done",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Mark done"
+          },
+          "visible": true
+        },
+        {
+          "text": "Delete",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Delete"
+          },
+          "visible": true
+        },
+        {
+          "text": "Mark undone",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Mark undone"
+          },
+          "visible": true
+        },
+        {
+          "text": "Delete",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Delete"
+          },
+          "visible": true
+        },
+        {
+          "text": "Mark done",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Mark done"
+          },
+          "visible": true
+        },
+        {
+          "text": "Delete",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Delete"
+          },
+          "visible": true
+        }
+      ],
+      "tables": [
+        {
+          "headers": [
+            "Title",
+            "Due date",
+            "Done",
+            "Actions"
+          ],
+          "rowCount": 10
+        }
+      ],
+      "controls": []
+    },
+    {
+      "url": "/todos/create",
+      "title": "TathyaTodo",
+      "forms": [
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/todos",
+          "method": "POST",
+          "noValidate": true,
+          "fields": [
+            {
+              "name": "contact_email",
+              "type": "email",
+              "label": "Contact email",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Contact email"
+              }
+            },
+            {
+              "name": "contact_email_confirmation",
+              "type": "email",
+              "label": "Confirm contact email",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [
+                "confirmation"
+              ],
+              "locator": {
+                "strategy": "label",
+                "value": "Confirm contact email"
+              }
+            },
+            {
+              "name": "title",
+              "type": "text",
+              "label": "Title",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Title"
+              }
+            },
+            {
+              "name": "status",
+              "type": "select",
+              "label": "Status",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": [
+                {
+                  "value": "open",
+                  "label": "Open"
+                },
+                {
+                  "value": "doing",
+                  "label": "Doing"
+                },
+                {
+                  "value": "done",
+                  "label": "Done"
+                }
+              ],
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Status"
+              }
+            },
+            {
+              "name": "body",
+              "type": "textarea",
+              "label": "Body",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Body"
+              }
+            },
+            {
+              "name": "due_date",
+              "type": "date",
+              "label": "Due date",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Due date"
+              }
+            },
+            {
+              "name": "done",
+              "type": "checkbox",
+              "label": "Done",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Done"
+              }
+            }
+          ],
+          "submit": {
+            "text": "Create",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Create"
+            }
+          },
+          "crudOp": "create"
+        }
+      ],
+      "links": [
+        {
+          "href": "/dashboard",
+          "text": "Tathya Todo",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Tathya Todo"
+          },
+          "visible": true
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": true
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": false
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": false
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        }
+      ],
+      "buttons": [
+        {
+          "text": "User",
+          "locator": {
+            "strategy": "role",
+            "value": "button:User"
+          },
+          "visible": true
+        },
+        {
+          "text": "",
+          "locator": {
+            "strategy": "css",
+            "value": "button"
+          },
+          "visible": false
+        },
+        {
+          "text": "Create",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Create"
+          },
+          "visible": true
+        }
+      ],
+      "tables": [],
+      "controls": []
+    },
+    {
+      "url": "/todos/13/edit",
+      "title": "TathyaTodo",
+      "forms": [
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/todos/13",
+          "method": "POST",
+          "noValidate": true,
+          "fields": [
+            {
+              "name": "contact_email",
+              "type": "email",
+              "label": "Contact email",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Contact email"
+              }
+            },
+            {
+              "name": "contact_email_confirmation",
+              "type": "email",
+              "label": "Confirm contact email",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [
+                "confirmation"
+              ],
+              "locator": {
+                "strategy": "label",
+                "value": "Confirm contact email"
+              }
+            },
+            {
+              "name": "title",
+              "type": "text",
+              "label": "Title",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Title"
+              }
+            },
+            {
+              "name": "status",
+              "type": "select",
+              "label": "Status",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": [
+                {
+                  "value": "open",
+                  "label": "Open"
+                },
+                {
+                  "value": "doing",
+                  "label": "Doing"
+                },
+                {
+                  "value": "done",
+                  "label": "Done"
+                }
+              ],
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Status"
+              }
+            },
+            {
+              "name": "body",
+              "type": "textarea",
+              "label": "Body",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Body"
+              }
+            },
+            {
+              "name": "due_date",
+              "type": "date",
+              "label": "Due date",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Due date"
+              }
+            },
+            {
+              "name": "done",
+              "type": "checkbox",
+              "label": "Done",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Done"
+              }
+            }
+          ],
+          "submit": {
+            "text": "Update",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Update"
+            }
+          },
+          "crudOp": "update"
+        }
+      ],
+      "links": [
+        {
+          "href": "/dashboard",
+          "text": "Tathya Todo",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Tathya Todo"
+          },
+          "visible": true
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": true
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": false
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": false
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        }
+      ],
+      "buttons": [
+        {
+          "text": "User",
+          "locator": {
+            "strategy": "role",
+            "value": "button:User"
+          },
+          "visible": true
+        },
+        {
+          "text": "",
+          "locator": {
+            "strategy": "css",
+            "value": "button"
+          },
+          "visible": false
+        },
+        {
+          "text": "Update",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Update"
+          },
+          "visible": true
+        }
+      ],
+      "tables": [],
+      "controls": []
+    },
+    {
+      "url": "/todos/14/edit",
+      "title": "TathyaTodo",
+      "forms": [
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/todos/14",
+          "method": "POST",
+          "noValidate": true,
+          "fields": [
+            {
+              "name": "contact_email",
+              "type": "email",
+              "label": "Contact email",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Contact email"
+              }
+            },
+            {
+              "name": "contact_email_confirmation",
+              "type": "email",
+              "label": "Confirm contact email",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [
+                "confirmation"
+              ],
+              "locator": {
+                "strategy": "label",
+                "value": "Confirm contact email"
+              }
+            },
+            {
+              "name": "title",
+              "type": "text",
+              "label": "Title",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Title"
+              }
+            },
+            {
+              "name": "status",
+              "type": "select",
+              "label": "Status",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": [
+                {
+                  "value": "open",
+                  "label": "Open"
+                },
+                {
+                  "value": "doing",
+                  "label": "Doing"
+                },
+                {
+                  "value": "done",
+                  "label": "Done"
+                }
+              ],
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Status"
+              }
+            },
+            {
+              "name": "body",
+              "type": "textarea",
+              "label": "Body",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Body"
+              }
+            },
+            {
+              "name": "due_date",
+              "type": "date",
+              "label": "Due date",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Due date"
+              }
+            },
+            {
+              "name": "done",
+              "type": "checkbox",
+              "label": "Done",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Done"
+              }
+            }
+          ],
+          "submit": {
+            "text": "Update",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Update"
+            }
+          },
+          "crudOp": "update"
+        }
+      ],
+      "links": [
+        {
+          "href": "/dashboard",
+          "text": "Tathya Todo",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Tathya Todo"
+          },
+          "visible": true
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": true
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": false
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": false
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        }
+      ],
+      "buttons": [
+        {
+          "text": "User",
+          "locator": {
+            "strategy": "role",
+            "value": "button:User"
+          },
+          "visible": true
+        },
+        {
+          "text": "",
+          "locator": {
+            "strategy": "css",
+            "value": "button"
+          },
+          "visible": false
+        },
+        {
+          "text": "Update",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Update"
+          },
+          "visible": true
+        }
+      ],
+      "tables": [],
+      "controls": []
+    },
+    {
+      "url": "/todos/15/edit",
+      "title": "TathyaTodo",
+      "forms": [
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/todos/15",
+          "method": "POST",
+          "noValidate": true,
+          "fields": [
+            {
+              "name": "contact_email",
+              "type": "email",
+              "label": "Contact email",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Contact email"
+              }
+            },
+            {
+              "name": "contact_email_confirmation",
+              "type": "email",
+              "label": "Confirm contact email",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [
+                "confirmation"
+              ],
+              "locator": {
+                "strategy": "label",
+                "value": "Confirm contact email"
+              }
+            },
+            {
+              "name": "title",
+              "type": "text",
+              "label": "Title",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Title"
+              }
+            },
+            {
+              "name": "status",
+              "type": "select",
+              "label": "Status",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": [
+                {
+                  "value": "open",
+                  "label": "Open"
+                },
+                {
+                  "value": "doing",
+                  "label": "Doing"
+                },
+                {
+                  "value": "done",
+                  "label": "Done"
+                }
+              ],
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Status"
+              }
+            },
+            {
+              "name": "body",
+              "type": "textarea",
+              "label": "Body",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Body"
+              }
+            },
+            {
+              "name": "due_date",
+              "type": "date",
+              "label": "Due date",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Due date"
+              }
+            },
+            {
+              "name": "done",
+              "type": "checkbox",
+              "label": "Done",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Done"
+              }
+            }
+          ],
+          "submit": {
+            "text": "Update",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Update"
+            }
+          },
+          "crudOp": "update"
+        }
+      ],
+      "links": [
+        {
+          "href": "/dashboard",
+          "text": "Tathya Todo",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Tathya Todo"
+          },
+          "visible": true
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": true
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": false
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": false
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        }
+      ],
+      "buttons": [
+        {
+          "text": "User",
+          "locator": {
+            "strategy": "role",
+            "value": "button:User"
+          },
+          "visible": true
+        },
+        {
+          "text": "",
+          "locator": {
+            "strategy": "css",
+            "value": "button"
+          },
+          "visible": false
+        },
+        {
+          "text": "Update",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Update"
+          },
+          "visible": true
+        }
+      ],
+      "tables": [],
+      "controls": []
+    },
+    {
+      "url": "/todos/16/edit",
+      "title": "TathyaTodo",
+      "forms": [
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/todos/16",
+          "method": "POST",
+          "noValidate": true,
+          "fields": [
+            {
+              "name": "contact_email",
+              "type": "email",
+              "label": "Contact email",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Contact email"
+              }
+            },
+            {
+              "name": "contact_email_confirmation",
+              "type": "email",
+              "label": "Confirm contact email",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [
+                "confirmation"
+              ],
+              "locator": {
+                "strategy": "label",
+                "value": "Confirm contact email"
+              }
+            },
+            {
+              "name": "title",
+              "type": "text",
+              "label": "Title",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Title"
+              }
+            },
+            {
+              "name": "status",
+              "type": "select",
+              "label": "Status",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": [
+                {
+                  "value": "open",
+                  "label": "Open"
+                },
+                {
+                  "value": "doing",
+                  "label": "Doing"
+                },
+                {
+                  "value": "done",
+                  "label": "Done"
+                }
+              ],
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Status"
+              }
+            },
+            {
+              "name": "body",
+              "type": "textarea",
+              "label": "Body",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Body"
+              }
+            },
+            {
+              "name": "due_date",
+              "type": "date",
+              "label": "Due date",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Due date"
+              }
+            },
+            {
+              "name": "done",
+              "type": "checkbox",
+              "label": "Done",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Done"
+              }
+            }
+          ],
+          "submit": {
+            "text": "Update",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Update"
+            }
+          },
+          "crudOp": "update"
+        }
+      ],
+      "links": [
+        {
+          "href": "/dashboard",
+          "text": "Tathya Todo",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Tathya Todo"
+          },
+          "visible": true
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": true
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": false
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": false
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        }
+      ],
+      "buttons": [
+        {
+          "text": "User",
+          "locator": {
+            "strategy": "role",
+            "value": "button:User"
+          },
+          "visible": true
+        },
+        {
+          "text": "",
+          "locator": {
+            "strategy": "css",
+            "value": "button"
+          },
+          "visible": false
+        },
+        {
+          "text": "Update",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Update"
+          },
+          "visible": true
+        }
+      ],
+      "tables": [],
+      "controls": []
+    },
+    {
+      "url": "/todos/17/edit",
+      "title": "TathyaTodo",
+      "forms": [
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/todos/17",
+          "method": "POST",
+          "noValidate": true,
+          "fields": [
+            {
+              "name": "contact_email",
+              "type": "email",
+              "label": "Contact email",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Contact email"
+              }
+            },
+            {
+              "name": "contact_email_confirmation",
+              "type": "email",
+              "label": "Confirm contact email",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [
+                "confirmation"
+              ],
+              "locator": {
+                "strategy": "label",
+                "value": "Confirm contact email"
+              }
+            },
+            {
+              "name": "title",
+              "type": "text",
+              "label": "Title",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Title"
+              }
+            },
+            {
+              "name": "status",
+              "type": "select",
+              "label": "Status",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": [
+                {
+                  "value": "open",
+                  "label": "Open"
+                },
+                {
+                  "value": "doing",
+                  "label": "Doing"
+                },
+                {
+                  "value": "done",
+                  "label": "Done"
+                }
+              ],
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Status"
+              }
+            },
+            {
+              "name": "body",
+              "type": "textarea",
+              "label": "Body",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Body"
+              }
+            },
+            {
+              "name": "due_date",
+              "type": "date",
+              "label": "Due date",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Due date"
+              }
+            },
+            {
+              "name": "done",
+              "type": "checkbox",
+              "label": "Done",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Done"
+              }
+            }
+          ],
+          "submit": {
+            "text": "Update",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Update"
+            }
+          },
+          "crudOp": "update"
+        }
+      ],
+      "links": [
+        {
+          "href": "/dashboard",
+          "text": "Tathya Todo",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Tathya Todo"
+          },
+          "visible": true
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": true
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": false
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": false
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        }
+      ],
+      "buttons": [
+        {
+          "text": "User",
+          "locator": {
+            "strategy": "role",
+            "value": "button:User"
+          },
+          "visible": true
+        },
+        {
+          "text": "",
+          "locator": {
+            "strategy": "css",
+            "value": "button"
+          },
+          "visible": false
+        },
+        {
+          "text": "Update",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Update"
+          },
+          "visible": true
+        }
+      ],
+      "tables": [],
+      "controls": []
+    },
+    {
+      "url": "/todos/18/edit",
+      "title": "TathyaTodo",
+      "forms": [
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/todos/18",
+          "method": "POST",
+          "noValidate": true,
+          "fields": [
+            {
+              "name": "contact_email",
+              "type": "email",
+              "label": "Contact email",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Contact email"
+              }
+            },
+            {
+              "name": "contact_email_confirmation",
+              "type": "email",
+              "label": "Confirm contact email",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [
+                "confirmation"
+              ],
+              "locator": {
+                "strategy": "label",
+                "value": "Confirm contact email"
+              }
+            },
+            {
+              "name": "title",
+              "type": "text",
+              "label": "Title",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Title"
+              }
+            },
+            {
+              "name": "status",
+              "type": "select",
+              "label": "Status",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": [
+                {
+                  "value": "open",
+                  "label": "Open"
+                },
+                {
+                  "value": "doing",
+                  "label": "Doing"
+                },
+                {
+                  "value": "done",
+                  "label": "Done"
+                }
+              ],
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Status"
+              }
+            },
+            {
+              "name": "body",
+              "type": "textarea",
+              "label": "Body",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Body"
+              }
+            },
+            {
+              "name": "due_date",
+              "type": "date",
+              "label": "Due date",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Due date"
+              }
+            },
+            {
+              "name": "done",
+              "type": "checkbox",
+              "label": "Done",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Done"
+              }
+            }
+          ],
+          "submit": {
+            "text": "Update",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Update"
+            }
+          },
+          "crudOp": "update"
+        }
+      ],
+      "links": [
+        {
+          "href": "/dashboard",
+          "text": "Tathya Todo",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Tathya Todo"
+          },
+          "visible": true
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": true
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": false
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": false
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        }
+      ],
+      "buttons": [
+        {
+          "text": "User",
+          "locator": {
+            "strategy": "role",
+            "value": "button:User"
+          },
+          "visible": true
+        },
+        {
+          "text": "",
+          "locator": {
+            "strategy": "css",
+            "value": "button"
+          },
+          "visible": false
+        },
+        {
+          "text": "Update",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Update"
+          },
+          "visible": true
+        }
+      ],
+      "tables": [],
+      "controls": []
+    },
+    {
+      "url": "/todos/19/edit",
+      "title": "TathyaTodo",
+      "forms": [
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/todos/19",
+          "method": "POST",
+          "noValidate": true,
+          "fields": [
+            {
+              "name": "contact_email",
+              "type": "email",
+              "label": "Contact email",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Contact email"
+              }
+            },
+            {
+              "name": "contact_email_confirmation",
+              "type": "email",
+              "label": "Confirm contact email",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [
+                "confirmation"
+              ],
+              "locator": {
+                "strategy": "label",
+                "value": "Confirm contact email"
+              }
+            },
+            {
+              "name": "title",
+              "type": "text",
+              "label": "Title",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Title"
+              }
+            },
+            {
+              "name": "status",
+              "type": "select",
+              "label": "Status",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": [
+                {
+                  "value": "open",
+                  "label": "Open"
+                },
+                {
+                  "value": "doing",
+                  "label": "Doing"
+                },
+                {
+                  "value": "done",
+                  "label": "Done"
+                }
+              ],
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Status"
+              }
+            },
+            {
+              "name": "body",
+              "type": "textarea",
+              "label": "Body",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Body"
+              }
+            },
+            {
+              "name": "due_date",
+              "type": "date",
+              "label": "Due date",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Due date"
+              }
+            },
+            {
+              "name": "done",
+              "type": "checkbox",
+              "label": "Done",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Done"
+              }
+            }
+          ],
+          "submit": {
+            "text": "Update",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Update"
+            }
+          },
+          "crudOp": "update"
+        }
+      ],
+      "links": [
+        {
+          "href": "/dashboard",
+          "text": "Tathya Todo",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Tathya Todo"
+          },
+          "visible": true
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": true
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": false
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": false
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        }
+      ],
+      "buttons": [
+        {
+          "text": "User",
+          "locator": {
+            "strategy": "role",
+            "value": "button:User"
+          },
+          "visible": true
+        },
+        {
+          "text": "",
+          "locator": {
+            "strategy": "css",
+            "value": "button"
+          },
+          "visible": false
+        },
+        {
+          "text": "Update",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Update"
+          },
+          "visible": true
+        }
+      ],
+      "tables": [],
+      "controls": []
+    },
+    {
+      "url": "/todos/20/edit",
+      "title": "TathyaTodo",
+      "forms": [
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/todos/20",
+          "method": "POST",
+          "noValidate": true,
+          "fields": [
+            {
+              "name": "contact_email",
+              "type": "email",
+              "label": "Contact email",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Contact email"
+              }
+            },
+            {
+              "name": "contact_email_confirmation",
+              "type": "email",
+              "label": "Confirm contact email",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [
+                "confirmation"
+              ],
+              "locator": {
+                "strategy": "label",
+                "value": "Confirm contact email"
+              }
+            },
+            {
+              "name": "title",
+              "type": "text",
+              "label": "Title",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Title"
+              }
+            },
+            {
+              "name": "status",
+              "type": "select",
+              "label": "Status",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": [
+                {
+                  "value": "open",
+                  "label": "Open"
+                },
+                {
+                  "value": "doing",
+                  "label": "Doing"
+                },
+                {
+                  "value": "done",
+                  "label": "Done"
+                }
+              ],
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Status"
+              }
+            },
+            {
+              "name": "body",
+              "type": "textarea",
+              "label": "Body",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Body"
+              }
+            },
+            {
+              "name": "due_date",
+              "type": "date",
+              "label": "Due date",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Due date"
+              }
+            },
+            {
+              "name": "done",
+              "type": "checkbox",
+              "label": "Done",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Done"
+              }
+            }
+          ],
+          "submit": {
+            "text": "Update",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Update"
+            }
+          },
+          "crudOp": "update"
+        }
+      ],
+      "links": [
+        {
+          "href": "/dashboard",
+          "text": "Tathya Todo",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Tathya Todo"
+          },
+          "visible": true
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": true
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": false
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": false
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        }
+      ],
+      "buttons": [
+        {
+          "text": "User",
+          "locator": {
+            "strategy": "role",
+            "value": "button:User"
+          },
+          "visible": true
+        },
+        {
+          "text": "",
+          "locator": {
+            "strategy": "css",
+            "value": "button"
+          },
+          "visible": false
+        },
+        {
+          "text": "Update",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Update"
+          },
+          "visible": true
+        }
+      ],
+      "tables": [],
+      "controls": []
+    },
+    {
+      "url": "/todos/21/edit",
+      "title": "TathyaTodo",
+      "forms": [
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/todos/21",
+          "method": "POST",
+          "noValidate": true,
+          "fields": [
+            {
+              "name": "contact_email",
+              "type": "email",
+              "label": "Contact email",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Contact email"
+              }
+            },
+            {
+              "name": "contact_email_confirmation",
+              "type": "email",
+              "label": "Confirm contact email",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [
+                "confirmation"
+              ],
+              "locator": {
+                "strategy": "label",
+                "value": "Confirm contact email"
+              }
+            },
+            {
+              "name": "title",
+              "type": "text",
+              "label": "Title",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Title"
+              }
+            },
+            {
+              "name": "status",
+              "type": "select",
+              "label": "Status",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": [
+                {
+                  "value": "open",
+                  "label": "Open"
+                },
+                {
+                  "value": "doing",
+                  "label": "Doing"
+                },
+                {
+                  "value": "done",
+                  "label": "Done"
+                }
+              ],
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Status"
+              }
+            },
+            {
+              "name": "body",
+              "type": "textarea",
+              "label": "Body",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Body"
+              }
+            },
+            {
+              "name": "due_date",
+              "type": "date",
+              "label": "Due date",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Due date"
+              }
+            },
+            {
+              "name": "done",
+              "type": "checkbox",
+              "label": "Done",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Done"
+              }
+            }
+          ],
+          "submit": {
+            "text": "Update",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Update"
+            }
+          },
+          "crudOp": "update"
+        }
+      ],
+      "links": [
+        {
+          "href": "/dashboard",
+          "text": "Tathya Todo",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Tathya Todo"
+          },
+          "visible": true
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": true
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": false
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": false
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        }
+      ],
+      "buttons": [
+        {
+          "text": "User",
+          "locator": {
+            "strategy": "role",
+            "value": "button:User"
+          },
+          "visible": true
+        },
+        {
+          "text": "",
+          "locator": {
+            "strategy": "css",
+            "value": "button"
+          },
+          "visible": false
+        },
+        {
+          "text": "Update",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Update"
+          },
+          "visible": true
+        }
+      ],
+      "tables": [],
+      "controls": []
+    },
+    {
+      "url": "/todos/22/edit",
+      "title": "TathyaTodo",
+      "forms": [
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/todos/22",
+          "method": "POST",
+          "noValidate": true,
+          "fields": [
+            {
+              "name": "contact_email",
+              "type": "email",
+              "label": "Contact email",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Contact email"
+              }
+            },
+            {
+              "name": "contact_email_confirmation",
+              "type": "email",
+              "label": "Confirm contact email",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [
+                "confirmation"
+              ],
+              "locator": {
+                "strategy": "label",
+                "value": "Confirm contact email"
+              }
+            },
+            {
+              "name": "title",
+              "type": "text",
+              "label": "Title",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Title"
+              }
+            },
+            {
+              "name": "status",
+              "type": "select",
+              "label": "Status",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": [
+                {
+                  "value": "open",
+                  "label": "Open"
+                },
+                {
+                  "value": "doing",
+                  "label": "Doing"
+                },
+                {
+                  "value": "done",
+                  "label": "Done"
+                }
+              ],
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Status"
+              }
+            },
+            {
+              "name": "body",
+              "type": "textarea",
+              "label": "Body",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Body"
+              }
+            },
+            {
+              "name": "due_date",
+              "type": "date",
+              "label": "Due date",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Due date"
+              }
+            },
+            {
+              "name": "done",
+              "type": "checkbox",
+              "label": "Done",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Done"
+              }
+            }
+          ],
+          "submit": {
+            "text": "Update",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Update"
+            }
+          },
+          "crudOp": "update"
+        }
+      ],
+      "links": [
+        {
+          "href": "/dashboard",
+          "text": "Tathya Todo",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Tathya Todo"
+          },
+          "visible": true
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": true
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": false
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": false
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        }
+      ],
+      "buttons": [
+        {
+          "text": "User",
+          "locator": {
+            "strategy": "role",
+            "value": "button:User"
+          },
+          "visible": true
+        },
+        {
+          "text": "",
+          "locator": {
+            "strategy": "css",
+            "value": "button"
+          },
+          "visible": false
+        },
+        {
+          "text": "Update",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Update"
+          },
+          "visible": true
+        }
+      ],
+      "tables": [],
+      "controls": []
+    },
+    {
+      "url": "/todos?page=2",
+      "title": "TathyaTodo",
+      "forms": [
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/todos",
+          "method": "GET",
+          "noValidate": false,
+          "fields": [
+            {
+              "name": "search",
+              "type": "search",
+              "label": "Search todos",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Search todos"
+              }
+            },
+            {
+              "name": "status",
+              "type": "select",
+              "label": "Filter",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": [
+                {
+                  "value": "all",
+                  "label": "All"
+                },
+                {
+                  "value": "undone",
+                  "label": "Undone"
+                },
+                {
+                  "value": "done",
+                  "label": "Done"
+                }
+              ],
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Filter"
+              }
+            }
+          ],
+          "submit": {
+            "text": "Apply",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Apply"
+            }
+          },
+          "crudOp": "unknown"
+        },
+        {
+          "action": "/todos/23/toggle",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Mark done",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Mark done"
+            }
+          },
+          "crudOp": "update"
+        },
+        {
+          "action": "/todos/23",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Delete",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Delete"
+            }
+          },
+          "crudOp": "delete"
+        },
+        {
+          "action": "/todos/24/toggle",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Mark done",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Mark done"
+            }
+          },
+          "crudOp": "update"
+        },
+        {
+          "action": "/todos/24",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Delete",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Delete"
+            }
+          },
+          "crudOp": "delete"
+        }
+      ],
+      "links": [
+        {
+          "href": "/dashboard",
+          "text": "Tathya Todo",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Tathya Todo"
+          },
+          "visible": true
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": true
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": false
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": false
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        },
+        {
+          "href": "/todos/create",
+          "text": "New todo",
+          "locator": {
+            "strategy": "role",
+            "value": "link:New todo"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos",
+          "text": "Reset",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Reset"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos/23/edit",
+          "text": "Edit",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Edit"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos/24/edit",
+          "text": "Edit",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Edit"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos?page=1",
+          "text": "Previous",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Previous"
+          },
+          "visible": false
+        },
+        {
+          "href": "/todos?page=1",
+          "text": "",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Previous"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos?page=1",
+          "text": "1",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Go to page 1"
+          },
+          "visible": true
+        }
+      ],
+      "buttons": [
+        {
+          "text": "User",
+          "locator": {
+            "strategy": "role",
+            "value": "button:User"
+          },
+          "visible": true
+        },
+        {
+          "text": "",
+          "locator": {
+            "strategy": "css",
+            "value": "button"
+          },
+          "visible": false
+        },
+        {
+          "text": "Apply",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Apply"
+          },
+          "visible": true
+        },
+        {
+          "text": "Mark done",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Mark done"
+          },
+          "visible": true
+        },
+        {
+          "text": "Delete",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Delete"
+          },
+          "visible": true
+        },
+        {
+          "text": "Mark done",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Mark done"
+          },
+          "visible": true
+        },
+        {
+          "text": "Delete",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Delete"
+          },
+          "visible": true
+        }
+      ],
+      "tables": [
+        {
+          "headers": [
+            "Title",
+            "Due date",
+            "Done",
+            "Actions"
+          ],
+          "rowCount": 2
+        }
+      ],
+      "controls": []
+    },
+    {
+      "url": "/todos/23/edit",
+      "title": "TathyaTodo",
+      "forms": [
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/todos/23",
+          "method": "POST",
+          "noValidate": true,
+          "fields": [
+            {
+              "name": "contact_email",
+              "type": "email",
+              "label": "Contact email",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Contact email"
+              }
+            },
+            {
+              "name": "contact_email_confirmation",
+              "type": "email",
+              "label": "Confirm contact email",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [
+                "confirmation"
+              ],
+              "locator": {
+                "strategy": "label",
+                "value": "Confirm contact email"
+              }
+            },
+            {
+              "name": "title",
+              "type": "text",
+              "label": "Title",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Title"
+              }
+            },
+            {
+              "name": "status",
+              "type": "select",
+              "label": "Status",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": [
+                {
+                  "value": "open",
+                  "label": "Open"
+                },
+                {
+                  "value": "doing",
+                  "label": "Doing"
+                },
+                {
+                  "value": "done",
+                  "label": "Done"
+                }
+              ],
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Status"
+              }
+            },
+            {
+              "name": "body",
+              "type": "textarea",
+              "label": "Body",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Body"
+              }
+            },
+            {
+              "name": "due_date",
+              "type": "date",
+              "label": "Due date",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Due date"
+              }
+            },
+            {
+              "name": "done",
+              "type": "checkbox",
+              "label": "Done",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Done"
+              }
+            }
+          ],
+          "submit": {
+            "text": "Update",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Update"
+            }
+          },
+          "crudOp": "update"
+        }
+      ],
+      "links": [
+        {
+          "href": "/dashboard",
+          "text": "Tathya Todo",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Tathya Todo"
+          },
+          "visible": true
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": true
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": false
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": false
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        }
+      ],
+      "buttons": [
+        {
+          "text": "User",
+          "locator": {
+            "strategy": "role",
+            "value": "button:User"
+          },
+          "visible": true
+        },
+        {
+          "text": "",
+          "locator": {
+            "strategy": "css",
+            "value": "button"
+          },
+          "visible": false
+        },
+        {
+          "text": "Update",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Update"
+          },
+          "visible": true
+        }
+      ],
+      "tables": [],
+      "controls": []
+    },
+    {
+      "url": "/todos/24/edit",
+      "title": "TathyaTodo",
+      "forms": [
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/todos/24",
+          "method": "POST",
+          "noValidate": true,
+          "fields": [
+            {
+              "name": "contact_email",
+              "type": "email",
+              "label": "Contact email",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Contact email"
+              }
+            },
+            {
+              "name": "contact_email_confirmation",
+              "type": "email",
+              "label": "Confirm contact email",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [
+                "confirmation"
+              ],
+              "locator": {
+                "strategy": "label",
+                "value": "Confirm contact email"
+              }
+            },
+            {
+              "name": "title",
+              "type": "text",
+              "label": "Title",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Title"
+              }
+            },
+            {
+              "name": "status",
+              "type": "select",
+              "label": "Status",
+              "required": true,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": [
+                {
+                  "value": "open",
+                  "label": "Open"
+                },
+                {
+                  "value": "doing",
+                  "label": "Doing"
+                },
+                {
+                  "value": "done",
+                  "label": "Done"
+                }
+              ],
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Status"
+              }
+            },
+            {
+              "name": "body",
+              "type": "textarea",
+              "label": "Body",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Body"
+              }
+            },
+            {
+              "name": "due_date",
+              "type": "date",
+              "label": "Due date",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Due date"
+              }
+            },
+            {
+              "name": "done",
+              "type": "checkbox",
+              "label": "Done",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Done"
+              }
+            }
+          ],
+          "submit": {
+            "text": "Update",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Update"
+            }
+          },
+          "crudOp": "update"
+        }
+      ],
+      "links": [
+        {
+          "href": "/dashboard",
+          "text": "Tathya Todo",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Tathya Todo"
+          },
+          "visible": true
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": true
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": false
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": false
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        }
+      ],
+      "buttons": [
+        {
+          "text": "User",
+          "locator": {
+            "strategy": "role",
+            "value": "button:User"
+          },
+          "visible": true
+        },
+        {
+          "text": "",
+          "locator": {
+            "strategy": "css",
+            "value": "button"
+          },
+          "visible": false
+        },
+        {
+          "text": "Update",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Update"
+          },
+          "visible": true
+        }
+      ],
+      "tables": [],
+      "controls": []
+    },
+    {
+      "url": "/todos?page=1",
+      "title": "TathyaTodo",
+      "forms": [
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/logout",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": null,
+            "locator": {
+              "strategy": "css",
+              "value": "button[type=\"submit\"]"
+            }
+          },
+          "crudOp": "logout"
+        },
+        {
+          "action": "/todos",
+          "method": "GET",
+          "noValidate": false,
+          "fields": [
+            {
+              "name": "search",
+              "type": "search",
+              "label": "Search todos",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": 255,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Search todos"
+              }
+            },
+            {
+              "name": "status",
+              "type": "select",
+              "label": "Filter",
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": [
+                {
+                  "value": "all",
+                  "label": "All"
+                },
+                {
+                  "value": "undone",
+                  "label": "Undone"
+                },
+                {
+                  "value": "done",
+                  "label": "Done"
+                }
+              ],
+              "nameHints": [],
+              "locator": {
+                "strategy": "label",
+                "value": "Filter"
+              }
+            }
+          ],
+          "submit": {
+            "text": "Apply",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Apply"
+            }
+          },
+          "crudOp": "unknown"
+        },
+        {
+          "action": "/todos/13/toggle",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Mark done",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Mark done"
+            }
+          },
+          "crudOp": "update"
+        },
+        {
+          "action": "/todos/13",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Delete",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Delete"
+            }
+          },
+          "crudOp": "delete"
+        },
+        {
+          "action": "/todos/14/toggle",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Mark undone",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Mark undone"
+            }
+          },
+          "crudOp": "update"
+        },
+        {
+          "action": "/todos/14",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Delete",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Delete"
+            }
+          },
+          "crudOp": "delete"
+        },
+        {
+          "action": "/todos/15/toggle",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Mark done",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Mark done"
+            }
+          },
+          "crudOp": "update"
+        },
+        {
+          "action": "/todos/15",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Delete",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Delete"
+            }
+          },
+          "crudOp": "delete"
+        },
+        {
+          "action": "/todos/16/toggle",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Mark done",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Mark done"
+            }
+          },
+          "crudOp": "update"
+        },
+        {
+          "action": "/todos/16",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Delete",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Delete"
+            }
+          },
+          "crudOp": "delete"
+        },
+        {
+          "action": "/todos/17/toggle",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Mark undone",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Mark undone"
+            }
+          },
+          "crudOp": "update"
+        },
+        {
+          "action": "/todos/17",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Delete",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Delete"
+            }
+          },
+          "crudOp": "delete"
+        },
+        {
+          "action": "/todos/18/toggle",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Mark done",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Mark done"
+            }
+          },
+          "crudOp": "update"
+        },
+        {
+          "action": "/todos/18",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Delete",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Delete"
+            }
+          },
+          "crudOp": "delete"
+        },
+        {
+          "action": "/todos/19/toggle",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Mark done",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Mark done"
+            }
+          },
+          "crudOp": "update"
+        },
+        {
+          "action": "/todos/19",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Delete",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Delete"
+            }
+          },
+          "crudOp": "delete"
+        },
+        {
+          "action": "/todos/20/toggle",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Mark done",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Mark done"
+            }
+          },
+          "crudOp": "update"
+        },
+        {
+          "action": "/todos/20",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Delete",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Delete"
+            }
+          },
+          "crudOp": "delete"
+        },
+        {
+          "action": "/todos/21/toggle",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Mark undone",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Mark undone"
+            }
+          },
+          "crudOp": "update"
+        },
+        {
+          "action": "/todos/21",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Delete",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Delete"
+            }
+          },
+          "crudOp": "delete"
+        },
+        {
+          "action": "/todos/22/toggle",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Mark done",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Mark done"
+            }
+          },
+          "crudOp": "update"
+        },
+        {
+          "action": "/todos/22",
+          "method": "POST",
+          "noValidate": false,
+          "fields": [],
+          "submit": {
+            "text": "Delete",
+            "locator": {
+              "strategy": "role",
+              "value": "button:Delete"
+            }
+          },
+          "crudOp": "delete"
+        }
+      ],
+      "links": [
+        {
+          "href": "/dashboard",
+          "text": "Tathya Todo",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Tathya Todo"
+          },
+          "visible": true
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": true
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        },
+        {
+          "href": "/dashboard",
+          "text": "Dashboard",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dashboard"
+          },
+          "visible": false
+        },
+        {
+          "href": "/todos",
+          "text": "Todos",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Todos"
+          },
+          "visible": false
+        },
+        {
+          "href": "/logout",
+          "text": "Log Out",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Log Out"
+          },
+          "visible": false
+        },
+        {
+          "href": "/todos/create",
+          "text": "New todo",
+          "locator": {
+            "strategy": "role",
+            "value": "link:New todo"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos",
+          "text": "Reset",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Reset"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos/13/edit",
+          "text": "Edit",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Edit"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos/14/edit",
+          "text": "Edit",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Edit"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos/15/edit",
+          "text": "Edit",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Edit"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos/16/edit",
+          "text": "Edit",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Edit"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos/17/edit",
+          "text": "Edit",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Edit"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos/18/edit",
+          "text": "Edit",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Edit"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos/19/edit",
+          "text": "Edit",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Edit"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos/20/edit",
+          "text": "Edit",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Edit"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos/21/edit",
+          "text": "Edit",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Edit"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos/22/edit",
+          "text": "Edit",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Edit"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos?page=2",
+          "text": "Next",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Next"
+          },
+          "visible": false
+        },
+        {
+          "href": "/todos?page=2",
+          "text": "2",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Go to page 2"
+          },
+          "visible": true
+        },
+        {
+          "href": "/todos?page=2",
+          "text": "",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Next"
+          },
+          "visible": true
+        }
+      ],
+      "buttons": [
+        {
+          "text": "User",
+          "locator": {
+            "strategy": "role",
+            "value": "button:User"
+          },
+          "visible": true
+        },
+        {
+          "text": "",
+          "locator": {
+            "strategy": "css",
+            "value": "button"
+          },
+          "visible": false
+        },
+        {
+          "text": "Apply",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Apply"
+          },
+          "visible": true
+        },
+        {
+          "text": "Mark done",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Mark done"
+          },
+          "visible": true
+        },
+        {
+          "text": "Delete",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Delete"
+          },
+          "visible": true
+        },
+        {
+          "text": "Mark undone",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Mark undone"
+          },
+          "visible": true
+        },
+        {
+          "text": "Delete",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Delete"
+          },
+          "visible": true
+        },
+        {
+          "text": "Mark done",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Mark done"
+          },
+          "visible": true
+        },
+        {
+          "text": "Delete",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Delete"
+          },
+          "visible": true
+        },
+        {
+          "text": "Mark done",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Mark done"
+          },
+          "visible": true
+        },
+        {
+          "text": "Delete",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Delete"
+          },
+          "visible": true
+        },
+        {
+          "text": "Mark undone",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Mark undone"
+          },
+          "visible": true
+        },
+        {
+          "text": "Delete",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Delete"
+          },
+          "visible": true
+        },
+        {
+          "text": "Mark done",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Mark done"
+          },
+          "visible": true
+        },
+        {
+          "text": "Delete",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Delete"
+          },
+          "visible": true
+        },
+        {
+          "text": "Mark done",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Mark done"
+          },
+          "visible": true
+        },
+        {
+          "text": "Delete",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Delete"
+          },
+          "visible": true
+        },
+        {
+          "text": "Mark done",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Mark done"
+          },
+          "visible": true
+        },
+        {
+          "text": "Delete",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Delete"
+          },
+          "visible": true
+        },
+        {
+          "text": "Mark undone",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Mark undone"
+          },
+          "visible": true
+        },
+        {
+          "text": "Delete",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Delete"
+          },
+          "visible": true
+        },
+        {
+          "text": "Mark done",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Mark done"
+          },
+          "visible": true
+        },
+        {
+          "text": "Delete",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Delete"
+          },
+          "visible": true
+        }
+      ],
+      "tables": [
+        {
+          "headers": [
+            "Title",
+            "Due date",
+            "Done",
+            "Actions"
+          ],
+          "rowCount": 10
+        }
+      ],
+      "controls": []
+    }
+  ]
+}

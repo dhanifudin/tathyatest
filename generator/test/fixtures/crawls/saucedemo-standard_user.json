@@ -1,0 +1,573 @@
+{
+  "baseUrl": "https://www.saucedemo.com",
+  "schemaVersion": 2,
+  "role": "standard_user",
+  "crawledAt": "2026-10-11T21:57:30.680Z",
+  "pages": [
+    {
+      "url": "/inventory.html",
+      "title": "Swag Labs",
+      "forms": [],
+      "links": [
+        {
+          "href": "/inventory.html",
+          "text": "All Items",
+          "locator": {
+            "strategy": "role",
+            "value": "link:All Items"
+          },
+          "visible": true
+        },
+        {
+          "href": "/inventory.html",
+          "text": "Dynamic Catalog",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dynamic Catalog"
+          },
+          "visible": true
+        },
+        {
+          "href": "/inventory.html",
+          "text": "Logout",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Logout"
+          },
+          "visible": true
+        },
+        {
+          "href": "/inventory.html",
+          "text": "Reset App State",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Reset App State"
+          },
+          "visible": true
+        },
+        {
+          "href": "/inventory.html",
+          "text": "",
+          "locator": {
+            "strategy": "role",
+            "value": "link:View details for Sauce Labs Backpack"
+          },
+          "visible": true
+        },
+        {
+          "href": "/inventory.html",
+          "text": "Sauce Labs Backpack",
+          "locator": {
+            "strategy": "role",
+            "value": "link:View details for Sauce Labs Backpack"
+          },
+          "visible": true
+        },
+        {
+          "href": "/inventory.html",
+          "text": "",
+          "locator": {
+            "strategy": "role",
+            "value": "link:View details for Sauce Labs Bike Light"
+          },
+          "visible": true
+        },
+        {
+          "href": "/inventory.html",
+          "text": "Sauce Labs Bike Light",
+          "locator": {
+            "strategy": "role",
+            "value": "link:View details for Sauce Labs Bike Light"
+          },
+          "visible": true
+        },
+        {
+          "href": "/inventory.html",
+          "text": "",
+          "locator": {
+            "strategy": "role",
+            "value": "link:View details for Sauce Labs Bolt T-Shirt"
+          },
+          "visible": true
+        },
+        {
+          "href": "/inventory.html",
+          "text": "Sauce Labs Bolt T-Shirt",
+          "locator": {
+            "strategy": "role",
+            "value": "link:View details for Sauce Labs Bolt T-Shirt"
+          },
+          "visible": true
+        },
+        {
+          "href": "/inventory.html",
+          "text": "",
+          "locator": {
+            "strategy": "role",
+            "value": "link:View details for Sauce Labs Fleece Jacket"
+          },
+          "visible": true
+        },
+        {
+          "href": "/inventory.html",
+          "text": "Sauce Labs Fleece Jacket",
+          "locator": {
+            "strategy": "role",
+            "value": "link:View details for Sauce Labs Fleece Jacket"
+          },
+          "visible": true
+        },
+        {
+          "href": "/inventory.html",
+          "text": "",
+          "locator": {
+            "strategy": "role",
+            "value": "link:View details for Sauce Labs Onesie"
+          },
+          "visible": true
+        },
+        {
+          "href": "/inventory.html",
+          "text": "Sauce Labs Onesie",
+          "locator": {
+            "strategy": "role",
+            "value": "link:View details for Sauce Labs Onesie"
+          },
+          "visible": true
+        },
+        {
+          "href": "/inventory.html",
+          "text": "",
+          "locator": {
+            "strategy": "role",
+            "value": "link:View details for Test.allTheThings() T-Shirt (Red)"
+          },
+          "visible": true
+        },
+        {
+          "href": "/inventory.html",
+          "text": "Test.allTheThings() T-Shirt (Red)",
+          "locator": {
+            "strategy": "role",
+            "value": "link:View details for Test.allTheThings() T-Shirt (Red)"
+          },
+          "visible": true
+        }
+      ],
+      "buttons": [
+        {
+          "text": "Open Menu",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Open Menu"
+          },
+          "visible": true
+        },
+        {
+          "text": "Close Menu",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Close Menu"
+          },
+          "visible": true
+        },
+        {
+          "text": "Add to cart",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Add to cart"
+          },
+          "visible": true
+        },
+        {
+          "text": "Add to cart",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Add to cart"
+          },
+          "visible": true
+        },
+        {
+          "text": "Add to cart",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Add to cart"
+          },
+          "visible": true
+        },
+        {
+          "text": "Add to cart",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Add to cart"
+          },
+          "visible": true
+        },
+        {
+          "text": "Add to cart",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Add to cart"
+          },
+          "visible": true
+        },
+        {
+          "text": "Add to cart",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Add to cart"
+          },
+          "visible": true
+        }
+      ],
+      "tables": [],
+      "controls": [
+        {
+          "kind": "select",
+          "text": "Name (A to Z)Name (Z to A)Price (low to high)Price (high to low)",
+          "options": [
+            {
+              "value": "az",
+              "label": "Name (A to Z)"
+            },
+            {
+              "value": "za",
+              "label": "Name (Z to A)"
+            },
+            {
+              "value": "lohi",
+              "label": "Price (low to high)"
+            },
+            {
+              "value": "hilo",
+              "label": "Price (high to low)"
+            }
+          ],
+          "locator": {
+            "strategy": "role",
+            "value": "combobox:Sort products"
+          }
+        }
+      ]
+    },
+    {
+      "url": "/cart.html",
+      "title": "Swag Labs",
+      "forms": [],
+      "links": [
+        {
+          "href": "/cart.html",
+          "text": "All Items",
+          "locator": {
+            "strategy": "role",
+            "value": "link:All Items"
+          },
+          "visible": true
+        },
+        {
+          "href": "/cart.html",
+          "text": "Dynamic Catalog",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dynamic Catalog"
+          },
+          "visible": true
+        },
+        {
+          "href": "/cart.html",
+          "text": "Logout",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Logout"
+          },
+          "visible": true
+        },
+        {
+          "href": "/cart.html",
+          "text": "Reset App State",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Reset App State"
+          },
+          "visible": true
+        }
+      ],
+      "buttons": [
+        {
+          "text": "Open Menu",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Open Menu"
+          },
+          "visible": true
+        },
+        {
+          "text": "Close Menu",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Close Menu"
+          },
+          "visible": true
+        },
+        {
+          "text": "Continue Shopping",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Continue Shopping"
+          },
+          "visible": true
+        },
+        {
+          "text": "Checkout",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Checkout"
+          },
+          "visible": true
+        }
+      ],
+      "tables": [],
+      "controls": []
+    },
+    {
+      "url": "/checkout-step-one.html",
+      "title": "Swag Labs",
+      "forms": [
+        {
+          "action": "/checkout-step-one.html",
+          "method": "GET",
+          "noValidate": false,
+          "fields": [
+            {
+              "name": "firstName",
+              "type": "text",
+              "label": null,
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "role",
+                "value": "textbox:First Name"
+              }
+            },
+            {
+              "name": "lastName",
+              "type": "text",
+              "label": null,
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "role",
+                "value": "textbox:Last Name"
+              }
+            },
+            {
+              "name": "postalCode",
+              "type": "text",
+              "label": null,
+              "required": false,
+              "constraints": {
+                "minlength": null,
+                "maxlength": null,
+                "min": null,
+                "max": null,
+                "step": null,
+                "pattern": null,
+                "inputmode": null,
+                "accept": null
+              },
+              "options": null,
+              "nameHints": [],
+              "locator": {
+                "strategy": "role",
+                "value": "textbox:Zip/Postal Code"
+              }
+            }
+          ],
+          "submit": {
+            "text": "Continue",
+            "locator": {
+              "strategy": "id",
+              "value": "continue"
+            }
+          },
+          "crudOp": "unknown"
+        }
+      ],
+      "links": [
+        {
+          "href": "/checkout-step-one.html",
+          "text": "All Items",
+          "locator": {
+            "strategy": "role",
+            "value": "link:All Items"
+          },
+          "visible": true
+        },
+        {
+          "href": "/checkout-step-one.html",
+          "text": "Dynamic Catalog",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dynamic Catalog"
+          },
+          "visible": true
+        },
+        {
+          "href": "/checkout-step-one.html",
+          "text": "Logout",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Logout"
+          },
+          "visible": true
+        },
+        {
+          "href": "/checkout-step-one.html",
+          "text": "Reset App State",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Reset App State"
+          },
+          "visible": true
+        }
+      ],
+      "buttons": [
+        {
+          "text": "Open Menu",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Open Menu"
+          },
+          "visible": true
+        },
+        {
+          "text": "Close Menu",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Close Menu"
+          },
+          "visible": true
+        },
+        {
+          "text": "Cancel",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Cancel"
+          },
+          "visible": true
+        },
+        {
+          "text": "Continue",
+          "locator": {
+            "strategy": "id",
+            "value": "continue"
+          },
+          "visible": true
+        }
+      ],
+      "tables": [],
+      "controls": []
+    },
+    {
+      "url": "/checkout-step-two.html",
+      "title": "Swag Labs",
+      "forms": [],
+      "links": [
+        {
+          "href": "/checkout-step-two.html",
+          "text": "All Items",
+          "locator": {
+            "strategy": "role",
+            "value": "link:All Items"
+          },
+          "visible": true
+        },
+        {
+          "href": "/checkout-step-two.html",
+          "text": "Dynamic Catalog",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Dynamic Catalog"
+          },
+          "visible": true
+        },
+        {
+          "href": "/checkout-step-two.html",
+          "text": "Logout",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Logout"
+          },
+          "visible": true
+        },
+        {
+          "href": "/checkout-step-two.html",
+          "text": "Reset App State",
+          "locator": {
+            "strategy": "role",
+            "value": "link:Reset App State"
+          },
+          "visible": true
+        }
+      ],
+      "buttons": [
+        {
+          "text": "Open Menu",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Open Menu"
+          },
+          "visible": true
+        },
+        {
+          "text": "Close Menu",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Close Menu"
+          },
+          "visible": true
+        },
+        {
+          "text": "Cancel",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Cancel"
+          },
+          "visible": true
+        },
+        {
+          "text": "Finish",
+          "locator": {
+            "strategy": "role",
+            "value": "button:Finish"
+          },
+          "visible": true
+        }
+      ],
+      "tables": [],
+      "controls": []
+    }
+  ]
+}
