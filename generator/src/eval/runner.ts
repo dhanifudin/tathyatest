@@ -6,7 +6,7 @@ import { runCrawl } from '../crawl/crawl.js';
 import { assertReachable, isReachable } from '../crawl/reachability.js';
 import type { ManifestEntry } from '../generate/manifest.js';
 import { generateSuite, type GeneratedSuite } from '../pipeline.js';
-import { computeMetrics, type FaultRun, type SuiteRun, type SutCoverage, type MetricsInput } from './metrics.js';
+import { computeMetrics, type FaultRun, type SuiteRun, type SutCoverage, type MetricsInput } from './metrics/index.js';
 import { faultsForClasses, loadFaultCatalogue, type FaultSpec } from './faults.js';
 import { runPlaywrightJson } from './playwright.js';
 import { renderReportJson, renderReportMarkdown, type StackReport } from './report.js';

@@ -28,8 +28,8 @@ tests/generated/**/*.spec.ts
 tests/generated/**/*.spec.js
 tests/generated/manifest.json
 tests/generated/support/
-metrics/
-metrics-saucedemo/
+/metrics/
+/metrics-saucedemo/
 storageState/*.json
 
 case-study/*/vendor/

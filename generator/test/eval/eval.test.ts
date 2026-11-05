@@ -3,7 +3,7 @@ import { parsePlaywrightJson } from '../../src/eval/playwright.js';
 import { FAULT_CATALOGUE, faultsForClasses } from '../../src/eval/faults.js';
 import { renderReportJson, renderReportMarkdown, type StackReport } from '../../src/eval/report.js';
 import type { ManifestEntry } from '../../src/generate/manifest.js';
-import type { MetricsReport } from '../../src/eval/metrics.js';
+import type { MetricsReport } from '../../src/eval/metrics/index.js';
 
 describe('parsePlaywrightJson', () => {
   it('flattens nested suites/specs/tests into outcomes with normalized status', () => {

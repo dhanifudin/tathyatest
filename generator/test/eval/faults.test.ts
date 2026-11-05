@@ -69,7 +69,7 @@ describe('negative controls and per-fault reporting', () => {
   });
 
   it('splits detectable faults from controls in the metrics', async () => {
-    const { faultMetricsOf } = await import('../../src/eval/metrics.js');
+    const { faultMetricsOf } = await import('../../src/eval/metrics/index.js');
     const failed = [{ title: 't', project: 'p', status: 'failed' as const, durationMs: 1 }];
     const passed = [{ title: 't', project: 'p', status: 'passed' as const, durationMs: 1 }];
     const m = faultMetricsOf([

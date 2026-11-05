@@ -1,4 +1,4 @@
-import type { MetricsReport, QualitySide, Ratio } from './metrics.js';
+import type { MetricsReport, QualitySide, Ratio } from './metrics/index.js';
 
 export type StackReport = { name: string; report: MetricsReport };
 
