@@ -5,7 +5,7 @@ import type { Field } from '../crawl/model.js';
 import { locatorSource } from '../generate/locator.js';
 import { caseMeta } from '../generate/manifest.js';
 import { errorAssertionSource, gracefulAssertionSource } from '../generate/oracle.js';
-import type { TestCase } from '../generate/mapper.js';
+import type { TestCase } from '../generate/test-case.js';
 import { routeShape } from '../generate/rbac.js';
 import { GENERATED_HEADER, SUPPORT_IMPORT, SUPPORT_MODULE_PATH, supportModuleSource } from './support.js';
 import { canonicalPath } from '../util/paths.js';

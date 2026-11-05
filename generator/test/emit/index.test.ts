@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parseConfig } from '../../src/config.js';
 import { emit } from '../../src/emit/index.js';
-import type { TestCase } from '../../src/generate/mapper.js';
+import type { TestCase } from '../../src/generate/test-case.js';
 
 const cases: TestCase[] = [
   { kind: 'rbac', tier: 'positive', title: 'admin can open /todos', role: 'admin', route: '/todos', expectAllowed: true },

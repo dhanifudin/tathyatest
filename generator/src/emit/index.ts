@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { TathyaConfig } from '../config.js';
-import type { TestCase } from '../generate/mapper.js';
+import type { TestCase } from '../generate/test-case.js';
 import { buildManifest, type ManifestEntry } from '../generate/manifest.js';
 import { emitJs } from './js.js';
 import { emitTs } from './ts.js';

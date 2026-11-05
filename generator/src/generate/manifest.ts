@@ -1,4 +1,4 @@
-import { isMutating, type TestCase } from './mapper.js';
+import { isMutating, type TestCase } from './test-case.js';
 import { canonicalPath } from '../util/paths.js';
 import type { FaultClass } from '../fault-classes.js';
 

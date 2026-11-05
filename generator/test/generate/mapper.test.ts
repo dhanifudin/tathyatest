@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { isMutating, mapTestCases, navScenarioKeysForPage, type TestCase } from '../../src/generate/mapper.js';
+import { mapTestCases, navScenarioKeysForPage } from '../../src/generate/mapper.js';
+import { isMutating, type TestCase } from '../../src/generate/test-case.js';
 
 type Kind<K extends TestCase['kind']> = Extract<TestCase, { kind: K }>;
 /** Cases of one kind, narrowed so tests can read kind-specific fields without casts. */

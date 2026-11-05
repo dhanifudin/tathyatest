@@ -2,7 +2,7 @@ import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, relative } from 'node:path';
 import ts from 'typescript';
 import type { TathyaConfig } from '../config.js';
-import type { TestCase } from '../generate/mapper.js';
+import type { TestCase } from '../generate/test-case.js';
 import { emitTs } from './ts.js';
 
 /**

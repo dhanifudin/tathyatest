@@ -3,75 +3,13 @@ import type { TathyaConfig } from '../config.js';
 import { isLogoutPath } from '../crawl/crud.js';
 import { shouldIncludeCoverage } from '../config.js';
 import { routeShape, type AccessMatrix } from './rbac.js';
-import { variantsForField, validFieldValue, type FieldValue, type FieldVariant } from './fieldgen.js';
-import { canonicalPath } from '../util/paths.js';
+import { variantsForField, validFieldValue, type FieldValue } from './fieldgen.js';
+import { canonicalPath, resolveHrefPathAndSearch } from '../util/paths.js';
+import { normalizeTitleText } from '../util/text.js';
+import { type TestCase, isMutating } from './test-case.js';
+import { formTitleSignature, paginationTitle, formLabel, humanVariant, controlLabel } from './titles.js';
+import { paginationActionForControl, isPaginationCandidate } from './pagination-labels.js';
 
-export type TestCase =
-  | {
-      kind: 'auth';
-      tier: 'positive' | 'negative';
-      title: string;
-      role: string;
-      username: string;
-      password: string;
-      expectSuccess: boolean;
-      /** Present for a logout scenario: the page and form whose submit ends the session. */
-      logout?: { page: PageModel; form: Form };
-    }
-  | {
-      kind: 'form';
-      tier: 'positive' | 'negative' | 'edge';
-      title: string;
-      role: string;
-      page: PageModel;
-      form: Form;
-      targetField: Field | null;
-      variant: FieldVariant;
-      values: Record<string, FieldValue>;
-    }
-  | {
-      kind: 'interaction';
-      tier: 'positive';
-      title: string;
-      role: string;
-      page: PageModel;
-      interaction: {
-        type: 'link' | 'button' | 'select';
-        label: string;
-        locator: Locator;
-        ordinal: number;
-        href?: string;
-        /** For type === 'select': the option value to select (a representative non-empty option). */
-        optionValue?: string;
-      };
-    }
-  | {
-      kind: 'pagination';
-      tier: 'positive';
-      title: string;
-      role: string;
-      page: PageModel;
-      pagination: {
-        type: 'link' | 'button';
-        label: string;
-        locator: Locator;
-        ordinal: number;
-        href?: string;
-        action: 'first' | 'previous' | 'next' | 'last' | 'page';
-      };
-    }
-  | {
-      kind: 'rbac';
-      tier: 'positive' | 'negative';
-      title: string;
-      role: string;
-      route: string;
-      expectAllowed: boolean;
-      /** UI-level denial: a link another role gets on this page must be absent for this role. */
-      affordance?: { label: string; locator: Locator; href: string; page: PageModel };
-      /** Route inferred from REST conventions rather than crawled: a clean 404 skips, a 5xx fails. */
-      inferred?: boolean;
-    };
 
 /**
  * Variants a browser's own constraint validation blocks before the request leaves the page: on a form
@@ -373,26 +311,6 @@ function affordanceCases(crawls: CrawlOutput[]): TestCase[] {
   return cases;
 }
 
-/**
- * Whether running the case can change app data. Everything a GET can do is read-only; every
- * POST/PUT/PATCH/DELETE form (and all its validation variants), a wrong-password login (it leaves
- * auth-failure noise), and generic button clicks (they may trigger writes) are mutating.
- */
-export function isMutating(testCase: TestCase): boolean {
-  switch (testCase.kind) {
-    case 'auth':
-      return !testCase.expectSuccess || testCase.logout !== undefined;
-    case 'form':
-      return testCase.form.method !== 'GET';
-    case 'interaction':
-      if (testCase.interaction.type === 'button') return true;
-      // A logout link ends the session (Breeze renders one that submits the POST logout form).
-      return testCase.interaction.type === 'link' && isLogoutPath(testCase.interaction.href ?? '');
-    case 'pagination':
-    case 'rbac':
-      return false;
-  }
-}
 
 
 /**
@@ -620,147 +538,24 @@ function paginationCasesForPage(role: string, page: PageModel, canonicalPageUrl:
   return cases;
 }
 
-function formTitleSignature(form: Form): string {
-  const parts = [`action ${canonicalPath(form.action)}`, `method ${form.method}`];
-  const submitText = normalizeTitleText(form.submit.text);
-  if (submitText) parts.push(`submit ${submitText}`);
-  if (form.fields.length > 0) parts.push(`fields ${form.fields.map((field) => field.name).join(',')}`);
-  return `form [${parts.join('; ')}]`;
-}
 
 
 
-function paginationTitle(role: string, canonicalPageUrl: string, action: 'first' | 'previous' | 'next' | 'last' | 'page', label: string): string {
-  // Numbered labels come as "2", "Page 2", or an accessible name like "Go to page 2".
-  const number = normalizePaginationLabel(label).match(/\d+/)?.[0] ?? normalizeTitleText(label);
-  const move = action === 'page' ? `goes to page ${number}` : `goes to the ${action} page`;
-  return `${role} · ${canonicalPageUrl} · ${move}`;
-}
 
-/**
- * `"Create" form → POST /todos`, with ` #n` when the same page repeats an identical form (two
- * logout forms in a header and a drawer, say). Titles stay unique because the role, the page,
- * this label, and the field/variant phrase are all part of them.
- */
-function formLabel(form: Form, ordinal: number | null): string {
-  const submitText = normalizeTitleText(form.submit.text);
-  const label = `${submitText ? `"${submitText}" form` : 'form'} → ${form.method} ${canonicalPath(form.action)}`;
-  return ordinal === null ? label : `${label} #${ordinal}`;
-}
 
-/** The scenario phrase for one field variant, e.g. `title rejects an empty value`. */
-function humanVariant(field: Pick<Field, 'name' | 'type'>, variant: Pick<FieldVariant, 'name' | 'outcome'>): string {
-  const name = field.name;
-  switch (variant.name) {
-    case 'valid': return `${name} accepts a valid value`;
-    case 'required-empty': return `${name} rejects an empty value`;
-    case 'pattern-fail': return `${name} rejects a value that breaks its pattern`;
-    case 'minlength-minus-one': return `${name} rejects a value one character short of the minimum length`;
-    case 'maxlength-plus-one': return `${name} rejects a value one character over the maximum length`;
-    case 'maxlength-exact': return `${name} accepts a value at exactly the maximum length`;
-    case 'very-long': return `${name} survives a very long value`;
-    case 'min-minus-one': return `${name} rejects a value below the minimum`;
-    case 'max-plus-one': return `${name} rejects a value above the maximum`;
-    case 'step-misaligned': return `${name} rejects a value off the step grid`;
-    case 'accept-mismatch': return `${name} rejects a file of a type it does not accept`;
-    case 'unicode': return `${name} survives unicode input`;
-    case 'whitespace': return `${name} survives surrounding whitespace`;
-    case 'invalid-option': return `${name} rejects an option that is not offered`;
-    case 'duplicate': return `${name} rejects a duplicate value`;
-    case 'confirmation-mismatch': return `${name} rejects a mismatched confirmation`;
-    case 'optional-omitted': return `${name} can be left out`;
-    default:
-      if (variant.name.endsWith('-format')) return `${name} rejects a malformed ${variant.name.slice(0, -'-format'.length)}`;
-      return `${name} ${variant.name} (expects ${variant.outcome})`;
-  }
-}
 
-function controlLabel(text: string | null, fallback: string): string {
-  return normalizeTitleText(text) || fallback;
-}
 
-function paginationActionForControl(
-  text: string | null,
-  fallback: string,
-  href: string | undefined,
-  currentPageUrl: string,
-  baseUrl: string,
-): 'first' | 'previous' | 'next' | 'last' | 'page' | null {
-  const label = normalizePaginationLabel(text || fallback);
-  const target = href ? resolveHrefPathAndSearch(href, baseUrl) : null;
-  const current = resolveHrefPathAndSearch(currentPageUrl, baseUrl);
-  // ?page=1 is the default page: a "1" link on /todos points at the page we are already on
-  // (some paginators link the current page too) and exercises nothing.
-  if (target && current && stripDefaultPageQuery(target) === stripDefaultPageQuery(current)) return null;
-  if (isPreviousLabel(label)) return 'previous';
-  if (isNextLabel(label)) return 'next';
-  if (isFirstLabel(label)) return 'first';
-  if (isLastLabel(label)) return 'last';
-  if (isPageLabel(label)) return 'page';
-  if (target && hasPaginationQuery(target)) return 'page';
-  return null;
-}
 
-function isPaginationCandidate(text: string | null, fallback: string, href: string | undefined, currentPageUrl: string, baseUrl: string): boolean {
-  return paginationActionForControl(text, fallback, href, currentPageUrl, baseUrl) !== null;
-}
 
-function normalizePaginationLabel(text: string): string {
-  // The fallback label is a locator value ("link:Next »"); drop the role prefix. Then decode
-  // HTML entities — Laravel's stock paginator escapes its arrow into the aria-label, so the
-  // visible desktop control is literally named "Next &raquo;" — and strip arrow decoration
-  // ("Next »", "« Previous") so the action classifies, keeping pure-symbol labels ("«") intact.
-  const label = decodeEntities(normalizeTitleText(text).replace(/^(link|button|menuitem|tab):/i, '')).toLowerCase();
-  return /[a-z0-9]/.test(label) ? label.replace(/[«»‹›←→<>]/g, '').trim() : label;
-}
 
-const NAMED_ENTITIES: Record<string, string> = {
-  raquo: '»', laquo: '«', rsaquo: '›', lsaquo: '‹', rarr: '→', larr: '←', gt: '>', lt: '<', amp: '&', nbsp: ' ',
-};
 
-function decodeEntities(text: string): string {
-  return text
-    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCodePoint(Number.parseInt(hex, 16)))
-    .replace(/&#(\d+);/g, (_, dec: string) => String.fromCodePoint(Number.parseInt(dec, 10)))
-    .replace(/&([a-z]+);/gi, (match, name: string) => NAMED_ENTITIES[name.toLowerCase()] ?? match);
-}
 
-function isPreviousLabel(label: string): boolean {
-  return /^(previous|prev|older|‹|«|<|←)$/i.test(label);
-}
 
-function isNextLabel(label: string): boolean {
-  return /^(next|newer|›|»|>|→)$/i.test(label);
-}
 
-function isFirstLabel(label: string): boolean {
-  return /^(first|<<)$/i.test(label);
-}
 
-function isLastLabel(label: string): boolean {
-  return /^(last|>>)$/i.test(label);
-}
 
-function isPageLabel(label: string): boolean {
-  return /^page\s+\d+$/i.test(label) || /^\d+$/.test(label);
-}
 
-function stripDefaultPageQuery(pathAndSearch: string): string {
-  const [pathname = '/', search = ''] = pathAndSearch.split('?', 2);
-  const params = new URLSearchParams(search);
-  for (const key of [...params.keys()]) {
-    if (/^(page|p|pageNo|pageNum|pageNumber)$/i.test(key) && params.get(key) === '1') params.delete(key);
-  }
-  const query = params.toString();
-  return query ? `${pathname}?${query}` : pathname;
-}
 
-function hasPaginationQuery(targetPathAndSearch: string): boolean {
-  const query = targetPathAndSearch.split('?', 2)[1] ?? '';
-  if (!query) return false;
-  const params = new URLSearchParams(query);
-  return [...params.keys()].some((key) => /^(page|p|pageNo|pageNum|pageNumber|offset|start|cursor|after|before|limit)$/i.test(key));
-}
 
 // Full target signature used to decide whether two links/buttons are the same test
 // scenario: route shape (numeric path segments -> :id) plus every query key=value pair,
@@ -778,26 +573,12 @@ function targetShapeKey(href: string, baseUrl: string): string {
     : routeShape(pathname);
 }
 
-function resolveHrefPathAndSearch(path: string, baseUrl: string): string {
-  try {
-    const url = new URL(path, baseUrl);
-    return `${url.pathname}${url.search}`;
-  } catch {
-    const [withoutHash] = path.split('#', 1);
-    const [pathname = '/', search = ''] = withoutHash.split('?', 2);
-    return `${pathname || '/'}${search ? `?${search}` : ''}`;
-  }
-}
-
 function countBy(values: string[]): Map<string, number> {
   const counts = new Map<string, number>();
   for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
   return counts;
 }
 
-function normalizeTitleText(text: string | null): string {
-  return text?.replace(/\s+/g, ' ').trim() ?? '';
-}
 
 function buildBaseValues(form: Form, config: TathyaConfig): Record<string, FieldValue> {
   const hints = {

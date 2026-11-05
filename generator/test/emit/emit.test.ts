@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { emitJs } from '../../src/emit/js.js';
 import { emitTs, specFilesFor, specPathFor } from '../../src/emit/ts.js';
 import type { TathyaConfig } from '../../src/config.js';
-import type { TestCase } from '../../src/generate/mapper.js';
+import type { TestCase } from '../../src/generate/test-case.js';
 import { emptyPage, makeConfig, noConstraints } from '../helpers/fixtures.js';
 
 const config = makeConfig({ output: { dir: '', language: 'ts' } });

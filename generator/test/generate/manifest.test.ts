@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildManifest } from '../../src/generate/manifest.js';
-import type { TestCase } from '../../src/generate/mapper.js';
+import type { TestCase } from '../../src/generate/test-case.js';
 
 const field = {
   name: 'title',

@@ -15,3 +15,15 @@ export function stripQuery(url: string): string {
   const [head = ''] = url.split(/[?#]/, 1);
   return head;
 }
+
+/** Path plus query of a URL or path, resolved against the base URL. */
+export function resolveHrefPathAndSearch(path: string, baseUrl: string): string {
+  try {
+    const url = new URL(path, baseUrl);
+    return `${url.pathname}${url.search}`;
+  } catch {
+    const [withoutHash] = path.split('#', 1);
+    const [pathname = '/', search = ''] = withoutHash.split('?', 2);
+    return `${pathname || '/'}${search ? `?${search}` : ''}`;
+  }
+}
