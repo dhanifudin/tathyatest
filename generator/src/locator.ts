@@ -1,5 +1,5 @@
 import type { Locator } from './crawl.js';
-import { escapeAttrValue } from './util/escape.js';
+import { escapeAttrValue, escapeCssIdent } from './util/escape.js';
 
 function q(value: string): string {
   return JSON.stringify(value);
@@ -24,7 +24,7 @@ export function locatorSource(locator: Locator, scope = 'page'): string {
     case 'placeholder':
       return `${scope}.getByPlaceholder(${q(locator.value)})`;
     case 'id':
-      return `${scope}.locator(${q(`#${locator.value}`)})`;
+      return `${scope}.locator(${q(`#${escapeCssIdent(locator.value)}`)})`;
     case 'name':
       return `${scope}.locator(${q(`[name="${escapeAttrValue(locator.value)}"]`)})`;
     case 'css':

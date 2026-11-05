@@ -1,9 +1,10 @@
-import { chromium, type FullConfig, type Page } from '@playwright/test';
+import { chromium, type FullConfig } from '@playwright/test';
 import { existsSync, readFileSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import YAML from 'yaml';
-import { inferLoginControlsFromHtml, normalizeBaseUrl, type LoginLocator } from './generator/src/login.js';
+import { normalizeBaseUrl } from './generator/src/login.js';
+import { inferLoginControlsOnPage, playwrightLocator } from './generator/src/login-runtime.js';
 
 type RoleConfig = { name: string; username: string; password: string };
 type TathyaConfig = {
@@ -13,38 +14,6 @@ type TathyaConfig = {
     roles: RoleConfig[];
   };
 };
-
-function playwrightLocator(page: Page, locator: LoginLocator) {
-  switch (locator.strategy) {
-    case 'testid':
-      return page.getByTestId(locator.value);
-    case 'role': {
-      const [role, ...nameParts] = locator.value.split(':');
-      const name = nameParts.join(':');
-      return name ? page.getByRole(role as Parameters<Page['getByRole']>[0], { name }) : page.getByRole(role as Parameters<Page['getByRole']>[0]);
-    }
-    case 'label':
-      return page.getByLabel(locator.value, { exact: true });
-    case 'placeholder':
-      return page.getByPlaceholder(locator.value);
-    case 'id':
-      return page.locator(`#${cssEscape(locator.value)}`);
-    case 'name':
-      return page.locator(`[name="${cssEscape(locator.value)}"]`);
-    case 'css':
-      return page.locator(locator.value);
-  }
-}
-
-function cssEscape(value: string): string {
-  return value.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
-}
-
-async function inferLoginControlsOnPage(page: Page) {
-  await page.waitForLoadState('domcontentloaded').catch(() => undefined);
-  await page.waitForLoadState('networkidle').catch(() => undefined);
-  return inferLoginControlsFromHtml(await page.content());
-}
 
 export function loadConfig(): TathyaConfig | null {
   // Keep in sync with playwright.config.ts: TATHYA_CONFIG overrides the default config path.

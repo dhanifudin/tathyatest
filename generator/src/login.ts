@@ -1,7 +1,9 @@
 import { escapeAttrValue } from './util/escape.js';
 
-export type LoginLocatorStrategy = 'testid' | 'role' | 'label' | 'placeholder' | 'id' | 'name' | 'css';
-export type LoginLocator = { strategy: LoginLocatorStrategy; value: string };
+import type { Locator } from './crawl.js';
+
+/** A login control is located like any crawled element: one `Locator` from the priority chain. */
+export type LoginLocator = Locator;
 export type LoginControls = { username: LoginLocator; password: LoginLocator; submit: LoginLocator };
 type LoginCandidate = {
   tag: 'input' | 'button';
@@ -12,6 +14,8 @@ type LoginCandidate = {
   autocomplete: string;
   ariaLabel: string;
   dataTest: string;
+  /** Which attribute carried `dataTest`, so the generated selector names the right one. */
+  dataTestAttr: 'data-test' | 'data-testid';
   text: string;
   value: string;
   labelText: string;
@@ -53,6 +57,7 @@ function parseCandidate(tag: string, index: number, fallbackTag: 'input' | 'butt
     autocomplete: attrValue(tag, 'autocomplete'),
     ariaLabel: attrValue(tag, 'aria-label'),
     dataTest: attrValue(tag, 'data-test') || attrValue(tag, 'data-testid'),
+    dataTestAttr: attrValue(tag, 'data-test') ? 'data-test' : 'data-testid',
     text: tagName === 'button' ? stripHtml(tag.replace(/^<button\b[^>]*>|<\/button>$/gi, '')) : '',
     value: attrValue(tag, 'value'),
     labelText: '',
@@ -132,7 +137,7 @@ function locatorForCandidate(candidate: LoginCandidate | undefined, kind: 'usern
     if (kind === 'submit') return { strategy: 'css', value: 'button[type="submit"], input[type="submit"], button:not([type])' };
     return { strategy: 'name', value: kind === 'username' ? 'email' : 'password' };
   }
-  if (candidate.dataTest) return { strategy: 'css', value: `[data-test="${escapeAttrValue(candidate.dataTest)}"]` };
+  if (candidate.dataTest) return { strategy: 'css', value: `[${candidate.dataTestAttr}="${escapeAttrValue(candidate.dataTest)}"]` };
   if (candidate.labelText) return { strategy: 'label', value: candidate.labelText };
   if (candidate.placeholder) return { strategy: 'placeholder', value: candidate.placeholder };
   if (stableId(candidate.id)) return { strategy: 'id', value: candidate.id };
