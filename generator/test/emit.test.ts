@@ -6,24 +6,10 @@ import { emitJs } from '../src/emit/js.js';
 import { emitTs, specFilesFor, specPathFor } from '../src/emit/ts.js';
 import type { TathyaConfig } from '../src/config.js';
 import type { TestCase } from '../src/mapper.js';
+import { emptyPage, makeConfig, noConstraints } from './helpers/fixtures.js';
 
-const config: TathyaConfig = {
-  baseUrl: 'http://127.0.0.1:8000',
-  output: { dir: '', language: 'ts' },
-  coverage: 'all',
-  mode: 'read-write',
-  oracle: { errorSelector: '.invalid-feedback, [role=alert], .text-red-600, x-input-error p' },
-  auth: {
-    loginPath: '/login',
-    roles: [{ name: 'admin', username: 'admin@example.com', password: 'password' }],
-  },
-  crawl: { maxDepth: 3, maxPages: 100, include: [], exclude: [], inferRestRoutes: true },
-  data: { fields: {}, defaults: {}, unique: [], duplicates: {}, requiredFields: [], confirmFields: [], faker: { locale: 'en', seed: null } },
-  evaluation: { outDir: 'metrics', repeat: 1, manualBaselineSecPerCase: 300, baselineDir: 'tests/manual', faultProject: null, stacks: [], faults: { enabled: true, classes: ['validation', 'authz', 'crud', 'pagination', 'auth'] } },
-};
+const config = makeConfig({ output: { dir: '', language: 'ts' } });
 
-const emptyPage = (url: string, title: string) => ({ url, title, forms: [], links: [], buttons: [], tables: [] });
-const noConstraints = { minlength: null, maxlength: null, min: null, max: null, step: null, pattern: null, inputmode: null, accept: null };
 
 const paginationCase: TestCase = {
   kind: 'pagination',

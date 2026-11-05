@@ -9,18 +9,10 @@ function only<K extends TestCase['kind']>(cases: TestCase[], kind: K, keep: (tes
 import type { CrawlOutput } from '../src/crawl.js';
 import type { TathyaConfig } from '../src/config.js';
 import type { AccessMatrix } from '../src/rbac.js';
+import { makeConfig } from './helpers/fixtures.js';
 
-const config: TathyaConfig = {
-  baseUrl: 'http://127.0.0.1:8000',
+const config = makeConfig({
   output: { dir: '', language: 'ts' },
-  coverage: 'all',
-  mode: 'read-write',
-  oracle: { errorSelector: '.invalid-feedback, [role=alert], .text-red-600, x-input-error p' },
-  auth: {
-    loginPath: '/login',
-    roles: [{ name: 'admin', username: 'admin@example.com', password: 'password' }],
-  },
-  crawl: { maxDepth: 3, maxPages: 100, include: [], exclude: [], inferRestRoutes: true },
   data: {
     fields: { contact_email: 'contact@example.com' },
     defaults: { text: 'Sample', email: 'user@example.com', number: '1', date: '2026-06-15' },
@@ -30,8 +22,7 @@ const config: TathyaConfig = {
     confirmFields: [],
     faker: { locale: 'en', seed: 1234 },
   },
-  evaluation: { outDir: 'metrics', repeat: 1, manualBaselineSecPerCase: 300, baselineDir: 'tests/manual', faultProject: null, stacks: [], faults: { enabled: true, classes: ['validation', 'authz', 'crud', 'pagination', 'auth'] } },
-};
+});
 
 describe('mapTestCases', () => {
   it('keeps confirmation fields aligned in the base form payload', () => {

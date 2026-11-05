@@ -5,21 +5,9 @@ import { describe, expect, it, vi } from 'vitest';
 import YAML from 'yaml';
 import { crawlOutputSchema, ensureCrawls, loadCrawls, shouldRefreshCrawls } from '../src/crawl.js';
 import type { TathyaConfig } from '../src/config.js';
+import { makeConfig } from './helpers/fixtures.js';
 
-const config: TathyaConfig = {
-  baseUrl: 'http://127.0.0.1:8000',
-  output: { dir: 'tests/generated', language: 'ts' },
-  coverage: 'all',
-  mode: 'read-write',
-  oracle: { errorSelector: '.invalid-feedback, [role=alert], .text-red-600, x-input-error p' },
-  auth: {
-    loginPath: '/login',
-    roles: [{ name: 'admin', username: 'admin@example.com', password: 'password' }],
-  },
-  crawl: { maxDepth: 3, maxPages: 100, include: [], exclude: [], inferRestRoutes: true },
-  data: { fields: {}, defaults: {}, unique: [], duplicates: {}, requiredFields: [], confirmFields: [], faker: { locale: 'en', seed: null } },
-  evaluation: { outDir: 'metrics', repeat: 1, manualBaselineSecPerCase: 300, baselineDir: 'tests/manual', faultProject: null, stacks: [], faults: { enabled: true, classes: ['validation', 'authz', 'crud', 'pagination', 'auth'] } },
-};
+const config = makeConfig();
 
 describe('crawlOutputSchema', () => {
   it('back-fills controls:[] for old crawl JSON that lacks the field', () => {

@@ -1,21 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { computeMetrics, faultMetricsOf, locatorRobustnessOf, reliabilityOf, type MetricsInput } from '../src/metrics.js';
 import type { CrawlOutput } from '../src/crawl.js';
-import type { TathyaConfig } from '../src/config.js';
 import type { AccessMatrix } from '../src/rbac.js';
 import type { ManifestEntry } from '../src/manifest.js';
+import { makeConfig } from './helpers/fixtures.js';
 
-const config: TathyaConfig = {
-  baseUrl: 'http://127.0.0.1:8000',
+const config = makeConfig({
   output: { dir: '', language: 'ts' },
-  coverage: 'all',
-  mode: 'read-write',
   oracle: { errorSelector: '.text-red-600' },
   auth: { loginPath: '/login', roles: [{ name: 'admin', username: 'a', password: 'b' }, { name: 'user', username: 'c', password: 'd' }] },
-  crawl: { maxDepth: 3, maxPages: 100, include: [], exclude: [], inferRestRoutes: true },
-  data: { fields: {}, defaults: {}, unique: [], duplicates: {}, requiredFields: [], confirmFields: [], faker: { locale: 'en', seed: null } },
-  evaluation: { outDir: 'metrics', repeat: 1, manualBaselineSecPerCase: 300, baselineDir: 'tests/manual', faultProject: null, stacks: [], faults: { enabled: true, classes: ['validation', 'authz', 'crud', 'pagination', 'auth'] } },
-};
+});
 
 const crawl: CrawlOutput = {
   baseUrl: config.baseUrl, schemaVersion: 2, role: 'admin', crawledAt: '2026-06-20T00:00:00Z',
