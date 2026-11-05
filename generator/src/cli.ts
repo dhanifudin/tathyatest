@@ -1,7 +1,4 @@
-import { access } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
 import { loadConfig } from './config.js';
 import { ensureCrawls, loadCrawls, runCrawl } from './crawl.js';
@@ -10,6 +7,7 @@ import { buildAccessMatrix } from './rbac.js';
 import { mapTestCases } from './mapper.js';
 import { emit } from './emit/index.js';
 import { runEvaluation } from './eval/runner.js';
+import { resolvePlaywrightBinary, withPlaywrightNodePath } from './util/playwright-bin.js';
 
 type Config = Awaited<ReturnType<typeof loadConfig>>;
 
@@ -130,37 +128,6 @@ function runPlaywright(subcommand: 'test' | 'show-report', args: string[], confi
       })
       .catch(reject);
   });
-}
-
-async function resolvePlaywrightBinary(): Promise<string> {
-  const here = dirname(fileURLToPath(import.meta.url));
-  // Prefer the project-local installation — see eval/playwright.ts resolvePlaywrightBinary.
-  const candidates = [
-    resolve(process.cwd(), 'node_modules', '.bin', 'playwright'),
-    resolve(here, '..', 'node_modules', '.bin', 'playwright'),
-  ];
-
-  for (const candidate of candidates) {
-    try {
-      await access(candidate);
-      return candidate;
-    } catch {
-      // Try the next conventional location.
-    }
-  }
-
-  throw new Error('Could not find the installed Playwright binary. Re-run `make install`.');
-}
-
-function withPlaywrightNodePath(): NodeJS.ProcessEnv {
-  const here = dirname(fileURLToPath(import.meta.url));
-  const playwrightNodeModules = resolve(here, '..', 'node_modules');
-  const currentNodePath = process.env.NODE_PATH ?? '';
-  const nodePath = [playwrightNodeModules, currentNodePath].filter(Boolean).join(process.platform === 'win32' ? ';' : ':');
-  return {
-    ...process.env,
-    NODE_PATH: nodePath,
-  };
 }
 
 async function generateFromCrawls(config: Config): Promise<void> {

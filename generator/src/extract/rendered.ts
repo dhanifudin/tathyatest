@@ -419,7 +419,6 @@ async function enrichAccessibility(page: Page, model: DomPageModel): Promise<Dom
   return model;
 }
 
-type SnapshotNode = { role?: string; name?: string; children?: SnapshotNode[] };
 type AccessibleNode = { role: string; name: string };
 
 function parseAriaSnapshot(snapshot: string): AccessibleNode[] {
