@@ -87,7 +87,7 @@ describe('report rendering', () => {
     const md = renderReportMarkdown([{ name: 'blade', report: fakeReport() }]);
     expect(md).toContain('## Stack: blade');
     expect(md).toContain('RQ3 — Fault-detection effectiveness');
-    expect(md).toContain('Mutation score: 87.5%');
+    expect(md).toContain('Fault-detection rate (all faults): 87.5%');
     expect(md).toContain('Cross-browser agreement (Fleiss κ): 0.940');
     expect(md).not.toContain('## Cross-stack comparison'); // single stack
   });
@@ -99,7 +99,7 @@ describe('report rendering', () => {
     ];
     const md = renderReportMarkdown(stacks);
     expect(md).toContain('## Cross-stack comparison');
-    expect(md).toContain('| Mutation score | 87.5% | 75.0% |');
+    expect(md).toContain('| Fault-detection rate | 87.5% | 75.0% |');
     const json = renderReportJson(stacks) as { crossStack: unknown[] };
     expect(json.crossStack).toHaveLength(2);
   });

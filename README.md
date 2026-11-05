@@ -9,102 +9,63 @@ validation variants are keyword rules over the rendered DOM (listed below), and 
 endpoint a generated test ever calls is the optional `hooks.reset`. The Laravel Blade/Inertia apps
 under `case-study/` and SauceDemo are evaluation subjects, not the target.
 
+## Naming
+
+The product is **TathyaTest**; its command-line tool is `tt`; configuration files and environment
+variables use the prefix `tathya` (`tathya.config.yaml`, `TATHYA_CONFIG`). The case studies are called
+`blade` and `inertia` in stack names and baseline folders; their config file is `tathya.inertia-react.config.yaml`.
+
 ## Layout
 
-- `generator/`: TypeScript CLI, Playwright crawler, and test generator, exposed as `tt`.
-- `case-study/todo-blade/`: Laravel Breeze Blade todo target.
-- `case-study/todo-inertia-react/`: Laravel Breeze React/Inertia TypeScript todo target.
-- `tathya.blade.config.example.yaml`: Blade case-study config reference.
-- `tathya.inertia-react.config.example.yaml`: Inertia case-study config reference.
-- `tathya.config.example.yaml`: canonical generic config reference.
-- `tathya.saucedemo.config.yaml`: SauceDemo (external React SPA) evaluation subject.
-- `tests/baseline-public/saucedemo/`: Three independent public Playwright suites (git submodules)
-  used as the human-written baseline for `tt eval` EQ5. See `SOURCES.md` inside for attribution.
-- `crawl/` and `tests/generated/`: runtime outputs, intentionally ignored by git.
+- `generator/`: TypeScript CLI, Playwright crawler, and test generator, exposed as `tt`
+  (`src/{cli,crawl,auth,generate,emit,eval,util}`, tests mirror `src/`).
+- `case-study/todo-blade/`, `case-study/todo-inertia-react/`: Laravel Breeze targets with the evaluation harness.
+- `tathya.blade.config.yaml`, `tathya.inertia-react.config.yaml`, `tathya.saucedemo.config.yaml`: ready-to-use
+  configs for the three evaluation subjects (public seeded credentials only).
+- `tathya.config.example.yaml`: canonical, documented config; `make configs` copies it to the local,
+  gitignored `tathya.config.yaml` (which also carries `evaluation.stacks` for `tt eval --all-stacks`).
+- `tests/manual/`: hand-written baselines; `tests/baseline-public/saucedemo/`: three public Playwright suites
+  (git submodules) used as the human-written baseline. See `SOURCES.md` inside for attribution.
+- `docs/prd/`: requirements for upcoming work; `docs/history/`: archived plans. See also `CONTRIBUTING.md`.
+
+### Where outputs go
+
+All of these are generated, ignored by git, and never hand-edited. `make clean-outputs` removes them.
+
+| Path | Written by | Contents |
+|------|-----------|----------|
+| `crawl/<role>.json` | `tt crawl` | per-role crawl contract |
+| `tests/generated/` | `tt generate` | specs, `support/tathya.ts`, `manifest.json` |
+| `storageState/<role>.json` | Playwright global setup | logged-in session per role |
+| `test-results/`, `playwright-report/` | `tt run` | traces and HTML report |
+| `metrics/`, `metrics-saucedemo/` | `tt eval` | `report.json` and `report.md` |
 
 ## Setup
 
-Use `make install` to build the generator CLI:
+Prerequisites: Node 24 (`.nvmrc`, `.tool-versions`), Nix for PHP and Composer (`nix-shell`), Git.
+The root `shell.nix` provides PHP, Composer and the browser libraries Playwright needs; Node comes from
+your version manager (asdf, nvm, or Nix). With direnv, `.envrc` loads it automatically.
 
 ```bash
-make install
+make setup                           # build + link tt, root deps, Playwright browsers, local tathya.config.yaml
+make case-study-setup STACK=blade    # composer, .env, key, sqlite, migrate + seed, npm build (STACK=inertia for React)
+make serve STACK=blade               # http://127.0.0.1:8000 with COVERAGE=1 (inertia: :8001)
 ```
 
-That produces the compiled generator CLI at `generator/dist/` and a `tt` command in the active
-Node/asdf bin path or your npm prefix/bin directory.
-
-Use `make verify` to run the generator checks, then smoke the compiled `tt` entrypoint:
-
-```bash
-make verify
-```
-
-Use `make baseline-init` to initialise the public SauceDemo baseline submodules:
-
-```bash
-make baseline-init
-```
-
-Use `make uninstall` to remove the installed `tt` binary.
-
-After install, you can run `tt` from any directory as long as the npm global bin directory is on
-`PATH`.
-If `tt` is managed by `asdf`, `make install` also refreshes the asdf-linked `tt` binary so the
-shell resolves the latest build instead of an older shim target.
-
-For manual development, you can still run the package-specific commands below.
-
-```bash
-cd generator
-npm install
-npm run build
-npm link
-```
-
-For the Blade Laravel case study:
-
-```bash
-nix-shell case-study/todo-blade/shell.nix
-cd case-study/todo-blade
-composer install
-cp .env.example .env
-php artisan key:generate
-touch database/database.sqlite
-php artisan migrate:fresh --seed
-php artisan serve
-```
-
-Use `tathya.blade.config.example.yaml` as `tathya.config.yaml` when testing this target.
-
-For the React/Inertia case study:
-
-```bash
-nix-shell case-study/todo-inertia-react/shell.nix
-cd case-study/todo-inertia-react
-composer install
-npm install
-cp .env.example .env
-php artisan key:generate
-touch database/database.sqlite
-php artisan migrate:fresh --seed
-npm run build
-php artisan serve --port=8001
-```
-
-Use `tathya.inertia-react.config.example.yaml` as `tathya.config.yaml` when testing this target.
-
-Seeded credentials are `admin@example.com` / `password` and `user@example.com` / `password`.
-The admin can reach `/admin/users`; the user receives a 403.
+Seeded credentials are `admin@example.com` / `password` and `user@example.com` / `password`; the admin
+can reach `/admin/users`, the user receives a 403. Run `make verify` to typecheck, lint, test, and smoke `tt`;
+`make baseline-init` fetches the public SauceDemo baseline submodules. Manual equivalents of each target are
+in the `Makefile`.
 
 ## SauceDemo evaluation subject
 
 `tathya.saucedemo.config.yaml` targets `https://www.saucedemo.com` as a third evaluation subject —
 a React SPA on a different tech stack to support a generalizability claim. The credentials
 (`standard_user` / `secret_sauce`) are public. Because this is an external app with no control
-plane, **SUT code coverage (Family B) and fault injection (Family C) do not apply**; `tt eval`
+plane, **SUT code coverage and fault injection do not apply**; `tt eval`
 reports only model coverage (A), test-suite quality (D), and reliability/efficiency/baseline (E).
 
-The human-written baseline for EQ5 comes from three independent public Playwright suites
+The human-written baseline comes from three independent public Playwright suites
 (MIT-licensed, three different authors) stored as git submodules:
 
 ```bash
@@ -131,7 +92,8 @@ tt all [--fresh]        # crawl → generate → run
 tt eval [--stack <name> | --all-stacks]
 ```
 
-Every command takes `-c <path>` to use a config other than `tathya.config.yaml`. A bare `tt`
+Every command takes the global option `-c <path>` to use a config other than `tathya.config.yaml`; it goes
+**before** the sub-command (`tt -c tathya.blade.config.yaml generate`). A bare `tt`
 prints this list. The smallest working config is the app URL plus one role — everything else
 has a default (login path `/login`, output `tests/generated`, coverage `all`, …):
 
@@ -161,8 +123,8 @@ from `@faker-js/faker` (seedable via `data.faker.seed`); the target field of a n
 stays a deterministic literal.
 
 `tt eval` runs the metric-based evaluation and writes `metrics/report.{json,md}`: model coverage,
-system-under-test code coverage, fault-detection effectiveness (mutation score over a seeded
-fault catalogue), test-suite quality, and reliability/efficiency with a hand-written baseline
+system-under-test code coverage, fault-detection effectiveness (share of a seeded fault
+catalogue the suite detects), test-suite quality, and reliability/efficiency with a hand-written baseline
 comparison (`tests/manual/<stack>`). By default it evaluates the config it was pointed at as a
 single stack; `--stack <name>` picks one entry of `evaluation.stacks`, and `--all-stacks` runs
 the cross-stack study over the Blade and React/Inertia case studies (hours; unreachable stacks
@@ -170,6 +132,23 @@ are skipped). SUT coverage and fault injection switch on automatically when the 
 `GET /__testing/coverage` / `POST /__testing/fault/clear` (the case studies do, with
 `COVERAGE=1` and PCOV from `shell.nix`); plain apps simply get the other metric families.
 Flags: `--stack`, `--all-stacks`, `--repeat`, `--no-faults`, `--no-coverage`, `--no-baseline`.
+
+### Evaluation vocabulary
+
+`tt eval` reports five metric groups. Older documents and code comments name them "families" (A to E) or
+evaluation questions (EQ1 to EQ5); the report headings call them RQ1 to RQ5. They are the same list:
+
+| Group | Report section | Measures |
+|-------|----------------|----------|
+| A | RQ1 model coverage | elements, routes, forms, fields, navigation, RBAC matrix, constraint kinds, tiers, CRUD per resource |
+| B | RQ2 SUT code coverage | PCOV line, branch-proxy, function, and route coverage of the app under test |
+| C | RQ3 fault detection | share of seeded faults the suite detects, per class, and localization accuracy |
+| D | RQ4 test-suite quality | assertion density, locator mix, brittle-locator ratio, smells |
+| E | RQ5 reliability, efficiency, baseline | flake rate, cross-browser kappa, time, throughput, comparison with the manual baseline |
+
+The "fault-detection rate" is what older text calls the mutation score; the JSON report keeps the field
+names `mutationScore` and `killed` for compatibility with existing analysis scripts. The research article
+uses its own, smaller numbering and does not use this list.
 
 `tt init` asks for a project name, creates a slugged directory, and writes the config inside it:
 
@@ -195,10 +174,10 @@ them, needs no manual setup beyond the prerequisites.
 ### Prerequisites
 
 1. Nix, plus [direnv](https://direnv.net) and the **direnv** extension (`mkhl.direnv`) so VS Code
-   loads the root `shell.nix` (Node and browser libraries) from `.envrc`. Without direnv, start
+   loads the root `shell.nix` (PHP, Composer, browser libraries) from `.envrc`. Without direnv, start
    VS Code from a shell that already ran `nix-shell`.
 2. `make install` (builds `generator/dist/` and links `tt`), `npx playwright install` once, and
-   `composer install` inside each case study (see Setup above). PHP only runs inside `nix-shell`;
+   `make case-study-setup STACK=blade|inertia` (see Setup above). PHP only runs inside `nix-shell`;
    the tasks below already wrap it.
 3. Open the folder in VS Code and accept the recommended extensions: direnv, Playwright Test,
    Vitest, PHP Debug (Xdebug), Intelephense, YAML.
@@ -525,7 +504,7 @@ that every page they open is up (healthy response, or an SPA route that still re
 exercising it. Run it on a schedule — a cron line or CI job such as
 
 ```bash
-*/15 * * * * cd /srv/tathya && tt all --read-only -c tathya.prod.yaml
+*/15 * * * * cd /srv/tathya && tt -c tathya.prod.config.yaml all --read-only
 ```
 
 turns the suite into UptimeRobot-style feature monitoring: not "does the home page answer" but

@@ -55,7 +55,7 @@ function stackMarkdown(stack: StackReport): string[] {
   out.push('');
 
   out.push('### RQ3 — Fault-detection effectiveness', '');
-  out.push(`- Mutation score: ${pct(report.faults.mutationScore)} (${report.faults.killed}/${report.faults.total} faults killed)`);
+  out.push(`- Fault-detection rate (all faults): ${pct(report.faults.mutationScore)} (${report.faults.killed}/${report.faults.total} faults killed)`);
   out.push(`- Detection of detectable faults: ${pct(report.faults.detectable.score)} (${report.faults.detectable.killed}/${report.faults.detectable.total}); negative controls surviving as expected: ${report.faults.controls.survived}/${report.faults.controls.total}`);
   out.push(`- Fault-localization accuracy: ${pct(report.faults.localizationAccuracy)}`);
   for (const [klass, stat] of Object.entries(report.faults.byClass)) {
@@ -116,7 +116,7 @@ function crossStackMarkdown(stacks: StackReport[]): string[] {
   const header = '| Metric | ' + stacks.map((stack) => stack.name).join(' | ') + ' |';
   const divider = '| --- | ' + stacks.map(() => '---').join(' | ') + ' |';
   const rows: Array<[string, (stack: StackReport) => string]> = [
-    ['Mutation score', (stack) => pct(stack.report.faults.mutationScore)],
+    ['Fault-detection rate', (stack) => pct(stack.report.faults.mutationScore)],
     ['SUT line coverage', (stack) => stack.report.sutCoverage ? pct(stack.report.sutCoverage.lines.ratio) : 'n/a'],
     ['Element coverage', (stack) => pct(stack.report.coverage.element.ratio)],
     ['Flake rate', (stack) => pct(stack.report.reliability.flakeRate)],
