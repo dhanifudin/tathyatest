@@ -208,7 +208,7 @@ compiled `dist/` code.
 2. Set a breakpoint, for example in `generator/src/generate/mapper.ts` or `generator/src/crawl/crud.ts`.
 3. Press `F5` and choose **tt: debug command**; pick the config and the command (`crawl`, `generate`,
    `run`, `all`, `eval`, `report`). Use **tt: eval one stack (blade)** for a quick evaluation pass.
-4. To debug the crawler (`generator/src/crawl/rendered.ts`), launch `crawl` and set breakpoints
+4. To debug the crawler (`generator/src/crawl/session.ts` and `dom-extract.ts`), launch `crawl` and set breakpoints
    inside the Node side; the code inside `page.evaluate()` runs in the browser, so debug it with
    `PWDEBUG=1 tt crawl` or `console.log` instead.
 
@@ -320,7 +320,7 @@ a heuristic guess. Keywords are grouped by the file that owns them.
 
 ### 1. Locator priority chain
 
-`generator/src/crawl/rendered.ts` picks a locator per element at crawl time, in this
+`generator/src/crawl/dom-extract.ts` picks a locator per element at crawl time, in this
 exact order (never positional/`nth-child`); `generator/src/generate/locator.ts` turns the chosen
 strategy into a Playwright call when emitting a spec:
 

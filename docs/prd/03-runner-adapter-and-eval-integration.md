@@ -10,7 +10,7 @@ the JSON path (`generator/src/eval/playwright.ts`: `runPlaywrightJson`, `parsePl
 evaluation runner (`generator/src/eval/runner.ts`: `runStack`, `runBaseline`, `runFaults`), and the
 root scaffold (`playwright.config.ts`, `playwright.global-setup.ts`). A second framework must plug in
 without touching metrics or statistics, which already consume the neutral `SuiteRun` type
-(`generator/src/eval/metrics.ts`).
+(`generator/src/eval/types.ts`).
 
 ## Goals
 

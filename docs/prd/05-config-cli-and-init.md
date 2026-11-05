@@ -51,7 +51,7 @@ evaluation:
 - R5.7 `tt init` MUST ask for the framework (default Playwright) before language, write `output.framework`, and print the install commands for the chosen framework's dependencies.
 - R5.8 `tt generate` MUST fail fast with an install hint when an adapter dependency is missing (R4.6).
 - R5.9 `tt eval --stack <name>` MUST allow a stack to override `output.framework` and `output.dir`, so one repository can evaluate both frameworks in separate runs. Cross-stack tables label rows `<stack>/<framework>`.
-- R5.10 `tathya.config.example.yaml`, `README.md` (config reference), `CLAUDE.md` (config shape), and `AGENTS.md` MUST be updated in the same change (AGENTS.md rule: config shape changes are documented together).
+- R5.10 `tathya.config.example.yaml`, `README.md` (config reference), `AGENTS.md` (config change protocol), and `AGENTS.md` MUST be updated in the same change (AGENTS.md rule: config shape changes are documented together).
 - R5.11 Credentials in the config MUST never be written into generated Cypress files; roles are passed via `Cypress.env` from `cypress.config.ts` which reads `TATHYA_CONFIG` at run time.
 
 ## Backward compatibility
