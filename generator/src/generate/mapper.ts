@@ -79,7 +79,58 @@ export type TestCase =
  */
 const NATIVELY_UNFALSIFIABLE_VARIANTS = ['maxlength-plus-one', 'invalid-option', 'confirmation-mismatch', 'accept-mismatch'];
 
+/**
+ * Turn stored crawls into test intents. The order is part of the contract (test ids in the manifest
+ * follow it): auth, then per role and page (route, forms, pagination, interactions), then the
+ * inferred REST routes, then RBAC affordances and blocked routes.
+ */
 export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config: TathyaConfig): TestCase[] {
+  const cases: TestCase[] = [...authCases(config)];
+
+  // Variant (negative/edge) cases probe server-side validation, which is role-independent:
+  // the same form shape reached by two roles is ONE validation scenario, owned by the first
+  // role that reaches it. Positives stay per role — the acting role is part of the scenario.
+  const scenarios: FormScenarioState = { seenVariants: new Set(), seenLogout: new Set() };
+  for (const crawl of crawls) {
+    const seenPages = new Set<string>();
+    const seenFieldlessForms = new Set<string>();
+    const seenFieldForms = new Set<string>();
+    const seenInteractions = new Set<string>();
+    for (const page of crawl.pages) {
+      const canonicalPageUrl = canonicalPath(page.url);
+      // Dedupe by route SHAPE: /todos/7/edit and /todos/8/edit are the same scenario with a
+      // different row id — one representative page per role covers it.
+      const pageKey = `${crawl.role}:${routeShape(canonicalPageUrl)}`;
+      if (seenPages.has(pageKey)) continue;
+      seenPages.add(pageKey);
+      cases.push({
+        kind: 'rbac',
+        tier: 'positive',
+        title: `${crawl.role} can open ${canonicalPageUrl}`,
+        role: crawl.role,
+        route: canonicalPageUrl,
+        expectAllowed: true,
+      });
+      const forms = dedupeForms(crawl.role, page.forms, canonicalPageUrl, seenFieldlessForms, seenFieldForms);
+      cases.push(...formCasesForPage(crawl.role, page, canonicalPageUrl, forms, config, scenarios));
+      cases.push(...paginationCasesForPage(crawl.role, page, canonicalPageUrl, crawl.baseUrl));
+      cases.push(...interactionCasesForPage(crawl.role, page, canonicalPageUrl, crawl.baseUrl, seenInteractions));
+    }
+    if (config.crawl.inferRestRoutes) cases.push(...inferredShowRouteCases(crawl, seenPages));
+  }
+
+  if (shouldIncludeCoverage(config.coverage, 'negative')) {
+    cases.push(...affordanceCases(crawls));
+    cases.push(...blockedRouteCases(matrix, config));
+  }
+
+  // Read-only mode: keep the status sweep (login, route visits, links, pagination, GET forms)
+  // and drop everything that writes — safe to point at staging or production.
+  return config.mode === 'read-only' ? cases.filter((testCase) => !isMutating(testCase)) : cases;
+}
+
+/** Login with valid credentials per role, plus a wrong-password rejection when negatives are on. */
+function authCases(config: TathyaConfig): TestCase[] {
   const cases: TestCase[] = [];
   for (const role of config.auth.roles) {
     cases.push({
@@ -103,158 +154,133 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
       });
     }
   }
+  return cases;
+}
 
-  // Variant (negative/edge) cases probe server-side validation, which is role-independent:
-  // the same form shape reached by two roles is ONE validation scenario, owned by the first
-  // role that reaches it. Positives stay per role — the acting role is part of the scenario.
-  const seenVariants = new Set<string>();
-  const seenLogout = new Set<string>();
-  for (const crawl of crawls) {
-    const seenPages = new Set<string>();
-    const seenFieldlessForms = new Set<string>();
-    const seenFieldForms = new Set<string>();
-    const seenInteractions = new Set<string>();
-    for (const page of crawl.pages) {
-      const canonicalPageUrl = canonicalPath(page.url);
-      // Dedupe by route SHAPE: /todos/7/edit and /todos/8/edit are the same scenario with a
-      // different row id — one representative page per role covers it.
-      const pageKey = `${crawl.role}:${routeShape(canonicalPageUrl)}`;
-      if (seenPages.has(pageKey)) continue;
-      seenPages.add(pageKey);
+/** State shared across roles and pages so one validation scenario or logout is generated once. */
+type FormScenarioState = { seenVariants: Set<string>; seenLogout: Set<string> };
+
+/** Form cases of one page: the valid submit, every field variant, logout, and field-less actions. */
+function formCasesForPage(
+  role: string,
+  page: PageModel,
+  canonicalPageUrl: string,
+  forms: Form[],
+  config: TathyaConfig,
+  state: FormScenarioState,
+): TestCase[] {
+  const cases: TestCase[] = [];
+  const formSignatureCounts = countBy(forms.map((form) => formTitleSignature(form)));
+  const formSignatureOrdinals = new Map<string, number>();
+  for (const form of forms) {
+    const formSignature = formTitleSignature(form);
+    const formOrdinal = (formSignatureOrdinals.get(formSignature) ?? 0) + 1;
+    formSignatureOrdinals.set(formSignature, formOrdinal);
+    const formTitleBase = formLabel(form, (formSignatureCounts.get(formSignature) ?? 0) > 1 ? formOrdinal : null);
+    if (form.fields.length > 0) {
+      const baseValues = buildBaseValues(form, config);
       cases.push({
-        kind: 'rbac',
+        kind: 'form',
         tier: 'positive',
-        title: `${crawl.role} can open ${canonicalPageUrl}`,
-        role: crawl.role,
-        route: canonicalPageUrl,
-        expectAllowed: true,
+        title: `${role} · ${canonicalPageUrl} · ${formTitleBase} · submits valid data successfully`,
+        role,
+        page,
+        form,
+        targetField: null,
+        variant: { kind: 'positive', name: 'valid', value: '', outcome: 'success' },
+        values: baseValues,
       });
-      const forms = dedupeForms(crawl.role, page.forms, canonicalPageUrl, seenFieldlessForms, seenFieldForms);
-      const formSignatureCounts = countBy(forms.map((form) => formTitleSignature(form)));
-      const formSignatureOrdinals = new Map<string, number>();
-      for (const form of forms) {
-        const formSignature = formTitleSignature(form);
-        const formOrdinal = (formSignatureOrdinals.get(formSignature) ?? 0) + 1;
-        formSignatureOrdinals.set(formSignature, formOrdinal);
-        const formTitleBase = formLabel(form, (formSignatureCounts.get(formSignature) ?? 0) > 1 ? formOrdinal : null);
-        if (form.fields.length > 0) {
-          const baseValues = buildBaseValues(form, config);
+      for (const field of form.fields) {
+        for (const variant of variantsForField(field, {
+          dataFields: config.data.fields,
+          defaults: config.data.defaults,
+          unique: config.data.unique,
+          duplicates: config.data.duplicates,
+          requiredFields: config.data.requiredFields,
+          confirmFields: config.data.confirmFields,
+        })) {
+          if (variant.kind === 'positive') continue;
+          if (form.crudOp === 'update' && variant.name === 'duplicate') continue;
+          // On native (non-novalidate) forms these violations are unfalsifiable end-to-end:
+          // constraint validation only fires for user-dirty values, so a programmatic fill of
+          // an over-long value or an injected select option never flips validity.valid; a
+          // confirmation mismatch is server-side semantics (both fields stay individually
+          // valid); and whether the server round-trips a visible error is unknowable at
+          // generation time.
+          // `accept` is a picker hint, not a constraint the browser validates, so an
+          // accept-mismatch is likewise only observable through the app's own error display.
+          if (!form.noValidate && NATIVELY_UNFALSIFIABLE_VARIANTS.includes(variant.name)) continue;
+          if (!shouldIncludeCoverage(config.coverage, variant.kind)) continue;
+          const variantKey = `${routeShape(canonicalPageUrl)}:${formShapeKey(form)}:${field.name}:${variant.name}`;
+          if (state.seenVariants.has(variantKey)) continue;
+          state.seenVariants.add(variantKey);
+          const values = { ...baseValues };
+          if (variant.omit) delete values[field.name];
+          else values[field.name] = { kind: 'literal', value: variant.value };
           cases.push({
             kind: 'form',
-            tier: 'positive',
-            title: `${crawl.role} · ${canonicalPageUrl} · ${formTitleBase} · submits valid data successfully`,
-            role: crawl.role,
-            page,
-            form,
-            targetField: null,
-            variant: { kind: 'positive', name: 'valid', value: '', outcome: 'success' },
-            values: baseValues,
-          });
-          for (const field of form.fields) {
-            for (const variant of variantsForField(field, {
-              dataFields: config.data.fields,
-              defaults: config.data.defaults,
-              unique: config.data.unique,
-              duplicates: config.data.duplicates,
-              requiredFields: config.data.requiredFields,
-              confirmFields: config.data.confirmFields,
-            })) {
-              if (variant.kind === 'positive') continue;
-              if (form.crudOp === 'update' && variant.name === 'duplicate') continue;
-              // On native (non-novalidate) forms these violations are unfalsifiable end-to-end:
-              // constraint validation only fires for user-dirty values, so a programmatic fill of
-              // an over-long value or an injected select option never flips validity.valid; a
-              // confirmation mismatch is server-side semantics (both fields stay individually
-              // valid); and whether the server round-trips a visible error is unknowable at
-              // generation time.
-              // `accept` is a picker hint, not a constraint the browser validates, so an
-              // accept-mismatch is likewise only observable through the app's own error display.
-              if (!form.noValidate && NATIVELY_UNFALSIFIABLE_VARIANTS.includes(variant.name)) continue;
-              if (!shouldIncludeCoverage(config.coverage, variant.kind)) continue;
-              const variantKey = `${routeShape(canonicalPageUrl)}:${formShapeKey(form)}:${field.name}:${variant.name}`;
-              if (seenVariants.has(variantKey)) continue;
-              seenVariants.add(variantKey);
-              const values = { ...baseValues };
-              if (variant.omit) delete values[field.name];
-              else values[field.name] = { kind: 'literal', value: variant.value };
-              cases.push({
-                kind: 'form',
-                tier: variant.kind,
-                title: `${crawl.role} · ${canonicalPageUrl} · ${formTitleBase} · ${humanVariant(field, variant)}`,
-                role: crawl.role,
-                page,
-                form,
-                targetField: field,
-                variant,
-                values,
-              });
-            }
-          }
-        } else if (form.crudOp === 'logout') {
-          // One logout scenario per role: ending the session is auth behaviour, not a create.
-          if (!seenLogout.has(crawl.role)) {
-            seenLogout.add(crawl.role);
-            const credentials = config.auth.roles.find((role) => role.name === crawl.role);
-            cases.push({
-              kind: 'auth',
-              tier: 'positive',
-              title: `${crawl.role} logs out`,
-              role: crawl.role,
-              username: credentials?.username ?? '',
-              password: credentials?.password ?? '',
-              expectSuccess: true,
-              logout: { page, form },
-            });
-          }
-        } else {
-          cases.push({
-            kind: 'form',
-            tier: 'positive',
-            title: `${crawl.role} · ${canonicalPageUrl} · ${formTitleBase} · ${form.crudOp === 'delete' ? 'deletes the record' : 'submits successfully'}`,
-            role: crawl.role,
-            page,
-            form,
-            targetField: null,
-            variant: { kind: 'positive', name: form.crudOp === 'delete' ? 'delete' : 'valid', value: '', outcome: 'success' },
-            values: {},
-          });
-        }
-      }
-      cases.push(...paginationCasesForPage(crawl.role, page, canonicalPageUrl, crawl.baseUrl));
-      cases.push(...interactionCasesForPage(crawl.role, page, canonicalPageUrl, crawl.baseUrl, seenInteractions));
-    }
-    if (config.crawl.inferRestRoutes) cases.push(...inferredShowRouteCases(crawl, seenPages));
-  }
-
-  if (shouldIncludeCoverage(config.coverage, 'negative')) {
-    cases.push(...affordanceCases(crawls));
-    const roles = config.auth.roles.map((role) => role.name);
-    const seenBlockedRoutes = new Set<string>();
-    for (const entry of matrix.values()) {
-      const route = canonicalPath(entry.route);
-      for (const role of roles) {
-        if (!entry.reachableBy.includes(role)) {
-          // One blocked case per route shape per role: /todos/1/edit .. /todos/12/edit blocked
-          // for "user" is a single ownership scenario, not twelve.
-          const key = `${role}:${routeShape(route)}`;
-          if (seenBlockedRoutes.has(key)) continue;
-          seenBlockedRoutes.add(key);
-          cases.push({
-            kind: 'rbac',
-            tier: 'negative',
-            title: `${role} is blocked from ${route}`,
+            tier: variant.kind,
+            title: `${role} · ${canonicalPageUrl} · ${formTitleBase} · ${humanVariant(field, variant)}`,
             role,
-            route,
-            expectAllowed: false,
+            page,
+            form,
+            targetField: field,
+            variant,
+            values,
           });
         }
       }
+    } else if (form.crudOp === 'logout') {
+      // One logout scenario per role: ending the session is auth behaviour, not a create.
+      if (!state.seenLogout.has(role)) {
+        state.seenLogout.add(role);
+        const credentials = config.auth.roles.find((candidate) => candidate.name === role);
+        cases.push({
+          kind: 'auth',
+          tier: 'positive',
+          title: `${role} logs out`,
+          role,
+          username: credentials?.username ?? '',
+          password: credentials?.password ?? '',
+          expectSuccess: true,
+          logout: { page, form },
+        });
+      }
+    } else {
+      cases.push({
+        kind: 'form',
+        tier: 'positive',
+        title: `${role} · ${canonicalPageUrl} · ${formTitleBase} · ${form.crudOp === 'delete' ? 'deletes the record' : 'submits successfully'}`,
+        role,
+        page,
+        form,
+        targetField: null,
+        variant: { kind: 'positive', name: form.crudOp === 'delete' ? 'delete' : 'valid', value: '', outcome: 'success' },
+        values: {},
+      });
     }
   }
+  return cases;
+}
 
-  // Read-only mode: keep the status sweep (login, route visits, links, pagination, GET forms)
-  // and drop everything that writes — safe to point at staging or production.
-  return config.mode === 'read-only' ? cases.filter((testCase) => !isMutating(testCase)) : cases;
+/** Blocked-route negatives from the access matrix: one case per route shape per role. */
+function blockedRouteCases(matrix: AccessMatrix, config: TathyaConfig): TestCase[] {
+  const cases: TestCase[] = [];
+  const roles = config.auth.roles.map((role) => role.name);
+  const seenBlockedRoutes = new Set<string>();
+  for (const entry of matrix.values()) {
+    const route = canonicalPath(entry.route);
+    for (const role of roles) {
+      if (entry.reachableBy.includes(role)) continue;
+      // One blocked case per route shape per role: /todos/1/edit .. /todos/12/edit blocked
+      // for "user" is a single ownership scenario, not twelve.
+      const key = `${role}:${routeShape(route)}`;
+      if (seenBlockedRoutes.has(key)) continue;
+      seenBlockedRoutes.add(key);
+      cases.push({ kind: 'rbac', tier: 'negative', title: `${role} is blocked from ${route}`, role, route, expectAllowed: false });
+    }
+  }
+  return cases;
 }
 
 /**
