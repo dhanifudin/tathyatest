@@ -16,6 +16,8 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: generator/package-lock.json
+      # The root install provides @playwright/test and yaml for the root Playwright files the tests import.
+      - run: npm ci
       - run: npm ci
         working-directory: generator
       - run: npm run typecheck
