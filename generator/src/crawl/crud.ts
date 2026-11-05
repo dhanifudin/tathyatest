@@ -1,4 +1,4 @@
-import type { CrudOp } from './crawl.js';
+import type { CrudOp } from './model.js';
 import { stripQuery } from '../util/paths.js';
 
 /**

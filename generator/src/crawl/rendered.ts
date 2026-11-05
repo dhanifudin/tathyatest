@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { chromium, type Page } from '@playwright/test';
-import { CRAWL_SCHEMA_VERSION, type CrawlOutput, type FieldConstraints, type Form, type Locator, type PageModel } from './crawl.js';
+import { CRAWL_SCHEMA_VERSION, type CrawlOutput, type FieldConstraints, type Form, type Locator, type PageModel } from './model.js';
 import type { TathyaConfig } from '../config.js';
 import { classifyCrudOp, type CrudSignals } from './crud.js';
 import { inferLoginControlsOnPage, playwrightLocator } from '../auth/login-runtime.js';

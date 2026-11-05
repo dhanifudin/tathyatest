@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { computeMetrics, faultMetricsOf, locatorRobustnessOf, reliabilityOf, type MetricsInput } from '../../src/eval/metrics.js';
-import type { CrawlOutput } from '../../src/crawl/crawl.js';
+import type { CrawlOutput } from '../../src/crawl/model.js';
 import type { AccessMatrix } from '../../src/generate/rbac.js';
 import type { ManifestEntry } from '../../src/generate/manifest.js';
 import { makeConfig } from '../helpers/fixtures.js';

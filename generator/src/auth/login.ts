@@ -1,6 +1,6 @@
 import { escapeAttrValue } from '../util/escape.js';
 
-import type { Locator } from '../crawl/crawl.js';
+import type { Locator } from '../crawl/model.js';
 
 /** A login control is located like any crawled element: one `Locator` from the priority chain. */
 export type LoginLocator = Locator;

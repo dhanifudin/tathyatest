@@ -3,7 +3,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import YAML from 'yaml';
-import { crawlOutputSchema, ensureCrawls, loadCrawls, shouldRefreshCrawls } from '../../src/crawl/crawl.js';
+import { ensureCrawls, loadCrawls, shouldRefreshCrawls } from '../../src/crawl/crawl.js';
+import { crawlOutputSchema } from '../../src/crawl/model.js';
 import type { TathyaConfig } from '../../src/config.js';
 import { makeConfig } from '../helpers/fixtures.js';
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { acceptedMime, mismatchingMime, patternBreaker, shiftBoundary, validFieldValue, variantsForField } from '../../src/generate/fieldgen.js';
-import type { Field } from '../../src/crawl/crawl.js';
+import type { Field } from '../../src/crawl/model.js';
 
 const emptyConstraints = {
   minlength: null, maxlength: null, min: null, max: null,

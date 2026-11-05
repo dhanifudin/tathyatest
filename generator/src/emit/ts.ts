@@ -1,7 +1,7 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import type { TathyaConfig } from '../config.js';
-import type { Field } from '../crawl/crawl.js';
+import type { Field } from '../crawl/model.js';
 import { locatorSource } from '../generate/locator.js';
 import { caseMeta } from '../generate/manifest.js';
 import { errorAssertionSource, gracefulAssertionSource } from '../generate/oracle.js';

@@ -1,4 +1,4 @@
-import type { CrawlOutput, Field, Form } from '../crawl/crawl.js';
+import type { CrawlOutput, Field, Form } from '../crawl/model.js';
 import type { TathyaConfig } from '../config.js';
 import { routeShape, type AccessMatrix } from '../generate/rbac.js';
 import { navScenarioKeysForPage } from '../generate/mapper.js';
@@ -6,10 +6,10 @@ import type { FaultClass, ManifestEntry } from '../generate/manifest.js';
 import { confidenceInterval95, fleissKappa, mannWhitneyU, type ConfidenceInterval, type MannWhitneyResult } from './stats.js';
 import type { BaselineStaticAnalysis } from './baseline-static.js';
 import { canonicalPath } from '../util/paths.js';
+import type { SuiteRun, TestOutcome, TestStatus } from './types.js';
 
-export type TestStatus = 'passed' | 'failed' | 'skipped';
-export type TestOutcome = { title: string; project: string; status: TestStatus; durationMs: number };
-export type SuiteRun = { outcomes: TestOutcome[] };
+export type { SuiteRun, TestOutcome, TestStatus } from './types.js';
+
 export type FaultRun = { id: string; faultClass: FaultClass; expected?: 'detected' | 'survives'; outcomes: TestOutcome[] };
 
 export type Ratio = { covered: number; total: number; ratio: number };

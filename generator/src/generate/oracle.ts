@@ -1,4 +1,4 @@
-import type { Field, Form } from '../crawl/crawl.js';
+import type { Field, Form } from '../crawl/model.js';
 import { locatorSource } from './locator.js';
 import { escapeRegExp } from '../util/escape.js';
 

@@ -1,4 +1,4 @@
-import type { CrawlOutput } from '../crawl/crawl.js';
+import type { CrawlOutput } from '../crawl/model.js';
 import { stripQuery } from '../util/paths.js';
 
 export type AccessMatrixEntry = { route: string; reachableBy: string[] };

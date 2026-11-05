@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { SuiteRun, TestOutcome, TestStatus } from './metrics.js';
+import type { SuiteRun, TestOutcome, TestStatus } from './types.js';
 import { resolvePlaywrightBinary, withPlaywrightNodePath } from '../util/playwright-bin.js';
 
 export type RunOptions = {

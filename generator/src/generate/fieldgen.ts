@@ -1,4 +1,4 @@
-import type { Field } from '../crawl/crawl.js';
+import type { Field } from '../crawl/model.js';
 import { fakerExprForField } from './faker.js';
 
 /**

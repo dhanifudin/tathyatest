@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { errorAssertionSource } from '../../src/generate/oracle.js';
-import type { Field, Form } from '../../src/crawl/crawl.js';
+import type { Field, Form } from '../../src/crawl/model.js';
 
 const field: Field = {
   name: 'email',

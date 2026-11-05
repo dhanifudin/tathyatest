@@ -1,5 +1,6 @@
 import type { TathyaConfig } from './config.js';
-import { loadCrawls, type CrawlOutput } from './crawl/crawl.js';
+import { loadCrawls } from './crawl/crawl.js';
+import { type CrawlOutput } from './crawl/model.js';
 import { emit } from './emit/index.js';
 import type { ManifestEntry } from './generate/manifest.js';
 import { mapTestCases, type TestCase } from './generate/mapper.js';

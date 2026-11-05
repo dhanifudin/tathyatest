@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { fakerExprForField } from '../../src/generate/faker.js';
-import type { Field } from '../../src/crawl/crawl.js';
+import type { Field } from '../../src/crawl/model.js';
 
 const emptyHints = {
   dataFields: {},

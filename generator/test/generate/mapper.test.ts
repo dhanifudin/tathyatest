@@ -6,7 +6,7 @@ type Kind<K extends TestCase['kind']> = Extract<TestCase, { kind: K }>;
 function only<K extends TestCase['kind']>(cases: TestCase[], kind: K, keep: (testCase: Kind<K>) => boolean = () => true): Kind<K>[] {
   return cases.filter((testCase): testCase is Kind<K> => testCase.kind === kind && keep(testCase as Kind<K>));
 }
-import type { CrawlOutput } from '../../src/crawl/crawl.js';
+import type { CrawlOutput } from '../../src/crawl/model.js';
 import type { TathyaConfig } from '../../src/config.js';
 import type { AccessMatrix } from '../../src/generate/rbac.js';
 import { makeConfig } from '../helpers/fixtures.js';

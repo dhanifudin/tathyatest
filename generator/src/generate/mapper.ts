@@ -1,4 +1,4 @@
-import type { CrawlOutput, Field, Form, Locator, PageModel } from '../crawl/crawl.js';
+import type { CrawlOutput, Field, Form, Locator, PageModel } from '../crawl/model.js';
 import type { TathyaConfig } from '../config.js';
 import { isLogoutPath } from '../crawl/crud.js';
 import { shouldIncludeCoverage } from '../config.js';
