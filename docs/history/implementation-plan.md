@@ -1,3 +1,5 @@
+> **Historical document.** Kept for context only: the code, `README.md`, `AGENTS.md` and `docs/prd/` are the current source of truth. Paths, engines and phase numbers below describe the project as it was when this was written.
+
 # TathyaTest — Implementation Plan (Incremental, Ordered Steps)
 
 > Historical note: this document records the original multi-engine prototype plan. The current

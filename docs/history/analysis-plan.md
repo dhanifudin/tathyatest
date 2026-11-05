@@ -1,3 +1,5 @@
+> **Historical document.** Kept for context only: the code, `README.md`, `AGENTS.md` and `docs/prd/` are the current source of truth. Paths, engines and phase numbers below describe the project as it was when this was written.
+
 # Analysis plan: updating the JUTI manuscript for the revised implementation
 
 Status: plan (2026-10-10). Manuscript: `tathyatest-laporan/paper/juti/main.typ` (669 lines,

@@ -61,7 +61,7 @@ Exit: parity matrix filled with real numbers on both case studies and SauceDemo.
 ### M7: Documentation and release (S)
 
 Tasks
-- Update `README.md`, `CLAUDE.md`, `AGENTS.md` (adapter layer, invariant that adapters keep manifest parity), `docs/implementation-plan.md` (new phase).
+- Update `README.md`, `CLAUDE.md`, `AGENTS.md` (adapter layer, invariant that adapters keep manifest parity), `docs/prd/` status table.
 - Remove the `experimental` label if the matrix passes twice in a row.
 Exit: docs reviewed by someone who did not implement the adapter.
 

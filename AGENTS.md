@@ -21,29 +21,24 @@ Pass/Fail report. The user-facing binary is `tt`; its subcommands are `init`, `c
 
 ## Component map and ownership
 
-| Directory | Language | What it owns | What it must NOT do |
-|-----------|----------|--------------|---------------------|
-| `generator/src/crawl/rendered.ts` | TypeScript | Playwright DOM crawl → `crawl/<role>.json` | Run tests, generate specs |
-| `generator/src/cli/init.ts` | TypeScript | Interactive wizard → `tathya.config.yaml` | Crawl, generate, run |
-| `generator/src/generate/rbac.ts` | TypeScript | Diff per-role crawls → access matrix | I/O beyond reading `crawl/*.json` |
-| `generator/src/generate/fieldgen.ts` | TypeScript | Constraints → value variants + valid `FieldValue` | I/O of any kind (pure function) |
-| `generator/src/generate/faker.ts` | TypeScript | Field → runtime faker **expression string** | I/O, calling faker at gen time (pure) |
-| `generator/src/generate/oracle.ts` | TypeScript | Return assertion code strings | Playwright calls, I/O (pure function) |
-| `generator/src/generate/mapper.ts` | TypeScript | Element model + RBAC + dataset → TestCase intents | I/O, Playwright, emitting source |
-| `generator/src/generate/manifest.ts` | TypeScript | TestCase[] → `manifest.json` entries | I/O (pure; emit/index writes the file) |
-| `generator/src/eval/stats.ts` | TypeScript | mean/CI/Mann-Whitney U/rank-biserial/Fleiss κ | I/O (pure function) |
-| `generator/src/eval/metrics.ts` | TypeScript | Five-family `computeMetrics` | I/O, Playwright, process spawning (pure) |
-| `generator/src/eval/` | TypeScript | `tt eval` orchestration, fault catalogue, report, `baseline-static.ts` (pure spec parser) | Metric math (delegate to `metrics.ts`) |
-| `generator/src/emit/` | TypeScript | TestCase → `.spec.ts`/`.spec.js` source + `manifest.json` | Crawl, run tests, read config |
-| `generator/src/cli/cli.ts` | TypeScript | Wire subcommands, orchestrate pipeline | Business logic beyond dispatch |
-| `case-study/todo-blade/` | PHP/Laravel | Breeze Blade test target application | Tool logic of any kind |
-| `case-study/todo-inertia-react/` | PHP/Laravel + React | Breeze React/Inertia test target application | Tool logic of any kind |
-| `crawl/` | JSON (runtime) | Per-role crawl output — **generated, never hand-edited** | — |
-| `tests/generated/` | TS/JS (runtime) | Generated specs + `manifest.json` — **generated, never hand-edited** | — |
-| `tests/manual/` | TS (committed) | Hand-written baseline suites (`blade/`, `inertia/`) | — |
-| `tests/baseline-public/saucedemo/` | TS (git submodules) | Three independent MIT-licensed Playwright suites; EQ5 baseline for the SauceDemo subject. See `SOURCES.md`. | — |
-| `metrics/` | JSON/MD (runtime) | `tt eval` report — **generated, never hand-edited** | — |
-| `docs/prd/` | Markdown | PRDs for the framework-adapter work (Cypress first). Any adapter must keep the manifest parity invariants (unique titles, tag set, assertion counts) — see `docs/prd/01-framework-adapters-architecture.md` | — |
+| Directory | What it owns | What it must NOT do |
+|-----------|--------------|---------------------|
+| `generator/src/cli/` | `tt` commands (`cli.ts`), entry (`main.ts`), `init.ts` wizard | Business logic beyond dispatch |
+| `generator/src/config.ts` | zod config schema and loader (authoritative) | Anything but parsing and defaults |
+| `generator/src/crawl/` | crawl contract (`model.ts`), crawl orchestration (`crawl.ts`), Playwright crawler (`session.ts`, `dom-extract.ts`, `a11y-merge.ts`), `crud.ts` classifier, `reachability.ts` | Run tests, generate specs |
+| `generator/src/auth/` | login-control inference from HTML (`login.ts`) and its Playwright runtime (`login-runtime.ts`) | Crawl, generate |
+| `generator/src/generate/` | pure generation logic: `mapper.ts` (+ `test-case.ts`, `titles.ts`, `pagination-labels.ts`), `fieldgen.ts`, `faker.ts` (expression strings), `oracle.ts` (assertion strings), `locator.ts`, `rbac.ts`, `manifest.ts` | I/O, Playwright calls, running anything |
+| `generator/src/emit/` | `TestCase` to spec source (`ts.ts`, `js.ts`), the generated support module (`support.ts` + `templates/support.ts`), `manifest.json` writer | Crawl, run tests, read config files |
+| `generator/src/eval/` | `tt eval` orchestration (`runner.ts`), Playwright JSON parsing, fault catalogue, report, static baseline analysis, `metrics/` (pure metric math), `stats.ts` | Metric math inside `runner.ts` (delegate to `metrics/`) |
+| `generator/src/util/` | shared pure helpers (paths, escaping, Playwright binary lookup) | Domain logic |
+| `generator/src/pipeline.ts` | the single generate stage used by `tt generate`, `tt all`, `tt eval` | Crawling or running |
+| `case-study/todo-blade/`, `case-study/todo-inertia-react/` | Laravel Breeze test targets plus the eval harness (`FaultRegistry`, `CoverageCollector`) | Tool logic of any kind |
+| `crawl/` | per-role crawl output (**generated, never hand-edited**) | |
+| `tests/generated/` | generated specs, support module, `manifest.json` (**generated, never hand-edited**) | |
+| `tests/manual/` | hand-written baseline suites (`blade/`, `inertia/`) | |
+| `tests/baseline-public/saucedemo/` | three independent MIT Playwright suites (git submodules); baseline for the SauceDemo subject, see `SOURCES.md` | |
+| `metrics/`, `metrics-saucedemo/` | `tt eval` reports (**generated, never hand-edited**) | |
+| `docs/prd/` | PRDs for the framework-adapter work (Cypress first). Any adapter must keep the manifest parity invariants (unique titles, tag set, assertion counts), see `docs/prd/01-framework-adapters-architecture.md` | |
 
 ---
 
@@ -53,16 +48,16 @@ Pass/Fail report. The user-facing binary is `tt`; its subcommands are `init`, `c
 The Playwright crawler must produce this schema. The generator must consume no other
 representation of the target application.
 
-**The schema is defined in three synchronized places:**
+**The schema lives in two synchronized places:**
 
 ```
-generator/src/crawl/crawl.ts             ← TypeScript types and zod validator
-generator/src/crawl/rendered.ts  ← must emit the same shape
+generator/src/crawl/model.ts        ← TypeScript types, zod validator, CRAWL_SCHEMA_VERSION
+generator/src/crawl/dom-extract.ts  ← the crawler output, must emit the same shape
 ```
 
 **Rule:** if you change the schema in one place, change it in both files in the same commit.
 Never add fields in the crawler without mirroring them in the validator and consumers. Bump
-`"schemaVersion"` (`CRAWL_SCHEMA_VERSION` in `crawl.ts`) when a field changes meaning or is
+`"schemaVersion"` (`CRAWL_SCHEMA_VERSION` in `crawl/model.ts`) when a field changes meaning or is
 removed; additive fields keep the number and get a zod default.
 
 Full schema reference:
@@ -128,14 +123,14 @@ The fault catalogue in `generator/src/eval/faults.ts` is the source of truth for
 evaluator seeds. **Every fault `id` MUST have a matching toggle in both case studies' `FaultRegistry`
 consumers** (`StoreTodoRequest`, `UpdateTodoRequest`, `EnsureRole`, `TodoController`,
 `Auth/LoginRequest`). A fault whose id is not honoured by the app is un-killable and silently
-deflates the mutation score. Activation is HTTP-only: `POST /__testing/fault {id}` /
+deflates the fault-detection rate. Activation is HTTP-only: `POST /__testing/fault {id}` /
 `POST /__testing/fault/clear` (env-gated, CSRF-exempt). Each fault's `relevant(entry)` predicate
-selects the manifest tests that should detect it; the fault is *killed* if any relevant test fails.
+selects the manifest tests that should detect it; the fault counts as *detected* if any relevant test fails (the JSON report keeps the historical field names `killed` and `mutationScore`).
 
 **SauceDemo external subject scope:** `tathya.saucedemo.config.yaml` targets an external app.
 Set `faults: false` and `coverage: none` in its stack config. Fault injection and SUT coverage
-(Families B and C) **do not apply** and must not be attempted. Only Families A, D, E run.
-The baseline for EQ5 is `tests/baseline-public/saucedemo/` (git submodules, MIT). A static quality
+(SUT coverage and fault injection, evaluation families B and C) **do not apply** and must not be attempted. Only Families A, D, E run.
+The baseline for the SauceDemo subject is `tests/baseline-public/saucedemo/` (git submodules, MIT). A static quality
 comparison (`baseline-static.ts`) always runs from spec sources; the dynamic Mann-Whitney U run
 requires the public suites to be installed (`make baseline-init`) and green.
 
@@ -181,7 +176,7 @@ every tier that `config.coverage` enables. Default is `all`.
 **Negative** (`coverage: negative | all`):
 - Wrong-password login → stays on login + error visible
 - Required field submitted empty → error indicator visible
-- `type` format violated (email, url, number, tel) → error
+- `type` format violated (email, url, tel only; `number` and date-like inputs are sanitised by the browser) → error
 - `pattern` regex violated → error
 - `minlength`/`maxlength` violated by ±1 character → error
 - `min`/`max`/`step` out of range by ±1 → error
@@ -219,8 +214,8 @@ noValidate === false  → HTML5 native validation prevents submit
 ```
 
 Never generate an assertion for a specific error message string. Generate an assertion that
-an error **indicator** is present. The Breeze default oracle selector is:
-`.invalid-feedback, [role=alert], .text-red-600, x-input-error p`.
+an error **indicator** is present. The built-in default selector list lives in `generator/src/config.ts` (`oracle.errorSelector`);
+the case-study configs use `.invalid-feedback, [role=alert], .text-red-600, x-input-error p`.
 
 ---
 
@@ -230,9 +225,9 @@ When multiple agents work in parallel, respect these ownership boundaries to avo
 
 | Agent task | Files it may write | Files it must read-only |
 |---|---|---|
-| Build rendered crawler | `generator/src/crawl/rendered.ts` | `generator/src/crawl/crawl.ts` (schema) |
-| Build generator logic | `generator/src/{generate,emit}/**` | `generator/src/crawl/crawl.ts`, `crawl/*.json` |
-| Build CLI/init | `generator/src/{cli,init,config}.ts`, `generator/bin/tt` | generator src |
+| Build the crawler | `generator/src/crawl/{session,dom-extract,a11y-merge}.ts` | `generator/src/crawl/model.ts` (schema) |
+| Build generator logic | `generator/src/{generate,emit}/**` | `generator/src/crawl/model.ts`, `crawl/*.json` |
+| Build CLI/init | `generator/src/cli/**`, `generator/src/config.ts`, `generator/bin/tt` | generator src |
 | Build case study | `case-study/todo-blade/**`, `case-study/todo-inertia-react/**` | nothing in `generator/` |
 | Write playwright config | `playwright.config.ts` | `generator/src/config.ts` |
 
@@ -308,10 +303,10 @@ discovered in this file under this section.
 
 When `tathya.config.yaml`'s schema changes:
 1. Update the zod schema in `generator/src/config.ts` first.
-2. Update all three example configs (`tathya.config.example.yaml`,
-   `tathya.blade.config.example.yaml`, `tathya.inertia-react.config.example.yaml`).
-3. Update `init.ts` wizard prompts to collect the new field.
-4. Update `CLAUDE.md` "Config shape" section and this file if the change affects a contract.
+2. Update the example and per-stack configs (`tathya.config.example.yaml`, `tathya.blade.config.yaml`,
+   `tathya.inertia-react.config.yaml`).
+3. Update the `generator/src/cli/init.ts` wizard prompts to collect the new field.
+4. Update the configuration notes in `README.md` and this file if the change affects a contract.
 
 The config now also carries `data.faker { locale, seed }` (runtime create-data) and an
 `evaluation` block (`stacks`, `repeat`, `manualBaselineSecPerCase`, `baselineDir`, `faults`,
