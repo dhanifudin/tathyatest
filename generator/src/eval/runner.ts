@@ -13,6 +13,7 @@ import { faultsForClasses, loadFaultCatalogue, type FaultSpec } from './faults.j
 import { runPlaywrightJson } from './playwright.js';
 import { renderReportJson, renderReportMarkdown, type StackReport } from './report.js';
 import { analyzeBaselineDir } from './baseline-static.js';
+import { escapeRegExp } from '../util/escape.js';
 
 type StackConfig = TathyaConfig['evaluation']['stacks'][number];
 export type EvalOptions = {
@@ -249,9 +250,6 @@ async function runFaults(stack: StackConfig, rootConfig: TathyaConfig, config: T
   return faultRuns;
 }
 
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
 
 async function fetchCoverage(baseUrl: string, path: string): Promise<SutCoverage | null> {
   try {

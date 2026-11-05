@@ -5,6 +5,7 @@ import { CRAWL_SCHEMA_VERSION, type CrawlOutput, type FieldConstraints, type For
 import type { TathyaConfig } from '../config.js';
 import { classifyCrudOp, type CrudSignals } from '../crud.js';
 import { inferLoginControlsOnPage, playwrightLocator } from '../login-runtime.js';
+import { canonicalPath } from '../util/paths.js';
 
 type DomPageModel = Omit<PageModel, 'url'>;
 
@@ -109,7 +110,7 @@ export function isMeaningfulErrorPage(responseOk: boolean | null, model: Pick<Do
 
 export function renderedCrawlSeeds(config: Pick<TathyaConfig, 'auth' | 'crawl'>, landingPath: string): string[] {
   const seeds = [landingPath];
-  if (pathOnly(config.auth.loginPath) !== '/' && pathOnly(landingPath) !== '/') {
+  if (canonicalPath(config.auth.loginPath) !== '/' && canonicalPath(landingPath) !== '/') {
     seeds.push('/');
   }
   seeds.push(...config.crawl.include);
@@ -123,8 +124,8 @@ export async function assertRenderedLoginSucceeded(page: Pick<Page, 'locator'>, 
 }
 
 function isPotentialLoginFailurePath(config: Pick<TathyaConfig, 'auth'>, landingPath: string): boolean {
-  const currentPath = pathOnly(landingPath);
-  return currentPath === pathOnly(config.auth.loginPath) || currentPath === '/';
+  const currentPath = canonicalPath(landingPath);
+  return currentPath === canonicalPath(config.auth.loginPath) || currentPath === '/';
 }
 
 async function loginFormStillVisible(page: Pick<Page, 'locator'>): Promise<boolean> {
@@ -507,6 +508,3 @@ function normalizePath(url: string, baseUrl: string): string {
   return `${parsed.pathname}${parsed.search}`;
 }
 
-function pathOnly(path: string): string {
-  return new URL(path, 'http://tathyatest.local').pathname || '/';
-}

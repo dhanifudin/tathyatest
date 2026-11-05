@@ -8,6 +8,7 @@ import { errorAssertionSource, gracefulAssertionSource } from '../oracle.js';
 import type { TestCase } from '../mapper.js';
 import { routeShape } from '../rbac.js';
 import { GENERATED_HEADER, SUPPORT_IMPORT, SUPPORT_MODULE_PATH, supportModuleSource } from './support.js';
+import { canonicalPath } from '../util/paths.js';
 
 type FormCase = Extract<TestCase, { kind: 'form' }>;
 
@@ -71,14 +72,6 @@ function routeSlug(url: string): string {
   return slug || 'root';
 }
 
-function canonicalPath(path: string): string {
-  try {
-    return new URL(path, 'http://tathyatest.local').pathname || '/';
-  } catch {
-    const [withoutQuery = '/'] = path.split(/[?#]/, 1);
-    return withoutQuery || '/';
-  }
-}
 
 // ---------------------------------------------------------------------------------------------
 // One spec file

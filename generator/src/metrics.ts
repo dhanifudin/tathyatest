@@ -5,6 +5,7 @@ import { navScenarioKeysForPage } from './mapper.js';
 import type { FaultClass, ManifestEntry } from './manifest.js';
 import { confidenceInterval95, fleissKappa, mannWhitneyU, type ConfidenceInterval, type MannWhitneyResult } from './stats.js';
 import type { BaselineStaticAnalysis } from './eval/baseline-static.js';
+import { canonicalPath } from './util/paths.js';
 
 export type TestStatus = 'passed' | 'failed' | 'skipped';
 export type TestOutcome = { title: string; project: string; status: TestStatus; durationMs: number };
@@ -652,12 +653,3 @@ function resourceOf(route: string): string | null {
   return segments[0] ?? null;
 }
 
-function canonicalPath(path: string): string {
-  try {
-    return new URL(path, 'http://tathyatest.local').pathname || '/';
-  } catch {
-    const [withoutHash] = path.split('#', 1);
-    const [withoutQuery] = withoutHash.split('?', 1);
-    return withoutQuery || '/';
-  }
-}

@@ -1,4 +1,5 @@
 import type { CrudOp } from './crawl.js';
+import { stripQuery } from './util/paths.js';
 
 /**
  * Raw signals the crawler reads off a `<form>` so the CRUD classification can run in Node
@@ -37,7 +38,7 @@ export function classifyCrudOp(signals: CrudSignals): CrudOp {
   if (explicit) return explicit;
   if (signals.method === 'GET') return 'unknown';
 
-  const path = pathOf(signals.action).toLowerCase();
+  const path = stripQuery(signals.action).toLowerCase();
   if (/(^|\/)(delete|destroy|remove)(\/|$)/.test(path)) return 'delete';
   if (/(^|\/)(update|edit)(\/|$)/.test(path)) return 'update';
   if (/(^|\/)(create|store|new|add)(\/|$)/.test(path)) return 'create';
@@ -57,12 +58,8 @@ function verbToOp(verb: string | null): CrudOp | null {
   return null;
 }
 
-function pathOf(action: string): string {
-  const [path = ''] = action.split(/[?#]/, 1);
-  return path;
-}
 
 /** `/logout`, `/auth/sign-out`, `/users/signout/` — the path alone marks a session-ending target. */
 export function isLogoutPath(hrefOrAction: string): boolean {
-  return /(^|\/)(logout|log-out|signout|sign-out)(\/|$)/i.test(pathOf(hrefOrAction));
+  return /(^|\/)(logout|log-out|signout|sign-out)(\/|$)/i.test(stripQuery(hrefOrAction));
 }

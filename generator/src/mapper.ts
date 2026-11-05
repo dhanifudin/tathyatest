@@ -4,6 +4,7 @@ import { isLogoutPath } from './crud.js';
 import { shouldIncludeCoverage } from './config.js';
 import { routeShape, type AccessMatrix } from './rbac.js';
 import { variantsForField, validFieldValue, type FieldValue, type FieldVariant } from './fieldgen.js';
+import { canonicalPath } from './util/paths.js';
 
 export type TestCaseKind = 'auth' | 'form' | 'interaction' | 'pagination' | 'rbac';
 export type TestCase =
@@ -597,16 +598,6 @@ function formTitleSignature(form: Form): string {
   return `form [${parts.join('; ')}]`;
 }
 
-function canonicalPath(path: string): string {
-  try {
-    const url = new URL(path, 'http://tathyatest.local');
-    return url.pathname || '/';
-  } catch {
-    const [withoutHash] = path.split('#', 1);
-    const [withoutQuery] = withoutHash.split('?', 1);
-    return withoutQuery || '/';
-  }
-}
 
 
 function paginationTitle(role: string, canonicalPageUrl: string, action: 'first' | 'previous' | 'next' | 'last' | 'page', label: string): string {

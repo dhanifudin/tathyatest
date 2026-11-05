@@ -1,3 +1,5 @@
+import { escapeAttrValue } from './util/escape.js';
+
 export type LoginLocatorStrategy = 'testid' | 'role' | 'label' | 'placeholder' | 'id' | 'name' | 'css';
 export type LoginLocator = { strategy: LoginLocatorStrategy; value: string };
 export type LoginControls = { username: LoginLocator; password: LoginLocator; submit: LoginLocator };
@@ -130,7 +132,7 @@ function locatorForCandidate(candidate: LoginCandidate | undefined, kind: 'usern
     if (kind === 'submit') return { strategy: 'css', value: 'button[type="submit"], input[type="submit"], button:not([type])' };
     return { strategy: 'name', value: kind === 'username' ? 'email' : 'password' };
   }
-  if (candidate.dataTest) return { strategy: 'css', value: `[data-test="${cssEscape(candidate.dataTest)}"]` };
+  if (candidate.dataTest) return { strategy: 'css', value: `[data-test="${escapeAttrValue(candidate.dataTest)}"]` };
   if (candidate.labelText) return { strategy: 'label', value: candidate.labelText };
   if (candidate.placeholder) return { strategy: 'placeholder', value: candidate.placeholder };
   if (stableId(candidate.id)) return { strategy: 'id', value: candidate.id };
@@ -154,8 +156,8 @@ function candidateText(candidate: LoginCandidate): string {
 
 function fallbackCss(candidate: LoginCandidate): string {
   const tag = candidate.tag === 'button' ? 'button' : 'input';
-  if (candidate.name) return `${tag}[name="${cssEscape(candidate.name)}"]`;
-  if (candidate.placeholder) return `${tag}[placeholder="${cssEscape(candidate.placeholder)}"]`;
+  if (candidate.name) return `${tag}[name="${escapeAttrValue(candidate.name)}"]`;
+  if (candidate.placeholder) return `${tag}[placeholder="${escapeAttrValue(candidate.placeholder)}"]`;
   return tag;
 }
 
@@ -173,6 +175,3 @@ function attrValue(tag: string, attr: string): string {
   return match?.[2] ?? match?.[3] ?? '';
 }
 
-function cssEscape(value: string): string {
-  return value.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
-}

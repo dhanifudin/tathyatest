@@ -1,4 +1,5 @@
 import { isMutating, type TestCase } from './mapper.js';
+import { canonicalPath } from './util/paths.js';
 
 export type ManifestCategory = 'auth' | 'crud' | 'nav' | 'rbac';
 export type ManifestTier = 'positive' | 'negative' | 'edge';
@@ -126,12 +127,3 @@ function constraintKindFor(variantName: string): string | null {
   return null;
 }
 
-function canonicalPath(path: string): string {
-  try {
-    return new URL(path, 'http://tathyatest.local').pathname || '/';
-  } catch {
-    const [withoutHash] = path.split('#', 1);
-    const [withoutQuery] = withoutHash.split('?', 1);
-    return withoutQuery || '/';
-  }
-}

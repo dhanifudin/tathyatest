@@ -1,4 +1,5 @@
 import type { Locator } from './crawl.js';
+import { escapeAttrValue } from './util/escape.js';
 
 function q(value: string): string {
   return JSON.stringify(value);
@@ -25,12 +26,9 @@ export function locatorSource(locator: Locator, scope = 'page'): string {
     case 'id':
       return `${scope}.locator(${q(`#${locator.value}`)})`;
     case 'name':
-      return `${scope}.locator(${q(`[name="${cssEscape(locator.value)}"]`)})`;
+      return `${scope}.locator(${q(`[name="${escapeAttrValue(locator.value)}"]`)})`;
     case 'css':
       return `${scope}.locator(${q(locator.value)})`;
   }
 }
 
-function cssEscape(value: string): string {
-  return value.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
-}

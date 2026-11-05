@@ -1,4 +1,5 @@
 import type { CrawlOutput } from './crawl.js';
+import { stripQuery } from './util/paths.js';
 
 export type AccessMatrixEntry = { route: string; reachableBy: string[] };
 export type AccessMatrix = Map<string, AccessMatrixEntry>;
@@ -10,7 +11,7 @@ export function buildAccessMatrix(crawls: CrawlOutput[]): AccessMatrix {
       // RBAC operates at route (pathname) granularity: query variants of the same path — e.g.
       // pagination pages one role happens to have more of (/todos?page=3) — are not separate
       // protected routes and would otherwise produce bogus "blocked" cases.
-      const route = normalizeRoute(page.url);
+      const route = stripQuery(page.url);
       const entry = matrix.get(route) ?? { route, reachableBy: [] };
       if (!entry.reachableBy.includes(crawl.role)) entry.reachableBy.push(crawl.role);
       matrix.set(route, entry);
@@ -20,10 +21,6 @@ export function buildAccessMatrix(crawls: CrawlOutput[]): AccessMatrix {
   return matrix;
 }
 
-function normalizeRoute(url: string): string {
-  const queryStart = url.search(/[?#]/);
-  return queryStart === -1 ? url : url.slice(0, queryStart);
-}
 
 /**
  * Collapse route parameters so URLs that differ only in an id are the same scenario:
@@ -31,7 +28,7 @@ function normalizeRoute(url: string): string {
  * coverage denominators at scenario granularity rather than per concrete row.
  */
 export function routeShape(path: string): string {
-  return normalizeRoute(path)
+  return stripQuery(path)
     .split('/')
     .map((part) => /^\d+$/.test(part) ? ':id' : part)
     .join('/');

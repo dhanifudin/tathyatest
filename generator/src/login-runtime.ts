@@ -1,5 +1,6 @@
 import type { Locator as PlaywrightLocator, Page } from '@playwright/test';
 import { inferLoginControlsFromHtml, type LoginControls, type LoginLocator } from './login.js';
+import { escapeAttrValue } from './util/escape.js';
 
 /** Turn a stored login-control locator into a live Playwright locator (same chain as locator.ts). */
 export function playwrightLocator(page: Page, locator: LoginLocator): PlaywrightLocator {
@@ -16,9 +17,9 @@ export function playwrightLocator(page: Page, locator: LoginLocator): Playwright
     case 'placeholder':
       return page.getByPlaceholder(locator.value);
     case 'id':
-      return page.locator(`#${cssEscape(locator.value)}`);
+      return page.locator(`#${escapeAttrValue(locator.value)}`);
     case 'name':
-      return page.locator(`[name="${cssEscape(locator.value)}"]`);
+      return page.locator(`[name="${escapeAttrValue(locator.value)}"]`);
     case 'css':
       return page.locator(locator.value);
   }
@@ -30,6 +31,3 @@ export async function inferLoginControlsOnPage(page: Page): Promise<LoginControl
   return inferLoginControlsFromHtml(await page.content());
 }
 
-function cssEscape(value: string): string {
-  return value.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
-}

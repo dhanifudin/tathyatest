@@ -1,5 +1,6 @@
 import type { Field, Form } from './crawl.js';
 import { locatorSource } from './locator.js';
+import { escapeRegExp } from './util/escape.js';
 
 export function errorAssertionSource(form: Form, field: Field, errorSelector: string, expectedPath?: string, variantName?: string): string {
   const fieldLocator = locatorSource(field.locator);
@@ -29,6 +30,3 @@ export function gracefulAssertionSource(): string {
   return `await expect(page.locator('body')).not.toContainText(/500|server error|exception/i);`;
 }
 
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
