@@ -1,0 +1,30 @@
+{
+  "typescript.tsdk": "generator/node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "search.exclude": {
+    "**/node_modules": true,
+    "generator/dist": true,
+    "tests/generated": true,
+    "crawl": true,
+    "metrics": true,
+    "metrics-saucedemo": true,
+    "test-results": true,
+    "playwright-report": true
+  },
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "generator/dist/**": true,
+    "tests/generated/**": true,
+    "crawl/**": true,
+    "test-results/**": true,
+    "playwright-report/**": true
+  },
+  "files.associations": {
+    "tathya*.yaml": "yaml"
+  },
+  "vitest.rootConfig": "generator/vitest.config.ts",
+  "playwright.reuseBrowser": false,
+  "playwright.env": {
+    "TATHYA_CONFIG": "tathya.blade.config.yaml"
+  }
+}

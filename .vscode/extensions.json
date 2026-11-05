@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "mkhl.direnv",
+    "ms-playwright.playwright",
+    "vitest.explorer",
+    "xdebug.php-debug",
+    "bmewburn.vscode-intelephense-client",
+    "redhat.vscode-yaml"
+  ]
+}

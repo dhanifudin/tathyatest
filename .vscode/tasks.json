@@ -1,0 +1,139 @@
+{
+  "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "ttConfig",
+      "type": "pickString",
+      "description": "tt config file",
+      "options": [
+        "tathya.blade.config.yaml",
+        "tathya.inertia-react.config.yaml",
+        "tathya.saucedemo.config.yaml",
+        "tathya.config.yaml"
+      ],
+      "default": "tathya.blade.config.yaml"
+    }
+  ],
+  "tasks": [
+    {
+      "label": "generator: build",
+      "type": "shell",
+      "command": "npm run build",
+      "options": { "cwd": "${workspaceFolder}/generator" },
+      "group": "build",
+      "problemMatcher": "$tsc"
+    },
+    {
+      "label": "generator: watch",
+      "type": "shell",
+      "command": "npx tsc --watch",
+      "options": { "cwd": "${workspaceFolder}/generator" },
+      "isBackground": true,
+      "problemMatcher": "$tsc-watch"
+    },
+    {
+      "label": "generator: typecheck",
+      "type": "shell",
+      "command": "npm run typecheck",
+      "options": { "cwd": "${workspaceFolder}/generator" },
+      "problemMatcher": "$tsc"
+    },
+    {
+      "label": "generator: test",
+      "type": "shell",
+      "command": "npm test",
+      "options": { "cwd": "${workspaceFolder}/generator" },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "app: blade serve",
+      "type": "shell",
+      "command": "nix-shell case-study/todo-blade/shell.nix --run \"cd case-study/todo-blade && COVERAGE=1 php artisan serve\"",
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "presentation": { "panel": "dedicated", "group": "apps" },
+      "problemMatcher": {
+        "pattern": { "regexp": "^$" },
+        "background": { "activeOnStart": true, "beginsPattern": ".", "endsPattern": "Server running" }
+      }
+    },
+    {
+      "label": "app: blade serve (xdebug)",
+      "type": "shell",
+      "command": "nix-shell case-study/todo-blade/shell.debug.nix --run \"cd case-study/todo-blade && php artisan serve\"",
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "presentation": { "panel": "dedicated", "group": "apps" },
+      "problemMatcher": {
+        "pattern": { "regexp": "^$" },
+        "background": { "activeOnStart": true, "beginsPattern": ".", "endsPattern": "Server running" }
+      }
+    },
+    {
+      "label": "app: inertia serve",
+      "type": "shell",
+      "command": "nix-shell case-study/todo-inertia-react/shell.nix --run \"cd case-study/todo-inertia-react && COVERAGE=1 php artisan serve --port=8001\"",
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "presentation": { "panel": "dedicated", "group": "apps" },
+      "problemMatcher": {
+        "pattern": { "regexp": "^$" },
+        "background": { "activeOnStart": true, "beginsPattern": ".", "endsPattern": "Server running" }
+      }
+    },
+    {
+      "label": "app: blade reset db",
+      "type": "shell",
+      "command": "nix-shell case-study/todo-blade/shell.nix --run \"cd case-study/todo-blade && php artisan migrate:fresh --seed\"",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "app: inertia reset db",
+      "type": "shell",
+      "command": "nix-shell case-study/todo-inertia-react/shell.nix --run \"cd case-study/todo-inertia-react && php artisan migrate:fresh --seed\"",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "tt: crawl",
+      "type": "shell",
+      "command": "node generator/dist/main.js -c ${input:ttConfig} crawl",
+      "options": { "cwd": "${workspaceFolder}" },
+      "dependsOn": ["generator: build"],
+      "problemMatcher": []
+    },
+    {
+      "label": "tt: generate",
+      "type": "shell",
+      "command": "node generator/dist/main.js -c ${input:ttConfig} generate",
+      "options": { "cwd": "${workspaceFolder}" },
+      "dependsOn": ["generator: build"],
+      "problemMatcher": []
+    },
+    {
+      "label": "tt: run",
+      "type": "shell",
+      "command": "node generator/dist/main.js -c ${input:ttConfig} run",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "tt: all",
+      "type": "shell",
+      "command": "node generator/dist/main.js -c ${input:ttConfig} all",
+      "options": { "cwd": "${workspaceFolder}" },
+      "dependsOn": ["generator: build"],
+      "problemMatcher": []
+    },
+    {
+      "label": "tt: eval",
+      "type": "shell",
+      "command": "node generator/dist/main.js -c ${input:ttConfig} eval",
+      "options": { "cwd": "${workspaceFolder}" },
+      "dependsOn": ["generator: build"],
+      "problemMatcher": []
+    }
+  ]
+}

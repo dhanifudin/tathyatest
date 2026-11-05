@@ -51,3 +51,6 @@ case-study/*/storage/logs/*
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Shared VS Code setup (a global ignore may hide .vscode/ elsewhere)
+!.vscode/

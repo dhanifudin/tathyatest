@@ -1,0 +1,108 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "tt: debug command",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/generator/dist/main.js",
+      "args": ["-c", "${input:ttConfig}", "${input:ttCommand}"],
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "generator: build",
+      "sourceMaps": true,
+      "outFiles": ["${workspaceFolder}/generator/dist/**/*.js"],
+      "skipFiles": ["<node_internals>/**"],
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "tt: eval one stack (blade)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/generator/dist/main.js",
+      "args": ["eval", "--stack", "blade", "--no-faults", "--no-baseline", "--repeat", "1"],
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "generator: build",
+      "sourceMaps": true,
+      "outFiles": ["${workspaceFolder}/generator/dist/**/*.js"],
+      "skipFiles": ["<node_internals>/**"],
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Vitest: current file",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/generator/node_modules/vitest/vitest.mjs",
+      "args": ["run", "${fileBasename}", "--no-file-parallelism"],
+      "cwd": "${workspaceFolder}/generator",
+      "autoAttachChildProcesses": true,
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Playwright: generated suite",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/node_modules/@playwright/test/cli.js",
+      "args": ["test", "--project=admin-chromium", "--workers=1", "--headed"],
+      "cwd": "${workspaceFolder}",
+      "env": { "TATHYA_CONFIG": "${input:ttConfig}" },
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Playwright: inspector (PWDEBUG)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/node_modules/@playwright/test/cli.js",
+      "args": ["test", "--project=admin-chromium", "--workers=1"],
+      "cwd": "${workspaceFolder}",
+      "env": { "TATHYA_CONFIG": "${input:ttConfig}", "PWDEBUG": "1" },
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Attach to Node (9229)",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "sourceMaps": true,
+      "outFiles": ["${workspaceFolder}/generator/dist/**/*.js"],
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "Laravel: listen for Xdebug (9003)",
+      "type": "php",
+      "request": "launch",
+      "port": 9003
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Blade app + tt command",
+      "configurations": ["tt: debug command"],
+      "preLaunchTask": "app: blade serve",
+      "stopAll": true
+    }
+  ],
+  "inputs": [
+    {
+      "id": "ttConfig",
+      "type": "pickString",
+      "description": "tt config file",
+      "options": [
+        "tathya.blade.config.yaml",
+        "tathya.inertia-react.config.yaml",
+        "tathya.saucedemo.config.yaml",
+        "tathya.config.yaml"
+      ],
+      "default": "tathya.blade.config.yaml"
+    },
+    {
+      "id": "ttCommand",
+      "type": "pickString",
+      "description": "tt command",
+      "options": ["crawl", "generate", "run", "all", "eval", "report"],
+      "default": "generate"
+    }
+  ]
+}
