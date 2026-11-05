@@ -60,6 +60,7 @@ function fakeReport(overrides: Partial<MetricsReport> = {}): MetricsReport {
   const r = (ratio: number) => ({ covered: Math.round(ratio * 10), total: 10, ratio });
   return {
     coverage: {
+      mode: 'read-write',
       routes: r(1), forms: r(0.8), fields: r(0.9), nav: r(0.5), element: r(0.75), rbacMatrix: r(0.5),
       crudByResource: { todos: { create: true, read: true, update: true, delete: false } },
       constraintKinds: { present: ['required', 'maxlength'], exercised: ['required'], ratio: 0.5 },

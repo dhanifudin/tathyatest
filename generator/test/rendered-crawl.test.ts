@@ -6,7 +6,7 @@ const baseConfig = {
     loginPath: '/',
     roles: [{ name: 'standard', username: 'standard_user', password: 'secret_sauce' }],
   },
-  crawl: { maxDepth: 3, maxPages: 100, include: [], exclude: [] },
+  crawl: { maxDepth: 3, maxPages: 100, include: [], exclude: [], inferRestRoutes: true },
 };
 
 describe('rendered crawl URL normalization', () => {

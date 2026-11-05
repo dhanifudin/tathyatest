@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { isMutating, mapTestCases, navScenarioKeysForPage } from '../src/mapper.js';
+import { isMutating, mapTestCases, navScenarioKeysForPage, type TestCase } from '../src/mapper.js';
+
+type Kind<K extends TestCase['kind']> = Extract<TestCase, { kind: K }>;
+/** Cases of one kind, narrowed so tests can read kind-specific fields without casts. */
+function only<K extends TestCase['kind']>(cases: TestCase[], kind: K, keep: (testCase: Kind<K>) => boolean = () => true): Kind<K>[] {
+  return cases.filter((testCase): testCase is Kind<K> => testCase.kind === kind && keep(testCase as Kind<K>));
+}
 import type { CrawlOutput } from '../src/crawl.js';
 import type { TathyaConfig } from '../src/config.js';
 import type { AccessMatrix } from '../src/rbac.js';
@@ -94,8 +100,8 @@ describe('mapTestCases', () => {
     ]);
 
     const cases = mapTestCases([crawl], matrix, config);
-    const valid = cases.find((testCase) => testCase.kind === 'form' && testCase.variant.name === 'valid');
-    const mismatch = cases.find((testCase) => testCase.kind === 'form' && testCase.variant.name === 'confirmation-mismatch');
+    const valid = only(cases, 'form', (testCase) => testCase.variant.name === 'valid')[0];
+    const mismatch = only(cases, 'form', (testCase) => testCase.variant.name === 'confirmation-mismatch')[0];
 
     // contact_email is unique → generated at runtime; its confirmation references the same const.
     expect(valid?.values.contact_email).toMatchObject({ kind: 'runtime' });
@@ -151,7 +157,7 @@ describe('mapTestCases', () => {
     ]);
 
     const cases = mapTestCases([crawl], matrix, config);
-    const blank = cases.find((testCase) => testCase.kind === 'form' && testCase.variant.name === 'required-empty');
+    const blank = only(cases, 'form', (testCase) => testCase.variant.name === 'required-empty')[0];
 
     expect(blank?.targetField?.name).toBe('status');
     expect(blank?.values.status).toEqual({ kind: 'literal', value: '' });
@@ -213,8 +219,7 @@ describe('mapTestCases', () => {
     };
 
     const cases = mapTestCases([crawl], new Map(), config);
-    const variantNamesFor = (action: string) => cases
-      .filter((testCase) => testCase.kind === 'form' && testCase.form.action === action)
+    const variantNamesFor = (action: string) => only(cases, 'form', (testCase) => testCase.form.action === action)
       .map((testCase) => testCase.variant.name);
 
     // Native form: fill() never dirties the field, so these violations cannot flip validity.valid.
@@ -258,8 +263,8 @@ describe('mapTestCases', () => {
     };
 
     const cases = mapTestCases([crawl], matrix, twoRoleConfig);
-    const allowed = cases.filter((testCase) => testCase.kind === 'rbac' && testCase.expectAllowed);
-    const blocked = cases.filter((testCase) => testCase.kind === 'rbac' && !testCase.expectAllowed);
+    const allowed = only(cases, 'rbac', (testCase) => testCase.expectAllowed);
+    const blocked = only(cases, 'rbac', (testCase) => !testCase.expectAllowed);
     const interactions = cases.filter((testCase) => testCase.kind === 'interaction');
 
     // /todos/1..3/edit collapse to one representative page: one allowed case, one interaction set,
@@ -814,7 +819,7 @@ describe('mapTestCases', () => {
     };
 
     const cases = mapTestCases([crawl], new Map(), config);
-    const selects = cases.filter((testCase) => testCase.kind === 'interaction' && testCase.interaction.type === 'select');
+    const selects = only(cases, 'interaction', (testCase) => testCase.interaction.type === 'select');
 
     expect(selects).toHaveLength(1);
     expect(selects[0].title).toBe('admin · /inventory.html · selects "Price (high to low)" in the testid:product-sort-container control');
@@ -858,7 +863,7 @@ describe('mapTestCases', () => {
 
     const cases = mapTestCases([crawl], new Map(), config);
     const titles = cases.map((testCase) => testCase.title);
-    const rbacAllowed = cases.filter((testCase) => testCase.kind === 'rbac' && testCase.expectAllowed);
+    const rbacAllowed = only(cases, 'rbac', (testCase) => testCase.expectAllowed);
     const interactions = cases.filter((testCase) => testCase.kind === 'interaction');
 
     expect(rbacAllowed).toHaveLength(1);
@@ -1010,7 +1015,7 @@ describe('mapTestCases', () => {
       ],
     };
 
-    const inferred = mapTestCases([crawl], new Map(), config).filter((testCase) => testCase.kind === 'rbac' && /inferred/.test(testCase.title));
+    const inferred = only(mapTestCases([crawl], new Map(), config), 'rbac', (testCase) => /inferred/.test(testCase.title));
     expect(inferred.map((testCase) => testCase.title)).toEqual([
       'admin can open /todos/4 (inferred from the delete form on /todos)',
     ]);
@@ -1031,7 +1036,7 @@ describe('mapTestCases', () => {
       dashboard('user', [link('/todos', 'Todos'), link('/logout', 'Log Out')]),
     ];
 
-    const affordances = mapTestCases(crawls, new Map(), twoRoles).filter((testCase) => testCase.kind === 'rbac' && testCase.affordance);
+    const affordances = only(mapTestCases(crawls, new Map(), twoRoles), 'rbac', (testCase) => Boolean(testCase.affordance));
 
     expect(affordances.map((testCase) => testCase.title)).toEqual([
       'user does not see the "Users" link to /admin/users on /dashboard',

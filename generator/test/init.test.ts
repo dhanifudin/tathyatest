@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildInitConfig, defaultRoleName, initProjectPaths, slugifyProjectName } from '../src/init';
-import { inferLoginControlsFromHtml, normalizeBaseUrl } from '../src/login';
+import { buildInitConfig, defaultRoleName, initProjectPaths, slugifyProjectName } from '../src/init.js';
+import { inferLoginControlsFromHtml, normalizeBaseUrl } from '../src/login.js';
 
 describe('init project helpers', () => {
   it('slugifies project names for directory creation', () => {
