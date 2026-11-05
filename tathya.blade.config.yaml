@@ -1,6 +1,6 @@
 baseUrl: http://127.0.0.1:8000
 hooks:
-  reset: { method: POST, path: /__testing/reset }   # case-study endpoint that reseeds the DB before every test
+  reset: { method: POST, path: /__testing/reset }
 output:
   dir: tests/generated
   language: ts
@@ -46,4 +46,6 @@ data:
     - contact_email_confirmation
   faker:
     locale: en          # faker locale for generated create/update data
-    seed: null          # set an integer for reproducible data (used by the consistency metric)
+    seed: 42
+evaluation:
+  baselineDir: tests/manual/blade

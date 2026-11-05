@@ -4,24 +4,7 @@ coverage/
 playwright-report/
 test-results/
 
-# LaTeX build artifacts
-*.aux
-*.bbl
-*.bcf
-*.blg
-*.fdb_latexmk
-*.fls
-*.log
-*.out
-*.pdf
-*.run.xml
-*.synctex.gz
-*.toc
-
 tathya.config.yaml
-tathya.blade.config.yaml
-tathya.inertia-react.config.yaml
-tt-crawler
 
 crawl/*.json
 tests/generated/**/*.spec.ts
@@ -54,3 +37,7 @@ case-study/*/storage/logs/*
 
 # Shared VS Code setup (a global ignore may hide .vscode/ elsewhere)
 !.vscode/
+
+# Scratch space and OS noise
+/tmp/
+.DS_Store
