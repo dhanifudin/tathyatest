@@ -18,8 +18,8 @@ emitter and the evaluation runner.
 
 ## Non-goals
 
-- Replacing the Playwright crawler (`generator/src/extract/rendered.ts`). The crawl contract
-  (`generator/src/crawl.ts`, `schemaVersion` 2) is plain data and stays as is.
+- Replacing the Playwright crawler (`generator/src/crawl/rendered.ts`). The crawl contract
+  (`generator/src/crawl/crawl.ts`, `schemaVersion` 2) is plain data and stays as is.
 - New test categories, new oracles, or changes to coverage tiers.
 - Supporting a framework in the crawler, or running two frameworks in one `tt eval` run.
 
@@ -29,11 +29,11 @@ Shared and framework-neutral (must not change meaning):
 
 | Module | Role |
 |--------|------|
-| `generator/src/crawl.ts`, `extract/rendered.ts` | crawl contract and crawler (Playwright by design) |
-| `generator/src/mapper.ts` | `TestCase` union: `auth`, `form`, `interaction`, `pagination`, `rbac` |
-| `generator/src/fieldgen.ts`, `faker.ts` | field variants; runtime faker expression strings |
-| `generator/src/rbac.ts`, `crud.ts`, `manifest.ts` | access matrix, CRUD classification, manifest entries |
-| `generator/src/metrics.ts`, `stats.ts`, `eval/faults.ts`, `eval/report.ts` | metrics, statistics, fault catalogue, report |
+| `generator/src/crawl/crawl.ts`, `crawl/rendered.ts` | crawl contract and crawler (Playwright by design) |
+| `generator/src/generate/mapper.ts` | `TestCase` union: `auth`, `form`, `interaction`, `pagination`, `rbac` |
+| `generator/src/generate/fieldgen.ts`, `faker.ts` | field variants; runtime faker expression strings |
+| `generator/src/generate/rbac.ts`, `crud.ts`, `manifest.ts` | access matrix, CRUD classification, manifest entries |
+| `generator/src/eval/metrics.ts`, `stats.ts`, `eval/faults.ts`, `eval/report.ts` | metrics, statistics, fault catalogue, report |
 | `generator/src/emit/index.ts`, `emit/js.ts` | file orchestration, TS to JS transpile |
 
 Coupled to Playwright (adapter territory):

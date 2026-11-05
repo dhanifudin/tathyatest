@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { access } from 'node:fs/promises';
 import YAML from 'yaml';
-import { normalizeBaseUrl } from './generator/src/login.js';
+import { normalizeBaseUrl } from './generator/src/auth/login.js';
 
 type RoleConfig = { name: string };
 type TathyaConfig = { baseUrl?: string; auth?: { roles?: RoleConfig[] } };

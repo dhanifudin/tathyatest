@@ -99,7 +99,7 @@
     {
       "label": "tt: crawl",
       "type": "shell",
-      "command": "node generator/dist/main.js -c ${input:ttConfig} crawl",
+      "command": "node generator/dist/cli/main.js -c ${input:ttConfig} crawl",
       "options": { "cwd": "${workspaceFolder}" },
       "dependsOn": ["generator: build"],
       "problemMatcher": []
@@ -107,7 +107,7 @@
     {
       "label": "tt: generate",
       "type": "shell",
-      "command": "node generator/dist/main.js -c ${input:ttConfig} generate",
+      "command": "node generator/dist/cli/main.js -c ${input:ttConfig} generate",
       "options": { "cwd": "${workspaceFolder}" },
       "dependsOn": ["generator: build"],
       "problemMatcher": []
@@ -115,14 +115,14 @@
     {
       "label": "tt: run",
       "type": "shell",
-      "command": "node generator/dist/main.js -c ${input:ttConfig} run",
+      "command": "node generator/dist/cli/main.js -c ${input:ttConfig} run",
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": []
     },
     {
       "label": "tt: all",
       "type": "shell",
-      "command": "node generator/dist/main.js -c ${input:ttConfig} all",
+      "command": "node generator/dist/cli/main.js -c ${input:ttConfig} all",
       "options": { "cwd": "${workspaceFolder}" },
       "dependsOn": ["generator: build"],
       "problemMatcher": []
@@ -130,7 +130,7 @@
     {
       "label": "tt: eval",
       "type": "shell",
-      "command": "node generator/dist/main.js -c ${input:ttConfig} eval",
+      "command": "node generator/dist/cli/main.js -c ${input:ttConfig} eval",
       "options": { "cwd": "${workspaceFolder}" },
       "dependsOn": ["generator: build"],
       "problemMatcher": []

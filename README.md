@@ -226,10 +226,10 @@ a time on a small machine, and run `tt eval` one stack at a time (`tt eval --sta
 compiled `dist/` code.
 
 1. Run `generator: build` once (the launch configurations also do it for you).
-2. Set a breakpoint, for example in `generator/src/mapper.ts` or `generator/src/crud.ts`.
+2. Set a breakpoint, for example in `generator/src/generate/mapper.ts` or `generator/src/crawl/crud.ts`.
 3. Press `F5` and choose **tt: debug command**; pick the config and the command (`crawl`, `generate`,
    `run`, `all`, `eval`, `report`). Use **tt: eval one stack (blade)** for a quick evaluation pass.
-4. To debug the crawler (`generator/src/extract/rendered.ts`), launch `crawl` and set breakpoints
+4. To debug the crawler (`generator/src/crawl/rendered.ts`), launch `crawl` and set breakpoints
    inside the Node side; the code inside `page.evaluate()` runs in the browser, so debug it with
    `PWDEBUG=1 tt crawl` or `console.log` instead.
 
@@ -286,7 +286,7 @@ logs in once, then follows same-origin links/forms discovered live from the rend
 ![Crawl loop per role: login phase, then dequeue/goto/extract/enrich/discover loop until the queue is empty](docs/diagrams/crawl-pipeline.svg)
 
 **Login.** Login controls are inferred by scoring candidate inputs in the rendered HTML
-(`generator/src/login.ts`): username (`type="email"` +100, `autocomplete="username"` +90,
+(`generator/src/auth/login.ts`): username (`type="email"` +100, `autocomplete="username"` +90,
 `autocomplete="email"` +80, name/id/label matching `email|username|user|account|identifier|handle`
 +50), password (`type="password"` +100, matching `password|passcode|pin` +50), submit
 (`data-test`/`data-testid` present +100, is a `<button>` +20, text matching
@@ -341,8 +341,8 @@ a heuristic guess. Keywords are grouped by the file that owns them.
 
 ### 1. Locator priority chain
 
-`generator/src/extract/rendered.ts` picks a locator per element at crawl time, in this
-exact order (never positional/`nth-child`); `generator/src/locator.ts` turns the chosen
+`generator/src/crawl/rendered.ts` picks a locator per element at crawl time, in this
+exact order (never positional/`nth-child`); `generator/src/generate/locator.ts` turns the chosen
 strategy into a Playwright call when emitting a spec:
 
 ![Locator priority chain: data-testid, then role/name, label, placeholder, stable id, name attribute, and finally a CSS fallback](docs/diagrams/locator-chain.svg)
@@ -357,7 +357,7 @@ normalizes `searchbox` to `textbox` and only accepts
 
 ### 2. HTML constraint → test-variant rules
 
-`generator/src/fieldgen.ts` turns captured field constraints into named variants. Each
+`generator/src/generate/fieldgen.ts` turns captured field constraints into named variants. Each
 row is one generated test case:
 
 | Trigger | Variant name | Tier | Value | Expected outcome |
@@ -404,7 +404,7 @@ Supporting keyword lists:
 
 ### 3. CRUD-operation classification
 
-The crawler records a form's raw signals and `generator/src/crud.ts` classifies them in
+The crawler records a form's raw signals and `generator/src/crawl/crud.ts` classifies them in
 Node (pure, unit-tested), framework-neutrally, in this precedence:
 
 ```
@@ -427,7 +427,7 @@ instead of the generic `valid` label.
 
 ### 4. Pagination keywords
 
-`generator/src/mapper.ts` classifies links/buttons as pagination controls by exact label
+`generator/src/generate/mapper.ts` classifies links/buttons as pagination controls by exact label
 match (after decoding HTML entities such as `&raquo;` — Laravel's stock paginator escapes
 them into its `aria-label` — then lowercasing and stripping arrow decoration `«»‹›←→<>` when
 the label also contains alphanumerics) or by query-parameter key:
@@ -450,7 +450,7 @@ hidden responsive duplicate.
 
 ### 5. Field-name semantic keywords (for realistic fill values)
 
-`generator/src/faker.ts` matches the field's `name` attribute against a prioritized list
+`generator/src/generate/faker.ts` matches the field's `name` attribute against a prioritized list
 of patterns to pick a meaningful `@faker-js/faker` expression — name-based intent wins
 over the raw `type` attribute. Patterns, in priority order: `email`; `username`/`user`/
 `login`; `url`/`website`/`homepage`/`link`; `slug`; `phone`/`tel`/`mobile`; `_at` suffix/

@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { z } from 'zod';
 import YAML from 'yaml';
-import { normalizeBaseUrl } from './login.js';
+import { normalizeBaseUrl } from './auth/login.js';
 import { FAULT_CLASSES } from './fault-classes.js';
 import { log } from './logger.js';
 

@@ -5,12 +5,12 @@ Status: Draft. Depends on: PRD 1.
 ## Problem
 
 Running and evaluating the suite is hard-wired to Playwright in four places: `tt run` and `tt all`
-(`generator/src/cli.ts`: `runPlaywright`, `mutationFilterArgs`, `resolvePlaywrightBinary`),
+(`generator/src/cli/cli.ts`: `runPlaywright`, `mutationFilterArgs`, `resolvePlaywrightBinary`),
 the JSON path (`generator/src/eval/playwright.ts`: `runPlaywrightJson`, `parsePlaywrightJson`), the
 evaluation runner (`generator/src/eval/runner.ts`: `runStack`, `runBaseline`, `runFaults`), and the
 root scaffold (`playwright.config.ts`, `playwright.global-setup.ts`). A second framework must plug in
 without touching metrics or statistics, which already consume the neutral `SuiteRun` type
-(`generator/src/metrics.ts`).
+(`generator/src/eval/metrics.ts`).
 
 ## Goals
 

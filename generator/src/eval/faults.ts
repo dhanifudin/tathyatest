@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { z } from 'zod';
-import type { FaultClass, ManifestCategory, ManifestEntry, ManifestTier } from '../manifest.js';
+import type { FaultClass, ManifestCategory, ManifestEntry, ManifestTier } from '../generate/manifest.js';
 import { FAULT_CLASSES } from '../fault-classes.js';
 
 /**

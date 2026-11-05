@@ -3,8 +3,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import YAML from 'yaml';
-import { normalizeBaseUrl } from './generator/src/login.js';
-import { inferLoginControlsOnPage, playwrightLocator } from './generator/src/login-runtime.js';
+import { normalizeBaseUrl } from './generator/src/auth/login.js';
+import { inferLoginControlsOnPage, playwrightLocator } from './generator/src/auth/login-runtime.js';
 
 type RoleConfig = { name: string; username: string; password: string };
 type TathyaConfig = {

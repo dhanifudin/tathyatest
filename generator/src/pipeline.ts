@@ -1,9 +1,9 @@
 import type { TathyaConfig } from './config.js';
-import { loadCrawls, type CrawlOutput } from './crawl.js';
+import { loadCrawls, type CrawlOutput } from './crawl/crawl.js';
 import { emit } from './emit/index.js';
-import type { ManifestEntry } from './manifest.js';
-import { mapTestCases, type TestCase } from './mapper.js';
-import { buildAccessMatrix, type AccessMatrix } from './rbac.js';
+import type { ManifestEntry } from './generate/manifest.js';
+import { mapTestCases, type TestCase } from './generate/mapper.js';
+import { buildAccessMatrix, type AccessMatrix } from './generate/rbac.js';
 
 export type GeneratedSuite = {
   crawls: CrawlOutput[];

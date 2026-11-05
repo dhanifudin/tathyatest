@@ -178,8 +178,8 @@ npx playwright test --ui       # interactive UI mode
 - Strict TypeScript: `"strict": true`, no `any`, no `@ts-ignore`.
 - Zod schema in `src/config.ts` is the authoritative validator — update it first when the
   config shape changes, then update the consuming code.
-- `src/crawl.ts` types and zod schema are the crawl contract. Keep
-  `src/extract/rendered.ts` output synchronized with it.
+- `src/crawl/crawl.ts` types and zod schema are the crawl contract. Keep
+  `src/crawl/rendered.ts` output synchronized with it.
 - `fieldgen.ts` is pure (no I/O). It returns `FieldVariant[]` and the valid `FieldValue` union
   (`literal` | `runtime` faker expr | `ref` to a confirmation source). Unit-tested, no Playwright.
 - `faker.ts`, `stats.ts`, and `metrics.ts` are pure (no I/O, no Playwright). `faker.ts` returns a
@@ -191,7 +191,7 @@ npx playwright test --ui       # interactive UI mode
 - `mapper.ts` must never read files or spawn processes — it receives already-loaded data.
 - Nothing framework-specific in code paths. Emitted specs call no app endpoint except the optional
   `config.hooks.reset`; `tt eval` reaches the app through `evaluation.controlPlane` paths
-  (defaults `/__testing/*`); CRUD classification lives in `src/crud.ts` as documented keyword
+  (defaults `/__testing/*`); CRUD classification lives in `src/crawl/crud.ts` as documented keyword
   rules. Laravel-only knowledge belongs in the case studies and their example configs.
 - `emit/ts.ts` and `emit/js.ts` must produce syntactically valid Playwright specs. Run
   `tsc --noEmit` against emitted TS to verify before calling generation "done".
@@ -219,8 +219,8 @@ npx playwright test --ui       # interactive UI mode
 ## The element-model contract (DO NOT break)
 
 Every change to the `crawl.json` schema must be coordinated across **two** files:
-1. `generator/src/crawl.ts` — TypeScript types and zod validator
-2. `generator/src/extract/rendered.ts` — Playwright crawler output (must match the schema)
+1. `generator/src/crawl/crawl.ts` — TypeScript types and zod validator
+2. `generator/src/crawl/rendered.ts` — Playwright crawler output (must match the schema)
 
 The contract version is the `"schemaVersion"` integer in the JSON root (`CRAWL_SCHEMA_VERSION`
 in `crawl.ts`, currently 2). Bump it when a field changes meaning or is removed; purely additive
@@ -301,6 +301,6 @@ Breaking this order produces brittle tests. Never use positional selectors.
 
 1. `docs/implementation-plan.md` — phased build steps (Phases 0–10)
 2. `AGENTS.md` — contract invariants and agent-coordination rules
-3. `generator/src/crawl.ts` — the element-model contract
-4. `generator/src/extract/rendered.ts` — Playwright crawler output
+3. `generator/src/crawl/crawl.ts` — the element-model contract
+4. `generator/src/crawl/rendered.ts` — Playwright crawler output
 5. `tathya.config.example.yaml` — canonical config reference

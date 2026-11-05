@@ -4,10 +4,10 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { parseConfig } from '../src/config.js';
-import { loadCrawls } from '../src/crawl.js';
+import { loadCrawls } from '../src/crawl/crawl.js';
 import { emit } from '../src/emit/index.js';
-import { buildAccessMatrix } from '../src/rbac.js';
-import { mapTestCases } from '../src/mapper.js';
+import { buildAccessMatrix } from '../src/generate/rbac.js';
+import { mapTestCases } from '../src/generate/mapper.js';
 
 /**
  * Characterization ("golden") test of the whole generation path on recorded crawls: the crawl

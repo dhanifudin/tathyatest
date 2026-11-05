@@ -6,7 +6,7 @@ Status: Draft. Depends on: PRD 1, 3.
 
 The config schema (`generator/src/config.ts`, zod) has no way to name a framework, and three keys
 are Playwright-shaped: `output.language`, `evaluation.faultProject`, `evaluation.baselineDir`.
-The CLI (`generator/src/cli.ts`) and `tt init` (`generator/src/init.ts`) assume Playwright.
+The CLI (`generator/src/cli/cli.ts`) and `tt init` (`generator/src/cli/init.ts`) assume Playwright.
 
 ## Goals
 
