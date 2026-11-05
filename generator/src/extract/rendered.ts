@@ -231,10 +231,10 @@ async function extractPage(page: Page): Promise<DomPageModel> {
     const cssFallback = (el: Element): string => {
       const tag = el.tagName.toLowerCase();
       const id = attr(el, 'id');
-      if (stableId(id)) return `#${cssEscape(id!)}`;
+      if (stableId(id)) return `#${cssEscape(id ?? '')}`;
       for (let parent = el.parentElement; parent; parent = parent.parentElement) {
         const parentId = attr(parent, 'id');
-        if (stableId(parentId)) return `#${cssEscape(parentId!)} ${tag}`;
+        if (stableId(parentId)) return `#${cssEscape(parentId ?? '')} ${tag}`;
         const parentTestId = attr(parent, 'data-testid');
         if (parentTestId) return `[data-testid="${parentTestId.replace(/["\\]/g, '\\$&')}"] ${tag}`;
         if (parent.tagName.toLowerCase() === 'html') break;

@@ -136,7 +136,7 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
         const formSignature = formTitleSignature(form);
         const formOrdinal = (formSignatureOrdinals.get(formSignature) ?? 0) + 1;
         formSignatureOrdinals.set(formSignature, formOrdinal);
-        const formTitleBase = formLabel(form, formSignatureCounts.get(formSignature)! > 1 ? formOrdinal : null);
+        const formTitleBase = formLabel(form, (formSignatureCounts.get(formSignature) ?? 0) > 1 ? formOrdinal : null);
         if (form.fields.length > 0) {
           const baseValues = buildBaseValues(form, config);
           cases.push({

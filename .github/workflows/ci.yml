@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  generator:
+    name: Generator (typecheck, lint, tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: generator/package-lock.json
+      - run: npm ci
+        working-directory: generator
+      - run: npm run typecheck
+        working-directory: generator
+      - run: npm run lint
+        working-directory: generator
+      - run: npm test
+        working-directory: generator
+
+  case-study:
+    name: Case study (${{ matrix.app }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [todo-blade, todo-inertia-react]
+    defaults:
+      run:
+        working-directory: case-study/${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite, sqlite3, dom, fileinfo, curl, mbstring, tokenizer, ctype, openssl, zip, pcov
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: composer install --no-interaction --prefer-dist
+      - run: cp .env.example .env && php artisan key:generate
+      - run: npm ci && npm run build
+      - run: php artisan test

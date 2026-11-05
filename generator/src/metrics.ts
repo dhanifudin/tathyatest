@@ -403,7 +403,9 @@ export function reliabilityOf(runs: SuiteRun[]): ReliabilityMetrics {
   for (const run of runs) {
     for (const outcome of run.outcomes) {
       const key = `${outcome.project}::${outcome.title}`;
-      (statusByKey.get(key) ?? statusByKey.set(key, new Set()).get(key)!).add(outcome.status);
+      const statuses = statusByKey.get(key) ?? new Set<TestStatus>();
+      statuses.add(outcome.status);
+      statusByKey.set(key, statuses);
       if (outcome.status !== 'skipped') {
         counted += 1;
         if (outcome.status === 'passed') passed += 1;

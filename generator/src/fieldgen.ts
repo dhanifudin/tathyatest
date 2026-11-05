@@ -293,7 +293,7 @@ export function mismatchingMime(accept: string): string {
 }
 
 function maxlengthExactValue(field: Field): string {
-  const n = field.constraints.maxlength!;
+  const n = field.constraints.maxlength ?? 0;
   switch (field.type) {
     case 'email': {
       // Pad the local part: u…u@example.com — long enough to hit maxlength.

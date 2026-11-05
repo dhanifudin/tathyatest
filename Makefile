@@ -40,7 +40,7 @@ generator-uninstall:
 	fi
 
 generator-test:
-	cd generator && npm run typecheck && npm test
+	cd generator && npm run typecheck && npm run lint && npm test
 
 tt-help: install
 	$(TT) --help >/dev/null
