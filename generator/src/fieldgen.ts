@@ -121,7 +121,7 @@ export function validFieldValue(field: Field, hints: FieldgenHints): FieldValue 
   return { kind: 'runtime', expr: fakerExprForField(field, hints) };
 }
 
-export function validValueForField(field: Field, hints: FieldgenHints): string {
+function validValueForField(field: Field, hints: FieldgenHints): string {
   if (hints.dataFields[field.name] !== undefined) return hints.dataFields[field.name];
   if (field.options?.[0]) return field.options[0].value;
   if (hints.defaults[field.type] !== undefined) return hints.defaults[field.type];
@@ -151,7 +151,7 @@ function badFormatValue(type: string): string {
   return 'not-an-email';
 }
 
-export function isTextLike(field: Pick<Field, 'type'>): boolean {
+function isTextLike(field: Pick<Field, 'type'>): boolean {
   return ['text', 'search', 'email', 'url', 'tel', 'textarea', 'password'].includes(field.type);
 }
 

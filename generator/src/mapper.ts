@@ -6,7 +6,6 @@ import { routeShape, type AccessMatrix } from './rbac.js';
 import { variantsForField, validFieldValue, type FieldValue, type FieldVariant } from './fieldgen.js';
 import { canonicalPath } from './util/paths.js';
 
-export type TestCaseKind = 'auth' | 'form' | 'interaction' | 'pagination' | 'rbac';
 export type TestCase =
   | {
       kind: 'auth';
@@ -624,7 +623,7 @@ function formLabel(form: Form, ordinal: number | null): string {
 }
 
 /** The scenario phrase for one field variant, e.g. `title rejects an empty value`. */
-export function humanVariant(field: Pick<Field, 'name' | 'type'>, variant: Pick<FieldVariant, 'name' | 'outcome'>): string {
+function humanVariant(field: Pick<Field, 'name' | 'type'>, variant: Pick<FieldVariant, 'name' | 'outcome'>): string {
   const name = field.name;
   switch (variant.name) {
     case 'valid': return `${name} accepts a valid value`;
