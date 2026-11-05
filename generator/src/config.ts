@@ -4,6 +4,7 @@ import YAML from 'yaml';
 import { normalizeBaseUrl } from './auth/login.js';
 import { FAULT_CLASSES } from './fault-classes.js';
 import { log } from './logger.js';
+import { DEFAULT_PATHS } from './util/paths.js';
 
 const coverageSchema = z.enum(['positive', 'negative', 'edge', 'all']);
 const languageSchema = z.enum(['ts', 'js']);
@@ -48,7 +49,7 @@ export const configSchema = z.object({
     }).nullable().default(null),
   }).optional(),
   output: z.object({
-    dir: z.string().default('tests/generated'),
+    dir: z.string().default(DEFAULT_PATHS.generatedDir),
     language: languageSchema.default('ts'),
   }).default({}),
   coverage: coverageSchema.default('all'),
@@ -89,7 +90,7 @@ export const configSchema = z.object({
     }).default({ locale: 'en', seed: null }),
   }).default({ fields: {}, defaults: {}, unique: [], duplicates: {}, requiredFields: [], confirmFields: [], faker: { locale: 'en', seed: null } }),
   evaluation: z.object({
-    outDir: z.string().default('metrics'),
+    outDir: z.string().default(DEFAULT_PATHS.metricsDir),
     repeat: z.number().int().positive().default(1),
     manualBaselineSecPerCase: z.number().positive().default(300),
     baselineDir: z.string().default('tests/manual'),
@@ -99,7 +100,7 @@ export const configSchema = z.object({
     stacks: z.array(z.object({
       name: z.string().min(1),
       dir: z.string().default('.'),
-      config: z.string().default('tathya.config.yaml'),
+      config: z.string().default(DEFAULT_PATHS.configFile),
       baseUrl: z.preprocess((value) => (typeof value === 'string' ? normalizeBaseUrl(value) : value), z.string().url()),
       coverage: z.enum(['pcov', 'xdebug', 'none']).optional(),
       faults: z.boolean().optional(),
@@ -114,7 +115,7 @@ export const configSchema = z.object({
       catalogue: z.string().optional(),
     }).default({ enabled: true, classes: [...FAULT_CLASSES] }),
   }).default({
-    outDir: 'metrics',
+    outDir: DEFAULT_PATHS.metricsDir,
     repeat: 1,
     manualBaselineSecPerCase: 300,
     baselineDir: 'tests/manual',
@@ -127,7 +128,7 @@ export const configSchema = z.object({
 export type TathyaConfig = z.infer<typeof configSchema>;
 export type Coverage = TathyaConfig['coverage'];
 
-export async function loadConfig(path = 'tathya.config.yaml'): Promise<TathyaConfig> {
+export async function loadConfig(path: string = DEFAULT_PATHS.configFile): Promise<TathyaConfig> {
   const raw = await readFile(path, 'utf8');
   return parseConfig(YAML.parse(raw), path);
 }
@@ -137,7 +138,7 @@ export async function loadConfig(path = 'tathya.config.yaml'): Promise<TathyaCon
  * typo in the YAML reads like a lint message, not a zod issue dump. Obsolete keys that zod strips
  * silently get a one-line warning.
  */
-export function parseConfig(document: unknown, source = 'tathya.config.yaml'): TathyaConfig {
+export function parseConfig(document: unknown, source: string = DEFAULT_PATHS.configFile): TathyaConfig {
   if (typeof document === 'object' && document !== null && 'extractor' in document) {
     log.warn(`[config] ${source}: "extractor" is ignored (the crawler is always Playwright) — remove it.`);
   }

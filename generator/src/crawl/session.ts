@@ -6,19 +6,20 @@ import type { TathyaConfig } from '../config.js';
 import { inferLoginControlsOnPage, playwrightLocator } from '../auth/login-runtime.js';
 import { canonicalPath } from '../util/paths.js';
 import { extractPage, type DomPageModel } from './dom-extract.js';
+import { DEFAULT_PATHS } from '../util/paths.js';
 
 const LOGIN_REDIRECT_TIMEOUT_MS = 5000;
 
 
 export async function renderedCrawl(config: TathyaConfig): Promise<void> {
-  await mkdir('crawl', { recursive: true });
+  await mkdir(DEFAULT_PATHS.crawlDir, { recursive: true });
   const browser = await chromium.launch();
   try {
     for (const role of config.auth.roles) {
       const page = await browser.newPage({ baseURL: config.baseUrl });
       const landingPath = await login(page, config, role.name, role.username, role.password);
       const output = await crawlRole(page, config, role.name, landingPath);
-      await writeFile(join('crawl', `${role.name}.json`), `${JSON.stringify(output, null, 2)}\n`);
+      await writeFile(join(DEFAULT_PATHS.crawlDir, `${role.name}.json`), `${JSON.stringify(output, null, 2)}\n`);
       await page.close();
     }
   } finally {

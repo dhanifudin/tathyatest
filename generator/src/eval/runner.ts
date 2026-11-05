@@ -13,6 +13,7 @@ import { renderReportJson, renderReportMarkdown, type StackReport } from './repo
 import { analyzeBaselineDir } from './baseline-static.js';
 import { log } from '../logger.js';
 import { escapeRegExp } from '../util/escape.js';
+import { DEFAULT_PATHS } from '../util/paths.js';
 
 type StackConfig = TathyaConfig['evaluation']['stacks'][number];
 export type EvalOptions = {
@@ -55,7 +56,7 @@ export async function runEvaluation(rootConfig: TathyaConfig, options: EvalOptio
  */
 export function resolveStacks(config: TathyaConfig, options: Pick<EvalOptions, 'stack' | 'allStacks' | 'configPath'> = {}): StackConfig[] {
   const configured = config.evaluation.stacks;
-  const configPath = options.configPath ?? 'tathya.config.yaml';
+  const configPath = options.configPath ?? DEFAULT_PATHS.configFile;
   const current: StackConfig = { name: stackNameFor(configPath), dir: '.', config: configPath, baseUrl: config.baseUrl };
   if (options.stack) {
     const match = configured.find((stack) => stack.name === options.stack);

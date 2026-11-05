@@ -4,13 +4,14 @@ import { renderedCrawl } from './session.js';
 import { assertReachable } from './reachability.js';
 import type { TathyaConfig } from '../config.js';
 import { crawlOutputSchema, type CrawlOutput } from './model.js';
+import { DEFAULT_PATHS } from '../util/paths.js';
 
 /**
  * Load crawl snapshots from `dir`. When `roles` is given, only `<role>.json` files for those
  * roles are read — this prevents cross-subject contamination when the crawl dir still holds
  * snapshots from a previously evaluated subject with different role names.
  */
-export async function loadCrawls(dir = 'crawl', roles?: string[]): Promise<CrawlOutput[]> {
+export async function loadCrawls(dir: string = DEFAULT_PATHS.crawlDir, roles?: string[]): Promise<CrawlOutput[]> {
   const entries = await readdir(dir);
   const wanted = roles ? new Set(roles.map((role) => `${role}.json`)) : null;
   const crawls = await Promise.all(entries
@@ -24,11 +25,11 @@ export async function loadCrawls(dir = 'crawl', roles?: string[]): Promise<Crawl
 
 export async function runCrawl(config: TathyaConfig): Promise<void> {
   await assertReachable(config.baseUrl);
-  await mkdir('crawl', { recursive: true });
+  await mkdir(DEFAULT_PATHS.crawlDir, { recursive: true });
   // Drop snapshots from other subjects/roles so downstream loadCrawls never mixes subjects.
   const configuredRoles = new Set(config.auth.roles.map((role) => `${role.name}.json`));
-  for (const entry of await readdir('crawl')) {
-    if (entry.endsWith('.json') && !configuredRoles.has(entry)) await rm(join('crawl', entry));
+  for (const entry of await readdir(DEFAULT_PATHS.crawlDir)) {
+    if (entry.endsWith('.json') && !configuredRoles.has(entry)) await rm(join(DEFAULT_PATHS.crawlDir, entry));
   }
   await renderedCrawl(config);
 }
@@ -42,15 +43,15 @@ export type EnsureCrawlsOptions = {
 };
 
 export async function ensureCrawls(config: TathyaConfig, options: EnsureCrawlsOptions = {}): Promise<void> {
-  const crawlDir = options.crawlDir ?? 'crawl';
-  const configPath = options.configPath ?? 'tathya.config.yaml';
+  const crawlDir = options.crawlDir ?? DEFAULT_PATHS.crawlDir;
+  const configPath = options.configPath ?? DEFAULT_PATHS.configFile;
   const crawlRunner = options.crawlRunner ?? runCrawl;
   if (options.force || await shouldRefreshCrawls(config, crawlDir, configPath)) {
     await crawlRunner(config);
   }
 }
 
-export async function shouldRefreshCrawls(config: TathyaConfig, crawlDir = 'crawl', configPath = 'tathya.config.yaml'): Promise<boolean> {
+export async function shouldRefreshCrawls(config: TathyaConfig, crawlDir: string = DEFAULT_PATHS.crawlDir, configPath: string = DEFAULT_PATHS.configFile): Promise<boolean> {
   try {
     const configStat = await stat(configPath);
     for (const role of config.auth.roles) {

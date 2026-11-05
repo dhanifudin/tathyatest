@@ -6,6 +6,7 @@ import { runInit } from './init.js';
 import { generateSuite } from '../pipeline.js';
 import { runEvaluation } from '../eval/runner.js';
 import { resolvePlaywrightBinary, withPlaywrightNodePath } from '../util/playwright-bin.js';
+import { DEFAULT_PATHS } from '../util/paths.js';
 
 type Config = Awaited<ReturnType<typeof loadConfig>>;
 
@@ -21,7 +22,7 @@ export function buildProgram(): Command {
     .showHelpAfterError('(run `tt --help` for the command list)')
     .action(() => program.help());
 
-  program.option('-c, --config <path>', 'path to the tathya config YAML', 'tathya.config.yaml');
+  program.option('-c, --config <path>', 'path to the tathya config YAML', DEFAULT_PATHS.configFile);
 
   const configPath = (): string => program.opts<{ config: string }>().config;
   const loadCliConfig = (): Promise<Config> => loadConfig(configPath());

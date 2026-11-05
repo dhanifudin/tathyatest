@@ -27,3 +27,14 @@ export function resolveHrefPathAndSearch(path: string, baseUrl: string): string 
     return `${pathname || '/'}${search ? `?${search}` : ''}`;
   }
 }
+
+/**
+ * Default locations, relative to the working directory. Runtime outputs are listed in the README table
+ * "Where outputs go"; the root playwright.config.ts uses the same names for storage states and specs.
+ */
+export const DEFAULT_PATHS = {
+  configFile: 'tathya.config.yaml',
+  crawlDir: 'crawl',
+  generatedDir: 'tests/generated',
+  metricsDir: 'metrics',
+} as const;

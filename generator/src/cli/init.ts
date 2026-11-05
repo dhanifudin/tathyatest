@@ -4,6 +4,7 @@ import { confirm, intro, isCancel, outro, password, select, text } from '@clack/
 import YAML from 'yaml';
 import { DEFAULT_ERROR_SELECTOR } from '../config.js';
 import { normalizeBaseUrl } from '../auth/login.js';
+import { DEFAULT_PATHS } from '../util/paths.js';
 
 type PromptValue = string | symbol;
 type InitConfigInput = {
@@ -44,7 +45,7 @@ export function initProjectPaths(projectName: string, cwd = '.'): { projectDir: 
   const projectDir = join(cwd, slugifyProjectName(projectName));
   return {
     projectDir,
-    configPath: join(projectDir, 'tathya.config.yaml'),
+    configPath: join(projectDir, DEFAULT_PATHS.configFile),
     outputDir: join(projectDir, 'tests', 'generated'),
   };
 }
@@ -54,7 +55,7 @@ export function buildInitConfig(input: InitConfigInput) {
   return {
     baseUrl: input.baseUrl,
     hooks: { reset: resetPath ? { method: 'POST', path: resetPath } : null },
-    output: { dir: 'tests/generated', language: input.language },
+    output: { dir: DEFAULT_PATHS.generatedDir, language: input.language },
     coverage: 'all',
     oracle: { errorSelector: DEFAULT_ERROR_SELECTOR },
     auth: { loginPath: input.loginPath, roles: input.roles },
