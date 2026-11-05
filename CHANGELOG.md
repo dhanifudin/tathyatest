@@ -23,6 +23,8 @@ All notable changes to this project are recorded here, newest first. The format 
 - The Blade and Inertia configs are committed (public seeded credentials only) and the duplicate
   `*.example.yaml` copies were removed.
 - `docs/implementation-plan.md` and `docs/analysis-plan.md` moved to `docs/history/`.
+- README shortened to a quick start and documentation map; the detailed material moved to
+  `docs/how-it-works.md`, `docs/evaluation.md` and `docs/vscode.md`.
 
 ### Fixed
 - Login selectors for elements that only carry `data-testid` never matched; `#id` selectors escape special characters.

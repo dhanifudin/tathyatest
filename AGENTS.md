@@ -306,7 +306,7 @@ When `tathya.config.yaml`'s schema changes:
 2. Update the example and per-stack configs (`tathya.config.example.yaml`, `tathya.blade.config.yaml`,
    `tathya.inertia-react.config.yaml`).
 3. Update the `generator/src/cli/init.ts` wizard prompts to collect the new field.
-4. Update the configuration notes in `README.md` and this file if the change affects a contract.
+4. Update `tathya.config.example.yaml`, `docs/how-it-works.md` if a generation rule changes, and this file if the change affects a contract.
 
 The config now also carries `data.faker { locale, seed }` (runtime create-data) and an
 `evaluation` block (`stacks`, `repeat`, `manualBaselineSecPerCase`, `baselineDir`, `faults`,

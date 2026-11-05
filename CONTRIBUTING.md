@@ -17,7 +17,7 @@ tt -c tathya.blade.config.yaml all   # crawl, generate, run (in another terminal
 ```
 
 Seeded accounts: `admin@example.com` and `user@example.com`, password `password`.
-VS Code users: see "Developing in VS Code" in the README for tasks and debug configurations.
+VS Code users: see [docs/vscode.md](docs/vscode.md) for tasks and debug configurations.
 
 ## 2. Repository layout
 
@@ -60,7 +60,7 @@ must never be edited by hand. `make clean-outputs` removes them.
 ## 4. Recipes
 
 **Add a field-variant rule.** Edit `generator/src/generate/fieldgen.ts` (pure), add cases to
-`test/generate/fieldgen.test.ts`, then add a row to the table in README "Keyword rules for test generation".
+`test/generate/fieldgen.test.ts`, then add a row to the variant table in [docs/how-it-works.md](docs/how-it-works.md).
 If the browser would block the value before the server sees it, add the variant name to
 `NATIVELY_UNFALSIFIABLE_VARIANTS` in `generate/mapper.ts`.
 
@@ -75,7 +75,7 @@ a negative control (`expected: 'survives'`). `test/eval/fault-sync.test.ts` fail
 `CRAWL_SCHEMA_VERSION` for breaking changes, and re-record the crawl fixtures used by the golden test.
 
 **Add a config key.** Zod schema in `src/config.ts` first, then consumers, the example and per-stack
-configs, `cli/init.ts` if the wizard should ask, and the README.
+configs, `cli/init.ts` if the wizard should ask, and `tathya.config.example.yaml`.
 
 ## 5. Where to ask
 

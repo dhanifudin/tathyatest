@@ -13,7 +13,10 @@ tt init  →  tt crawl  →  tt generate  →  tt run  →  tt eval
 
 | File | Use it for |
 |------|------------|
-| `README.md` | setup, commands, config, VS Code, keyword rules, coverage tiers, read-only mode, evaluation vocabulary |
+| `README.md` | quick start, commands, what is generated, read-only mode, outputs, documentation map |
+| `docs/how-it-works.md` | crawler behavior and every generation rule (keyword rules, variants, CRUD, pagination, faker) |
+| `docs/evaluation.md` | `tt eval`, evaluation vocabulary, SauceDemo and baselines |
+| `docs/vscode.md` | tasks, breakpoints, Xdebug, troubleshooting |
 | `AGENTS.md` | the invariants and contracts you must never break (crawl contract, RBAC, faults, locators, oracles, task boundaries) |
 | `CONTRIBUTING.md` | workflow, commit style, PR checklist, how to add a variant, oracle, or fault |
 | `docs/prd/` | planned work on framework adapters (Cypress first) |
