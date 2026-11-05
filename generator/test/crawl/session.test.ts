@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assertRenderedLoginSucceeded, isMeaningfulErrorPage, renderedCrawlSeeds, shouldExtractCrawlPage } from '../../src/crawl/rendered.js';
+import { assertRenderedLoginSucceeded, isMeaningfulErrorPage, renderedCrawlSeeds, shouldExtractCrawlPage } from '../../src/crawl/session.js';
 
 const baseConfig = {
   auth: {

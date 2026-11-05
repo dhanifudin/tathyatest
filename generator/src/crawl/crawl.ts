@@ -1,6 +1,6 @@
 import { mkdir, readdir, readFile, rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { renderedCrawl } from './rendered.js';
+import { renderedCrawl } from './session.js';
 import { assertReachable } from './reachability.js';
 import type { TathyaConfig } from '../config.js';
 import { crawlOutputSchema, type CrawlOutput } from './model.js';
