@@ -2,12 +2,10 @@ import { chdir, cwd } from 'node:process';
 import { access, mkdir, readdir, writeFile } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
 import { controlPlaneOf, DEFAULT_CONTROL_PLANE, loadConfig, type ControlPlane, type TathyaConfig } from '../config.js';
-import { loadCrawls, runCrawl } from '../crawl.js';
+import { runCrawl } from '../crawl.js';
 import { assertReachable, isReachable } from '../reachability.js';
-import { buildAccessMatrix } from '../rbac.js';
-import { mapTestCases } from '../mapper.js';
-import { emit } from '../emit/index.js';
-import { buildManifest } from '../manifest.js';
+import type { ManifestEntry } from '../manifest.js';
+import { generateSuite, type GeneratedSuite } from '../pipeline.js';
 import { computeMetrics, type FaultRun, type SuiteRun, type SutCoverage, type MetricsInput } from '../metrics.js';
 import { faultsForClasses, loadFaultCatalogue, type FaultSpec } from './faults.js';
 import { runPlaywrightJson } from './playwright.js';
@@ -113,17 +111,11 @@ async function runStack(stack: StackConfig, rootConfig: TathyaConfig, options: E
     if (collectCoverage) await control(stack.baseUrl, 'POST', plane.coverageReset);
 
     const crawlMs = await timed(() => runCrawl(config));
-    const roleNames = config.auth.roles.map((role) => role.name);
-    let cases: ReturnType<typeof mapTestCases> = [];
+    let suite!: GeneratedSuite;
     const generateMs = await timed(async () => {
-      const crawls = await loadCrawls('crawl', roleNames);
-      const matrix = buildAccessMatrix(crawls);
-      cases = mapTestCases(crawls, matrix, config);
-      await emit(cases, config);
+      suite = await generateSuite(config);
     });
-    const crawls = await loadCrawls('crawl', roleNames);
-    const matrix = buildAccessMatrix(crawls);
-    const manifest = buildManifest(cases);
+    const { crawls, matrix, manifest } = suite;
 
     const runs: SuiteRun[] = [];
     const executeMs: number[] = [];
@@ -213,7 +205,7 @@ async function hasSpecs(dir: string): Promise<boolean> {
   }
 }
 
-async function runFaults(stack: StackConfig, rootConfig: TathyaConfig, config: TathyaConfig, manifest: ReturnType<typeof buildManifest>, plane: ControlPlane, catalogue: FaultSpec[]): Promise<FaultRun[]> {
+async function runFaults(stack: StackConfig, rootConfig: TathyaConfig, config: TathyaConfig, manifest: ManifestEntry[], plane: ControlPlane, catalogue: FaultSpec[]): Promise<FaultRun[]> {
   const byTitle = new Map(manifest.map((entry) => [entry.title, entry] as const));
   const faults = faultsForClasses(rootConfig.evaluation.faults.classes, catalogue);
   // faultProject names a browser (e.g. chromium); with per-role projects the real project names

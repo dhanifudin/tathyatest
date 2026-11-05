@@ -1,11 +1,9 @@
 import { spawn } from 'node:child_process';
 import { Command } from 'commander';
 import { loadConfig } from './config.js';
-import { ensureCrawls, loadCrawls, runCrawl } from './crawl.js';
+import { ensureCrawls, runCrawl } from './crawl.js';
 import { runInit } from './init.js';
-import { buildAccessMatrix } from './rbac.js';
-import { mapTestCases } from './mapper.js';
-import { emit } from './emit/index.js';
+import { generateSuite } from './pipeline.js';
 import { runEvaluation } from './eval/runner.js';
 import { resolvePlaywrightBinary, withPlaywrightNodePath } from './util/playwright-bin.js';
 
@@ -44,7 +42,7 @@ export function buildProgram(): Command {
     .action(async (options: { fresh?: boolean; readOnly?: boolean }) => {
       const config = withMode(await loadCliConfig(), options.readOnly);
       await ensureCrawls(config, { configPath: configPath(), force: options.fresh });
-      await generateFromCrawls(config);
+      await generateSuite(config);
     });
 
   program.command('run')
@@ -69,7 +67,7 @@ export function buildProgram(): Command {
     .action(async (options: { fresh?: boolean; readOnly?: boolean }) => {
       const config = withMode(await loadCliConfig(), options.readOnly);
       await ensureCrawls(config, { configPath: configPath(), crawlRunner: runCrawl, force: options.fresh });
-      await generateFromCrawls(config);
+      await generateSuite(config);
       await runPlaywright('test', [], configPath());
     });
 
@@ -130,8 +128,3 @@ function runPlaywright(subcommand: 'test' | 'show-report', args: string[], confi
   });
 }
 
-async function generateFromCrawls(config: Config): Promise<void> {
-  const crawls = await loadCrawls('crawl', config.auth.roles.map((role) => role.name));
-  const matrix = buildAccessMatrix(crawls);
-  await emit(mapTestCases(crawls, matrix, config), config);
-}
