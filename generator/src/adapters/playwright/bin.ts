@@ -2,8 +2,8 @@ import { access } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-/** The generator package root (`generator/`), two levels above this file (`src/util` or `dist/util`). */
-const generatorRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
+/** The generator package root (`generator/`), two levels above this file (`src/adapters/playwright` or its `dist` twin). */
+const generatorRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 
 /**
  * Locate the Playwright runner. The project-local installation wins: specs and `playwright.config.ts`

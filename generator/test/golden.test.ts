@@ -67,12 +67,17 @@ async function filesUnder(dir: string): Promise<Record<string, string>> {
   const out: Record<string, string> = {};
   for (const entry of (await readdir(dir, { recursive: true, withFileTypes: true })).filter((e) => e.isFile())) {
     const full = join(entry.parentPath, entry.name);
-    out[full.slice(dir.length + 1)] = await readFile(full, 'utf8');
+    out[full.slice(dir.length + 1).replaceAll('\\', '/')] = await readFile(full, 'utf8');
   }
   return out;
 }
 
-describe.each(scenarios)('golden generation: $name', (scenario) => {
+// One golden directory per framework: fixtures/golden (Playwright, the pre-IR output) and
+// fixtures/golden-cypress. Both are generated from the same IR plans.
+const frameworks = [{ framework: 'playwright', dir: 'golden' }, { framework: 'cypress', dir: 'golden-cypress' }] as const;
+const matrix = frameworks.flatMap((target) => scenarios.map((scenario) => ({ ...scenario, ...target, label: `${target.framework}/${scenario.name}` })));
+
+describe.each(matrix)('golden generation: $label', (scenario) => {
   it('emits the recorded suite byte for byte', async () => {
     const work = await mkdtemp(join(tmpdir(), 'tt-golden-'));
     try {
@@ -82,12 +87,12 @@ describe.each(scenarios)('golden generation: $name', (scenario) => {
         await copyFile(join(fixtures, 'crawls', file), join(crawlDir, `${role}.json`));
       }
       const outDir = join(work, 'generated');
-      const config = parseConfig({ ...(scenario.config as object), output: { dir: outDir, language: 'ts' } });
+      const config = parseConfig({ ...(scenario.config as object), output: { dir: outDir, language: 'ts', framework: scenario.framework } });
       const crawls = await loadCrawls(crawlDir, config.auth.roles.map((role) => role.name));
       await emit(mapTestCases(crawls, buildAccessMatrix(crawls), config), config);
 
       const actual = await filesUnder(outDir);
-      const goldenDir = join(fixtures, 'golden', scenario.name);
+      const goldenDir = join(fixtures, scenario.dir, scenario.name);
       if (process.env.UPDATE_GOLDEN) {
         await rm(goldenDir, { recursive: true, force: true });
         for (const [path, text] of Object.entries(actual)) {

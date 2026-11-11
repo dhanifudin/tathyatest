@@ -9,5 +9,5 @@
     "types": ["node"]
   },
   "include": ["playwright.config.ts", "playwright.global-setup.ts", "tests/**/*.ts"],
-  "exclude": ["tests/baseline-public"]
+  "exclude": ["tests/baseline-public", "tests/**/*.cy.ts"]
 }

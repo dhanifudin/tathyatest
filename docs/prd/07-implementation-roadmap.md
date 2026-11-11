@@ -82,6 +82,10 @@ M6 needs M5. M7 closes.
 | D6 | Navigation status via `cy.request` probe before `cy.visit` | Cypress has no `Response` from visit | if `cy.intercept` proves equivalent and cheaper |
 | D7 | Role gate inside the spec (`before` + `this.skip()`) | reports other roles as skipped like Playwright | if `@cypress/grep` role filtering reports pending tests equivalently |
 | D8 | `faultProject` means a browser name | decouples it from Playwright project naming | never |
+| D3' | Revised: Cypress results come from the Module API called in-process by `adapters/cypress/runner.ts` | same data as `run-json.mjs`, one file less | if Cypress changes the result schema |
+| D4' | Revised: `@testing-library/dom` queries behind one retrying `cy.tt(locator)` query instead of `@testing-library/cypress` | one resolver serves retried actions, synchronous probes and absence checks | if accessible-name mismatch exceeds 2 percent |
+| D9 | `loginAs` logs in fresh after the reset hook (as Playwright does); only read-only `ensureLoggedIn` caches with `cy.session` | a reset may re-seed users and invalidate a cached session | if login time dominates Cypress runs |
+| D10 | A `cypress:` block is accepted under `framework: playwright` (R5.4 not implemented) | `--framework` must switch one config between frameworks | never |
 
 ## Risks
 
@@ -91,7 +95,21 @@ M6 needs M5. M7 closes.
 
 ## Spike results
 
-(To be filled during M4.)
+Pinned versions (all at least two weeks old on 2026-11-11): `cypress@16.2.0`, `@cypress/grep@7.0.0`,
+`@testing-library/dom@10.4.2`.
+
+- `this.skip()` inside a command callback (`cy.get('body').then(...)`) of a `function () {}` test works and reports
+  the test as pending. A `before` hook that calls `this.skip()` marks its whole `describe` pending (the role gate).
+- Cypress 15.10 deprecated `Cypress.env()` and @cypress/grep 7 reads `expose`: tags are filtered with
+  `--expose grepTags=-@write`, the role travels as `--expose role=<name>`, and credentials as `env` secrets read
+  with `cy.env()`.
+- `cy.request({ failOnStatusCode: false })` before `cy.visit` yields the final status of the document (D6 holds).
+- A Cypress callback runs right after `load`, before a client-rendered page (SauceDemo) has drawn its controls;
+  visibility probes therefore poll for up to 2 s before they skip.
+- Editors built on Electron export `ELECTRON_RUN_AS_NODE=1`, which makes `cypress verify` fail with
+  "bad option: --smoke-test"; the runner removes the variable for Cypress child processes.
+- Live parity on SauceDemo (same crawl): Playwright/Chromium 23 passed, 10 failed, 4 skipped; Cypress/Electron
+  23 passed, 10 failed, 4 pending, with the same tests in each set.
 
 ## Acceptance checklist
 

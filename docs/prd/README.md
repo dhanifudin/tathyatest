@@ -37,13 +37,17 @@ emitted specs and the execution/evaluation path become pluggable.
 
 | PRD | Status | Owner |
 |-----|--------|-------|
-| 01 Architecture | Draft | unassigned |
-| 02 Scenario plan and emitter | Draft | unassigned |
-| 03 Runner and eval | Draft | unassigned |
-| 04 Cypress adapter | Draft | unassigned |
-| 05 Config and CLI | Draft | unassigned |
-| 06 Testing and rollout | Draft | unassigned |
-| 07 Roadmap | Draft | unassigned |
+| 01 Architecture | Implemented (`generator/src/adapters/`) | — |
+| 02 Scenario plan and emitter | Implemented as the IR (`generator/src/ir/`) | — |
+| 03 Runner and eval | Implemented (`TestRunner`) | — |
+| 04 Cypress adapter | Implemented; parity measured on SauceDemo, case-study runs pending | — |
+| 05 Config and CLI | Implemented (`output.framework`, `--framework`); R5.4 deliberately not | — |
+| 06 Testing and rollout | Golden + conformance tests in place; parity matrix partially filled | — |
+| 07 Roadmap | M0–M5 done, M6 (parity hardening on the case studies) open | — |
+
+The implementation and its deviations from these PRDs are recorded in
+[../adapters/ir-migration-report.md](../adapters/ir-migration-report.md); how to add rules is in
+[../adapters/adding-rules.md](../adapters/adding-rules.md).
 
 ## Rules that apply to every PRD
 

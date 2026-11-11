@@ -9,11 +9,16 @@ tathya.config.yaml
 crawl/*.json
 tests/generated/**/*.spec.ts
 tests/generated/**/*.spec.js
+tests/generated/**/*.cy.ts
+tests/generated/**/*.cy.js
 tests/generated/manifest.json
 tests/generated/support/
 /metrics/
 /metrics-saucedemo/
 storageState/*.json
+cypress/screenshots/
+cypress/videos/
+cypress/downloads/
 
 case-study/*/vendor/
 case-study/*/node_modules/

@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { z } from 'zod';
 import YAML from 'yaml';
+import { FRAMEWORKS, type Framework } from './adapters/types.js';
 import { normalizeBaseUrl } from './auth/login.js';
 import { FAULT_CLASSES } from './fault-classes.js';
 import { log } from './logger.js';
@@ -51,6 +52,13 @@ export const configSchema = z.object({
   output: z.object({
     dir: z.string().default(DEFAULT_PATHS.generatedDir),
     language: languageSchema.default('ts'),
+    // Which adapter renders the IR and runs the suite; `--framework` overrides it per command.
+    framework: z.enum(FRAMEWORKS).default('playwright'),
+  }).default({}),
+  // Cypress adapter options (ignored by other adapters). Each browser is one run per role and
+  // becomes the project id `<role>-<browser>`; `electron` ships with Cypress.
+  cypress: z.object({
+    browsers: z.array(z.string().min(1)).min(1).default(['electron']),
   }).default({}),
   coverage: coverageSchema.default('all'),
   // `read-only` keeps only non-mutating scenarios (login, route visits, links, pagination, GET
@@ -146,6 +154,11 @@ export function parseConfig(document: unknown, source: string = DEFAULT_PATHS.co
   if (result.success) return result.data;
   const lines = result.error.issues.map((issue) => `  ${issue.path.join('.') || '(root)'}: ${issue.message}`);
   throw new Error(`Invalid config ${source}:\n${lines.join('\n')}`);
+}
+
+/** Apply a `--framework` flag over the config's `output.framework`. */
+export function withFramework(config: TathyaConfig, framework: Framework | undefined): TathyaConfig {
+  return framework ? { ...config, output: { ...config.output, framework } } : config;
 }
 
 export function shouldIncludeCoverage(configured: Coverage, tier: 'positive' | 'negative' | 'edge'): boolean {

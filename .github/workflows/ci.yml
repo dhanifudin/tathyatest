@@ -16,8 +16,11 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: generator/package-lock.json
-      # The root install provides @playwright/test and yaml for the root Playwright files the tests import.
+      # The root install provides @playwright/test and yaml for the root Playwright files the tests import,
+      # and the Cypress types the Cypress templates and golden specs typecheck against (no binary needed).
       - run: npm ci
+        env:
+          CYPRESS_INSTALL_BINARY: 0
       - run: npm ci
         working-directory: generator
       - run: npm run typecheck

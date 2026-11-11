@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { analyzeSpecSource } from '../../src/eval/baseline-static.js';
+import { analyzeSpecSource } from '../../src/adapters/playwright/runner.js';
 
 // Minimal fixture spec — typical Playwright test with semantic locators.
 const FIXTURE_SEMANTIC = `

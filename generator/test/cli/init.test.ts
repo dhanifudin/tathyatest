@@ -57,6 +57,12 @@ describe('init project helpers', () => {
     expect(JSON.stringify(config)).not.toMatch(/\/todos|\/dashboard|\/admin|__testing/);
   });
 
+  it('writes the chosen framework, Playwright by default', () => {
+    const input = { baseUrl: 'http://127.0.0.1:8000', loginPath: '/login', roles: [{ name: 'admin', username: 'admin@example.com', password: 'password' }], language: 'ts' };
+    expect(buildInitConfig(input).output.framework).toBe('playwright');
+    expect(buildInitConfig({ ...input, framework: 'cypress' }).output).toEqual({ dir: 'tests/generated', language: 'ts', framework: 'cypress' });
+  });
+
   it('records a reset hook when the app offers one', () => {
     const config = buildInitConfig({
       baseUrl: 'http://127.0.0.1:8000',

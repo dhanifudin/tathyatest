@@ -6,5 +6,6 @@
     "noUnusedParameters": false,
     "rootDir": ".."
   },
-  "include": ["src/**/*.ts", "test/**/*.ts"]
+  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "exclude": ["src/adapters/cypress/templates", "test/fixtures/golden-cypress"]
 }

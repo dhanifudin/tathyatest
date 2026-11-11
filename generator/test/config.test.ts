@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { configSchema, controlPlaneOf, DEFAULT_CONTROL_PLANE, DEFAULT_ERROR_SELECTOR, parseConfig } from '../src/config.js';
+import { configSchema, controlPlaneOf, DEFAULT_CONTROL_PLANE, DEFAULT_ERROR_SELECTOR, parseConfig, withFramework } from '../src/config.js';
 
 const baseConfig = {
   baseUrl: 'http://127.0.0.1:8000',
@@ -30,7 +30,8 @@ describe('configSchema', () => {
     });
 
     expect(parsed.auth.loginPath).toBe('/login');
-    expect(parsed.output).toEqual({ dir: 'tests/generated', language: 'ts' });
+    expect(parsed.output).toEqual({ dir: 'tests/generated', language: 'ts', framework: 'playwright' });
+    expect(parsed.cypress).toEqual({ browsers: ['electron'] });
     expect(parsed.coverage).toBe('all');
     expect(parsed.oracle.errorSelector).toContain('[role=alert]');
     expect(parsed.crawl).toEqual({ maxDepth: 3, maxPages: 100, include: [], exclude: [], inferRestRoutes: true });
@@ -64,6 +65,16 @@ describe('configSchema', () => {
     expect(parseConfig({ baseUrl: 'http://127.0.0.1:8000', auth: baseConfig.auth }).mode).toBe('read-write');
     expect(parseConfig({ ...baseConfig, mode: 'read-only' }).mode).toBe('read-only');
     expect(() => parseConfig({ ...baseConfig, mode: 'monitor' })).toThrow('mode:');
+  });
+
+  it('selects the framework from output.framework, overridable by --framework', () => {
+    const cypress = parseConfig({ ...baseConfig, output: { framework: 'cypress' }, cypress: { browsers: ['chrome', 'firefox'] } });
+    expect(cypress.output.framework).toBe('cypress');
+    expect(cypress.cypress.browsers).toEqual(['chrome', 'firefox']);
+    expect(withFramework(cypress, 'playwright').output).toEqual({ ...cypress.output, framework: 'playwright' });
+    expect(withFramework(cypress, undefined)).toBe(cypress);
+    expect(() => parseConfig({ ...baseConfig, output: { framework: 'selenium' } })).toThrow('output.framework');
+    expect(() => parseConfig({ ...baseConfig, cypress: { browsers: [] } })).toThrow('cypress.browsers');
   });
 
   it('has no app hooks unless the config declares them', () => {

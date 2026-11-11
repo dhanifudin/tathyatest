@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { errorAssertionSource } from '../../src/generate/oracle.js';
+import { errorOracle } from '../../src/ir/build.js';
 import type { Field, Form } from '../../src/crawl/model.js';
 
 const field: Field = {
@@ -31,23 +31,21 @@ const form: Form = {
   submit: { text: 'Login', locator: { strategy: 'role', value: 'button:Login' } },
 };
 
-describe('errorAssertionSource', () => {
+describe('errorOracle', () => {
   it('uses native validation when novalidate is absent', () => {
-    expect(errorAssertionSource(form, field, '.error')).toContain("validity.valid', false");
+    expect(errorOracle(form, field, '.error')).toEqual({ type: 'native-invalid', target: field.locator });
   });
 
   it('uses DOM error selector for server validated forms', () => {
-    expect(errorAssertionSource({ ...form, noValidate: true }, field, '.error', '/login')).toContain("page.locator(\".error\")");
+    expect(errorOracle({ ...form, noValidate: true }, field, '.error', '/login')).toEqual({ type: 'server-error', errorSelector: '.error', urlPattern: '/login(?:[?#].*)?$' });
   });
 
   it('uses the DOM error selector for required-empty on fields without a native required attribute', () => {
     // data.requiredFields can force blank negatives for fields the app validates in JS or on the
     // server only (e.g. SauceDemo checkout) — validity.valid never flips for those.
     const optionalField: Field = { ...field, required: false };
-    const assertion = errorAssertionSource(form, optionalField, '.error', '/checkout-step-one.html', 'required-empty');
-    expect(assertion).toContain('page.locator(".error")');
-    expect(assertion).not.toContain('validity.valid');
+    expect(errorOracle(form, optionalField, '.error', '/checkout-step-one.html', 'required-empty')).toEqual({ type: 'server-error', errorSelector: '.error', urlPattern: '/checkout-step-one\\.html(?:[?#].*)?$' });
     // A natively-required field keeps the constraint-validation oracle.
-    expect(errorAssertionSource(form, field, '.error', '/checkout-step-one.html', 'required-empty')).toContain("validity.valid', false");
+    expect(errorOracle(form, field, '.error', '/checkout-step-one.html', 'required-empty').type).toBe('native-invalid');
   });
 });

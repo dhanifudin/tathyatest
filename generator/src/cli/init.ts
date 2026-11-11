@@ -2,6 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { confirm, intro, isCancel, outro, password, select, text } from '@clack/prompts';
 import YAML from 'yaml';
+import type { Framework } from '../adapters/types.js';
 import { DEFAULT_ERROR_SELECTOR } from '../config.js';
 import { normalizeBaseUrl } from '../auth/login.js';
 import { DEFAULT_PATHS } from '../util/paths.js';
@@ -12,6 +13,8 @@ type InitConfigInput = {
   loginPath: string;
   roles: Array<{ name: string; username: string; password: string }>;
   language: string;
+  /** Test framework of the generated suite (default playwright). */
+  framework?: Framework;
   fakerLocale?: string;
   fakerSeed?: number | null;
   /** Path of an endpoint that resets the app's seed data (blank/undefined = the app has none). */
@@ -22,6 +25,9 @@ function mustString(value: PromptValue, label: string): string {
   if (isCancel(value)) throw new Error(`${label} is required`);
   return value;
 }
+
+/** What the Cypress adapter needs next to the project (the generated specs and cypress.config.ts import them). */
+export const CYPRESS_INSTALL = 'npm install --save-dev cypress @cypress/grep @testing-library/dom @faker-js/faker yaml && npx cypress install';
 
 export function defaultRoleName(index: number): string {
   if (index === 0) return 'admin';
@@ -55,7 +61,7 @@ export function buildInitConfig(input: InitConfigInput) {
   return {
     baseUrl: input.baseUrl,
     hooks: { reset: resetPath ? { method: 'POST', path: resetPath } : null },
-    output: { dir: DEFAULT_PATHS.generatedDir, language: input.language },
+    output: { dir: DEFAULT_PATHS.generatedDir, language: input.language, framework: input.framework ?? 'playwright' },
     coverage: 'all',
     oracle: { errorSelector: DEFAULT_ERROR_SELECTOR },
     auth: { loginPath: input.loginPath, roles: input.roles },
@@ -95,13 +101,21 @@ export async function runInit(): Promise<void> {
     addMore = answer;
   }
 
+  const framework = mustString(await select({
+    message: 'Test framework of the generated suite',
+    options: [
+      { value: 'playwright', label: 'Playwright' },
+      { value: 'cypress', label: 'Cypress' },
+    ],
+  }), 'Test framework') as Framework;
+
   const language = mustString(await select({
-    message: 'Generated Playwright language',
+    message: 'Generated spec language',
     options: [
       { value: 'ts', label: 'TypeScript (.ts)' },
       { value: 'js', label: 'JavaScript (.js)' },
     ],
-  }), 'Generated Playwright language');
+  }), 'Generated spec language');
 
   const fakerLocale = mustString(await text({ message: 'Faker locale for generated create data', initialValue: 'en' }), 'Faker locale');
   const seedInput = mustString(await text({ message: 'Faker seed (blank = random each run)', initialValue: '' }), 'Faker seed');
@@ -114,9 +128,10 @@ export async function runInit(): Promise<void> {
   }), 'Reset endpoint');
   if (resetPath.trim() && !resetPath.trim().startsWith('/')) throw new Error('Reset endpoint must be a path starting with /');
 
-  const config = buildInitConfig({ baseUrl, loginPath, roles, language, fakerLocale, fakerSeed, resetPath });
+  const config = buildInitConfig({ baseUrl, loginPath, roles, language, framework, fakerLocale, fakerSeed, resetPath });
 
   await mkdir(paths.outputDir, { recursive: true });
   await writeFile(paths.configPath, YAML.stringify(config));
-  outro(`Wrote ${paths.configPath}`);
+  const installHint = framework === 'cypress' ? `\nInstall the Cypress adapter dependencies: ${CYPRESS_INSTALL}` : '';
+  outro(`Wrote ${paths.configPath}${installHint}`);
 }

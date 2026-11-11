@@ -1,5 +1,5 @@
-// Framework-neutral outcome of running a generated suite. A test runner adapter (today only the
-// Playwright one in ./playwright.ts) produces a SuiteRun; metrics and statistics only ever read this.
+// Framework-neutral outcome of running a generated suite. Each adapter's TestRunner
+// (adapters/<framework>/runner.ts) produces a SuiteRun; metrics and statistics only ever read this.
 
 export type TestStatus = 'passed' | 'failed' | 'skipped';
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parsePlaywrightJson } from '../../src/eval/playwright.js';
+import { parsePlaywrightJson } from '../../src/adapters/playwright/runner.js';
 import { FAULT_CATALOGUE, faultsForClasses } from '../../src/eval/faults.js';
 import { renderReportJson, renderReportMarkdown, type StackReport } from '../../src/eval/report.js';
 import type { ManifestEntry } from '../../src/generate/manifest.js';

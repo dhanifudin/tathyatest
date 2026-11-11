@@ -63,6 +63,21 @@ response that isn't ok and renders zero forms/links/controls is treated as an er
 and dropped rather than explored further.
 
 
+## From rules to specs: the IR
+
+Generation happens in two rule layers and one rendering step, so every rule applies to every output framework:
+
+1. **Generation rules** (`generator/src/generate/`) decide *which* tests exist: the keyword rules below turn
+   the crawl into `TestCase`s.
+2. **Scenario rules** (`generator/src/ir/build.ts`) decide *how* each test runs: login mode, page visits, how
+   each field is filled, which oracle judges the outcome, when a test skips itself, step titles and tags. The
+   result is a `TestPlan`, plain data in `ir/types.ts`.
+3. **Adapters** (`generator/src/adapters/playwright`, `adapters/cypress`) render the plans in their framework's
+   syntax and run them. `--framework playwright|cypress` (or `output.framework`) picks one.
+
+To add a rule, see [adapters/adding-rules.md](adapters/adding-rules.md); for where each existing rule lives and how
+each framework writes it, see [adapters/ir-migration-report.md](adapters/ir-migration-report.md).
+
 ## Keyword rules for test generation
 
 Every classification below is an exact string/regex match in the generator source — not
@@ -71,8 +86,9 @@ a heuristic guess. Keywords are grouped by the file that owns them.
 ### 1. Locator priority chain
 
 `generator/src/crawl/dom-extract.ts` picks a locator per element at crawl time, in this
-exact order (never positional/`nth-child`); `generator/src/generate/locator.ts` turns the chosen
-strategy into a Playwright call when emitting a spec:
+exact order (never positional/`nth-child`); each adapter turns the chosen strategy into its framework's call
+when emitting a spec (`adapters/playwright/locator.ts`: `getByRole` …; `adapters/cypress`: `cy.tt(byRole(…))`,
+resolved with `@testing-library/dom` the way Playwright matches names):
 
 ![Locator priority chain: data-testid, then role/name, label, placeholder, stable id, name attribute, and finally a CSS fallback](diagrams/locator-chain.svg)
 

@@ -1,5 +1,5 @@
-import type { Locator } from '../crawl/model.js';
-import { escapeAttrValue, escapeCssIdent } from '../util/escape.js';
+import type { Locator } from '../../crawl/model.js';
+import { escapeAttrValue, escapeCssIdent } from '../../util/escape.js';
 
 function q(value: string): string {
   return JSON.stringify(value);

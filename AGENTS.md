@@ -8,13 +8,13 @@ specific task it has been given.
 
 ## Project in one paragraph
 
-TathyaTest generates Playwright test specs automatically for any web app with a login form —
+TathyaTest generates Playwright or Cypress test specs automatically for any web app with a login form —
 server-rendered or SPA; the generator assumes no framework (the Laravel case studies are evaluation
 subjects). It crawls a target web app once per RBAC role using the Playwright crawler, extracts a
-normalized element model, maps it against a dataset and an access-control matrix, and emits
-Playwright `@playwright/test` specs covering the positive → negative → edge spectrum. The
-generated specs are then executed cross-browser (Chromium, Firefox, WebKit) to produce a
-Pass/Fail report. The user-facing binary is `tt`; its subcommands are `init`, `crawl`,
+normalized element model, maps it against a dataset and an access-control matrix, builds a
+framework-neutral IR of every test, and renders it as `@playwright/test` or Cypress specs
+(`output.framework`, `--framework`) covering the positive → negative → edge spectrum. The
+generated specs are then executed cross-browser to produce a Pass/Fail report. The user-facing binary is `tt`; its subcommands are `init`, `crawl`,
 `generate`, `run`, `all`, and `eval` (metric-based evaluation → `metrics/report.{json,md}`).
 
 ---
@@ -27,9 +27,11 @@ Pass/Fail report. The user-facing binary is `tt`; its subcommands are `init`, `c
 | `generator/src/config.ts` | zod config schema and loader (authoritative) | Anything but parsing and defaults |
 | `generator/src/crawl/` | crawl contract (`model.ts`), crawl orchestration (`crawl.ts`), Playwright crawler (`session.ts`, `dom-extract.ts`, `a11y-merge.ts`), `crud.ts` classifier, `reachability.ts` | Run tests, generate specs |
 | `generator/src/auth/` | login-control inference from HTML (`login.ts`) and its Playwright runtime (`login-runtime.ts`) | Crawl, generate |
-| `generator/src/generate/` | pure generation logic: `mapper.ts` (+ `test-case.ts`, `titles.ts`, `pagination-labels.ts`), `fieldgen.ts`, `faker.ts` (expression strings), `oracle.ts` (assertion strings), `locator.ts`, `rbac.ts`, `manifest.ts` | I/O, Playwright calls, running anything |
-| `generator/src/emit/` | `TestCase` to spec source (`ts.ts`, `js.ts`), the generated support module (`support.ts` + `templates/support.ts`), `manifest.json` writer | Crawl, run tests, read config files |
-| `generator/src/eval/` | `tt eval` orchestration (`runner.ts`), Playwright JSON parsing, fault catalogue, report, static baseline analysis, `metrics/` (pure metric math), `stats.ts` | Metric math inside `runner.ts` (delegate to `metrics/`) |
+| `generator/src/generate/` | pure generation rules (which tests exist): `mapper.ts` (+ `test-case.ts`, `titles.ts`, `pagination-labels.ts`), `fieldgen.ts`, `faker.ts` (expression strings), `rbac.ts`, `manifest.ts` | I/O, framework syntax, running anything |
+| `generator/src/ir/` | the Intermediate Representation (`types.ts`) and the scenario rules that build it from a `TestCase` (`build.ts` `planFor`, `layout.ts`): steps, fill strategy, oracle choice, skip conditions, titles, tags, file layout | Framework syntax, I/O |
+| `generator/src/adapters/` | `types.ts` (`SpecEmitter`, `TestRunner`, `FRAMEWORKS`), `registry.ts`, and one directory per framework (`playwright/`, `cypress/`): emitter (IR → spec text), locator rendering, support-module templates, runner (run, tag filters, result parsing, baseline static analysis) | Decisions about what a test does (those belong in `ir/build.ts`) |
+| `generator/src/emit/` | `index.ts`: plans → selected adapter → files on disk + `manifest.json`; `js.ts`: in-memory TS → JS transpile | Crawl, run tests, framework syntax |
+| `generator/src/eval/` | `tt eval` orchestration (`runner.ts`, through the adapter's `TestRunner`), fault catalogue, report, baseline directory aggregation, `metrics/` (pure metric math), `stats.ts` | Metric math inside `runner.ts` (delegate to `metrics/`); framework flags or regexes |
 | `generator/src/util/` | shared pure helpers (paths, escaping, Playwright binary lookup) | Domain logic |
 | `generator/src/pipeline.ts` | the single generate stage used by `tt generate`, `tt all`, `tt eval` | Crawling or running |
 | `case-study/todo-blade/`, `case-study/todo-inertia-react/` | Laravel Breeze test targets plus the eval harness (`FaultRegistry`, `CoverageCollector`) | Tool logic of any kind |
@@ -38,7 +40,8 @@ Pass/Fail report. The user-facing binary is `tt`; its subcommands are `init`, `c
 | `tests/manual/` | hand-written baseline suites (`blade/`, `inertia/`) | |
 | `tests/baseline-public/saucedemo/` | three independent MIT Playwright suites (git submodules); baseline for the SauceDemo subject, see `SOURCES.md` | |
 | `metrics/`, `metrics-saucedemo/` | `tt eval` reports (**generated, never hand-edited**) | |
-| `docs/prd/` | PRDs for the framework-adapter work (Cypress first). Any adapter must keep the manifest parity invariants (unique titles, tag set, assertion counts), see `docs/prd/01-framework-adapters-architecture.md` | |
+| `docs/prd/` | PRDs behind the framework adapters. Any adapter must keep the manifest parity invariants (unique titles, tag set, assertion counts), see `docs/prd/01-framework-adapters-architecture.md` | |
+| `docs/adapters/` | `adding-rules.md` (how to add a rule for every framework) and `ir-migration-report.md` (where each rule lives) | |
 
 ---
 
@@ -105,6 +108,18 @@ Full schema reference:
 
 ---
 
+## Framework-adapter invariant
+
+Rules are decided once, above the IR: generation rules in `generate/`, scenario rules in `ir/build.ts`. An
+adapter (`adapters/<framework>/`) only renders `TestPlan`s and runs the result. It never decides what a test does.
+For the same crawl and config, every adapter MUST emit the same test titles, tags, step titles and assertion counts
+as the manifest (`test/adapters/conformance.test.ts`). Every IR union is rendered with an exhaustive `switch` +
+`assertNever`, so a new `Step`, `Fill` or `Oracle` must be rendered by all adapters before `tsc` passes. With
+`framework: playwright`, output stays byte-identical to `test/fixtures/golden/`. How to add a rule:
+`docs/adapters/adding-rules.md`.
+
+---
+
 ## RBAC crawl invariant
 
 The crawler MUST crawl once per role in `config.auth.roles[]` and write one file per role
@@ -143,7 +158,8 @@ expression string emitted into the spec.
 
 ## Locator priority chain (enforce everywhere)
 
-All locator computations — in both the rendered extractor and `locator.ts`
+All locator computations — in the rendered extractor and in every adapter's locator rendering
+(`adapters/playwright/locator.ts`, `adapters/cypress/emitter.ts` `locatorSource` + the template's `resolveAll`)
 — must follow this exact priority order. Breaking it produces brittle generated tests.
 
 ```
@@ -199,9 +215,9 @@ every tier that `config.coverage` enables. Default is `all`.
 
 ---
 
-## Error oracle rules (`oracle.ts`)
+## Error oracle rules (`ir/build.ts` `errorOracle`)
 
-The oracle code `oracle.ts` returns must branch on `form.noValidate`:
+The error oracle the IR builder picks must branch on `form.noValidate`:
 
 ```
 noValidate === true   → server re-renders with errors
@@ -226,7 +242,8 @@ When multiple agents work in parallel, respect these ownership boundaries to avo
 | Agent task | Files it may write | Files it must read-only |
 |---|---|---|
 | Build the crawler | `generator/src/crawl/{session,dom-extract,a11y-merge}.ts` | `generator/src/crawl/model.ts` (schema) |
-| Build generator logic | `generator/src/{generate,emit}/**` | `generator/src/crawl/model.ts`, `crawl/*.json` |
+| Build generator logic | `generator/src/{generate,ir,emit}/**` | `generator/src/crawl/model.ts`, `crawl/*.json` |
+| Build a framework adapter | `generator/src/adapters/<framework>/**`, one line in `adapters/registry.ts`, its root config file | `generator/src/ir/types.ts` (the IR contract) |
 | Build CLI/init | `generator/src/cli/**`, `generator/src/config.ts`, `generator/bin/tt` | generator src |
 | Build case study | `case-study/todo-blade/**`, `case-study/todo-inertia-react/**` | nothing in `generator/` |
 | Write playwright config | `playwright.config.ts` | `generator/src/config.ts` |
@@ -307,6 +324,9 @@ When `tathya.config.yaml`'s schema changes:
    `tathya.inertia-react.config.yaml`).
 3. Update the `generator/src/cli/init.ts` wizard prompts to collect the new field.
 4. Update `tathya.config.example.yaml`, `docs/how-it-works.md` if a generation rule changes, and this file if the change affects a contract.
+
+`output.framework` (`playwright` | `cypress`, default `playwright`) selects the adapter; the CLI flag
+`--framework` overrides it per command. The `cypress { browsers }` block is read by the Cypress adapter only.
 
 The config now also carries `data.faker { locale, seed }` (runtime create-data) and an
 `evaluation` block (`stacks`, `repeat`, `manualBaselineSecPerCase`, `baselineDir`, `faults`,

@@ -1,7 +1,7 @@
 # TathyaTest (`tt`)
 
 TathyaTest writes browser tests for you. It logs in to your web app as each user role, records every page,
-form, and link it can reach, and generates [Playwright](https://playwright.dev) tests from that record:
+form, and link it can reach, and generates [Playwright](https://playwright.dev) or [Cypress](https://www.cypress.io) tests from that record:
 the happy path, the invalid inputs, the edge cases, and who may open what. It works for any app with a login
 form, server-rendered or single-page. The Laravel apps in `case-study/` and the public SauceDemo site are
 practice and evaluation targets, not what the tool is limited to.
@@ -45,7 +45,7 @@ auth:
     - { name: admin, username: admin@example.com, password: password }
 ```
 
-`tt init` asks for the URL, each role's login, and the language of the generated specs, then writes the config
+`tt init` asks for the URL, each role's login, the test framework, and the language of the generated specs, then writes the config
 inside a new project folder; `tathya.config.example.yaml` documents every option. Then:
 
 ```bash
@@ -53,6 +53,22 @@ tt crawl      # learn the app: writes crawl/<role>.json
 tt generate   # write the tests into tests/generated/
 tt run        # run them
 ```
+
+### Playwright or Cypress
+
+The same rules produce either framework. Pick one per command with `--framework`, or set it once in the config
+(`output.framework: playwright | cypress`, default `playwright`):
+
+```bash
+tt generate --framework cypress   # writes *.cy.ts specs, support/tathya.ts and support/e2e.ts
+tt run --framework cypress        # one Cypress run per role (and per browser in cypress.browsers)
+tt eval --framework cypress       # the same metrics as for Playwright
+```
+
+Cypress needs `cypress`, `@cypress/grep` and `@testing-library/dom` (already in this repository's root
+`package.json`; run `npx cypress install` once if npm skipped the binary download). It runs on Electron by default;
+set `cypress.browsers: [chrome, firefox]` for more. How both frameworks share one set of rules:
+[docs/adapters/ir-migration-report.md](docs/adapters/ir-migration-report.md).
 
 If your app has an endpoint that restores its test data, add `hooks.reset: { method: POST, path: /your/reset }`
 and every test calls it first; otherwise tests run against whatever data the app holds.
@@ -64,13 +80,14 @@ and every test calls it first; otherwise tests run against whatever data the app
 | `tt init` | wizard that writes a config in a new project folder |
 | `tt crawl` | log in once per role and record the app into `crawl/<role>.json` |
 | `tt generate` | write specs and `manifest.json` into `tests/generated/` (re-crawls if the crawl is missing or stale; `--fresh` forces it) |
-| `tt run [playwright args]` | run the specs, for example `tt run --project admin-chromium --grep @auth` |
+| `tt run [framework args]` | run the specs, for example `tt run --project admin-chromium --grep @auth`, or `tt run --framework cypress --spec "tests/generated/rbac/*"` |
 | `tt report` | open the HTML report of the last run |
 | `tt all` | crawl, generate, and run in one go |
 | `tt eval` | measure the suite ([docs/evaluation.md](docs/evaluation.md)) |
 
-Two things to remember: `-c <config>` picks a config other than `tathya.config.yaml` and goes **before** the
-command (`tt -c my.yaml generate`); and `--read-only` (see below) keeps only tests that never change data.
+Three things to remember: `-c <config>` picks a config other than `tathya.config.yaml` and goes **before** the
+command (`tt -c my.yaml generate`); `--framework playwright|cypress` goes **after** it (`tt generate --framework cypress`);
+and `--read-only` (see below) keeps only tests that never change data.
 
 ## What gets generated
 
@@ -103,7 +120,7 @@ pager, and search still works for every role:
 ## Project layout
 
 ```
-generator/     the `tt` tool (TypeScript): src/{cli,crawl,auth,generate,emit,eval,util}, tests in test/
+generator/     the `tt` tool (TypeScript): src/{cli,crawl,auth,generate,ir,adapters,emit,eval,util}, tests in test/
 case-study/    two Laravel demo apps (Blade, Inertia+React) with the evaluation harness
 tests/         manual/ hand-written baselines; baseline-public/ three public SauceDemo suites (git submodules)
 docs/          guides (below); prd/ plans for new features; history/ archived plans
@@ -115,7 +132,7 @@ Everything `tt` writes is generated, ignored by git, and never edited by hand. `
 | Path | Written by | Contents |
 |------|-----------|----------|
 | `crawl/<role>.json` | `tt crawl` | the recorded app, one file per role |
-| `tests/generated/` | `tt generate` | specs, shared `support/tathya.ts`, `manifest.json` |
+| `tests/generated/` | `tt generate` | specs (`*.spec.ts` or `*.cy.ts`), shared `support/`, `manifest.json` |
 | `storageState/<role>.json` | Playwright setup | logged-in session per role |
 | `test-results/`, `playwright-report/` | `tt run` | traces and the HTML report |
 | `metrics/`, `metrics-saucedemo/` | `tt eval` | `report.json` and `report.md` |
@@ -128,11 +145,13 @@ The product is TathyaTest, the command is `tt`, and config files and variables u
 |------|------------------|
 | [CONTRIBUTING.md](CONTRIBUTING.md) | set up for development, follow the commit style, add a rule, oracle, or fault |
 | [docs/how-it-works.md](docs/how-it-works.md) | understand the crawler and every generation rule |
+| [docs/adapters/adding-rules.md](docs/adapters/adding-rules.md) | add a rule once so the Playwright and the Cypress output both get it |
+| [docs/adapters/ir-migration-report.md](docs/adapters/ir-migration-report.md) | see where each rule lives in the IR and how each framework renders it |
 | [docs/vscode.md](docs/vscode.md) | run, debug, and test inside VS Code (tasks, breakpoints, Xdebug) |
 | [docs/evaluation.md](docs/evaluation.md) | measure the suites with `tt eval`; SauceDemo and baselines |
 | [case-study/README.md](case-study/README.md) | run and extend the Laravel demo apps |
 | [AGENTS.md](AGENTS.md) | the invariants contributors and AI agents must not break |
-| [docs/prd/](docs/prd/README.md) | requirements for upcoming work (Cypress adapter) |
+| [docs/prd/](docs/prd/README.md) | the requirements behind the framework adapters |
 | [CHANGELOG.md](CHANGELOG.md) | what changed |
 
 ## Known limits
