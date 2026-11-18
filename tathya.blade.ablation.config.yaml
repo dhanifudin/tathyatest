@@ -1,0 +1,51 @@
+# Ablation of the Blade config: no crawl seeds and none of the server-rule hints (data.unique, duplicates,
+# confirmFields). Run with `tt -c tathya.blade.ablation.config.yaml eval --no-faults --no-baseline --repeat 1` to
+# measure how much of the coverage depends on author-supplied configuration.
+baseUrl: http://127.0.0.1:8000
+hooks:
+  reset: { method: POST, path: /__testing/reset }
+output:
+  dir: tests/generated
+  language: ts
+coverage: all
+oracle:
+  errorSelector: ".invalid-feedback, [role=alert], .text-red-600, x-input-error p"
+auth:
+  loginPath: /login
+  roles:
+    - name: admin
+      username: admin@example.com
+      password: password
+    - name: user
+      username: user@example.com
+      password: password
+crawl:
+  maxDepth: 3
+  maxPages: 100
+  include: []
+  exclude:
+    - /logout
+data:
+  fields:
+    title: Buy groceries
+    body: Milk, eggs, bread
+    contact_email: contact@example.com
+    due_date: "2026-06-15"
+    email: user@example.com
+  defaults:
+    text: Sample
+    email: user@example.com
+    number: "1"
+    date: "2026-06-15"
+  unique: []
+  duplicates: {}
+  requiredFields: []
+  confirmFields: []
+  faker:
+    locale: en          # faker locale for generated create/update data
+    seed: 42
+evaluation:
+  baselineDir: tests/manual/blade
+  # Routes the application declares (php artisan route:list, GET, application routes only), with :id for parameters.
+  # Used to measure coverage outside the crawler's own model.
+  expectedRoutes: ['/', '/login', '/dashboard', '/admin/users', '/todos', '/todos/create', '/todos/:id/edit']
