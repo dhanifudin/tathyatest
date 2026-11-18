@@ -22,7 +22,7 @@ class CoverageMiddleware
 
         CoverageCollector::start();
         $response = $next($request);
-        CoverageCollector::capture($request->route()?->uri());
+        CoverageCollector::capture($request->route()?->uri(), $request->method());
 
         return $response;
     }
