@@ -61,8 +61,9 @@ function fakeReport(overrides: Partial<MetricsReport> = {}): MetricsReport {
   return {
     coverage: {
       mode: 'read-write',
-      routes: r(1), forms: r(0.8), fields: r(0.9), nav: r(0.5), element: r(0.75), rbacMatrix: r(0.5),
+      routes: r(1), forms: r(0.8), fields: r(0.9), nav: r(0.5), fieldsProbed: r(0.7), declaredRoutes: null, element: r(0.75), rbacMatrix: r(0.5),
       crudByResource: { todos: { create: true, read: true, update: true, delete: false } },
+      crudExercisedByResource: { todos: { create: true, read: true, update: true, delete: false } },
       constraintKinds: { present: ['required', 'maxlength'], exercised: ['required'], ratio: 0.5 },
       tiers: { positive: 5, negative: 8, edge: 3, total: 16 },
     },

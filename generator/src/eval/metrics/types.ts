@@ -39,9 +39,16 @@ export type CoverageMetrics = {
   forms: Ratio;
   fields: Ratio;
   nav: Ratio;
+  /** Fields that at least one negative or edge test targets (the valid submit alone fills every field). */
+  fieldsProbed: Ratio;
+  /** Share of `evaluation.expectedRoutes` (declared by the app, not found by the crawler) that a test covers; null when unset. */
+  declaredRoutes: Ratio | null;
   element: Ratio;
   rbacMatrix: Ratio;
+  /** CRUD operations the crawl OBSERVED per resource. */
   crudByResource: Record<string, CrudExercised>;
+  /** CRUD operations for which a positive form test exists per resource. */
+  crudExercisedByResource: Record<string, CrudExercised>;
   constraintKinds: { present: string[]; exercised: string[]; ratio: number };
   tiers: { positive: number; negative: number; edge: number; total: number };
 };

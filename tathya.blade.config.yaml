@@ -49,3 +49,6 @@ data:
     seed: 42
 evaluation:
   baselineDir: tests/manual/blade
+  # Routes the application declares (php artisan route:list, GET, application routes only), with :id for parameters.
+  # Used to measure coverage outside the crawler's own model.
+  expectedRoutes: ['/', '/login', '/dashboard', '/admin/users', '/todos', '/todos/create', '/todos/:id/edit']

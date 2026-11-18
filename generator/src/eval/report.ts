@@ -44,8 +44,10 @@ function stackMarkdown(stack: StackReport): string[] {
   out.push(`- Route coverage: ${ratioPct(report.coverage.routes)}`);
   out.push(`- Form coverage: ${ratioPct(report.coverage.forms)}`);
   out.push(`- Field coverage: ${ratioPct(report.coverage.fields)}`);
+  out.push(`- Fields probed by a negative or edge test: ${ratioPct(report.coverage.fieldsProbed)}`);
   out.push(`- Navigation coverage: ${ratioPct(report.coverage.nav)}`);
   out.push(`- RBAC matrix coverage: ${ratioPct(report.coverage.rbacMatrix)}`);
+  if (report.coverage.declaredRoutes) out.push(`- Declared-route coverage (the app's own route list, outside the crawl): ${ratioPct(report.coverage.declaredRoutes)}`);
   out.push(`- Constraint-kind coverage: ${pct(report.coverage.constraintKinds.ratio)} (exercised: ${report.coverage.constraintKinds.exercised.join(', ') || 'none'})`);
   out.push(`- Tiers: ${report.coverage.tiers.positive} positive / ${report.coverage.tiers.negative} negative / ${report.coverage.tiers.edge} edge (${report.coverage.tiers.total} total)`);
   out.push('- CRUD per resource:');

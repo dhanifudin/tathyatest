@@ -16,6 +16,8 @@ export function coverageMetrics(input: MetricsInput): CoverageMetrics {
   const totalFields = new Set<string>();
   const navScenarios = new Set<string>();
   const crudByResource: Record<string, CrudExercised> = {};
+  const crudExercisedByResource: Record<string, CrudExercised> = {};
+  const formOps: Array<{ formKey: string; route: string; op: 'create' | 'update' | 'delete' }> = [];
   const presentConstraints = new Set<string>();
 
   for (const crawl of crawls) {
@@ -41,6 +43,7 @@ export function coverageMetrics(input: MetricsInput): CoverageMetrics {
         }
         if (form.crudOp === 'create' || form.crudOp === 'update' || form.crudOp === 'delete') {
           markResource(crudByResource, canonicalPath(form.action), form.crudOp);
+          formOps.push({ formKey: formKeyOf(route, form), route: canonicalPath(form.action), op: form.crudOp });
         }
       }
       // Nav is counted per unique scenario (per role), mirroring the mapper's dedup keys:
@@ -71,6 +74,39 @@ export function coverageMetrics(input: MetricsInput): CoverageMetrics {
   // test can no longer hide a missing scenario the way a plain count could.
   const coveredNavKeys = new Set(manifest.filter((entry) => entry.category === 'nav' && entry.scenarioKey).map((entry) => `${entry.role}|${entry.scenarioKey}`));
 
+  // Fields probed: a negative or edge test targets the field (a valid submit fills every field, so it proves nothing per field).
+  const probedByForm = new Map<string, Set<string>>();
+  for (const entry of manifest) {
+    if (entry.category !== 'crud' || entry.tier === 'positive' || !entry.targetForm || !entry.targetField || !entry.route) continue;
+    const key = `${routeShape(canonicalPath(entry.route))}|${entry.targetForm}`;
+    const fields = probedByForm.get(key) ?? new Set<string>();
+    fields.add(entry.targetField);
+    probedByForm.set(key, fields);
+  }
+  const probedFieldCount = [...totalFields].filter((fieldKey) => {
+    const split = fieldKey.lastIndexOf('|');
+    const formKey = fieldKey.slice(0, split);
+    const name = fieldKey.slice(split + 1);
+    return [...probedByForm].some(([coveredForm, fields]) => fields.has(name) && keysAlign(coveredForm, formKey));
+  }).length;
+
+  // CRUD exercised: a positive crud test targets the form behind the operation.
+  const positiveForms = new Set(
+    manifest.filter((entry) => entry.category === 'crud' && entry.tier === 'positive' && entry.targetForm && entry.route).map((entry) => `${routeShape(canonicalPath(entry.route ?? '/'))}|${entry.targetForm}`),
+  );
+  for (const { formKey, route, op } of formOps) {
+    if ([...positiveForms].some((covered) => keysAlign(covered, formKey))) markResource(crudExercisedByResource, route, op);
+  }
+  for (const route of coveredRoutes) markResource(crudExercisedByResource, route, 'read');
+
+  // Declared routes: coverage of the application's own route list, independent of the crawler.
+  const expected = config.evaluation.expectedRoutes;
+  const loginShape = routeShape(canonicalPath(config.auth.loginPath));
+  const hasLoginTest = manifest.some((entry) => entry.category === 'auth');
+  const declaredRoutes = expected.length === 0
+    ? null
+    : ratio(expected.filter((shape) => coveredRoutes.has(shape) || (shape === loginShape && hasLoginTest)).length, expected.length);
+
   const routes = ratio(intersectionSize(totalRoutes, coveredRoutes), totalRoutes.size);
   const forms = ratio(coveredFormKeys.size, totalForms.size);
   const fields = ratio(coveredFieldCount, totalFields.size);
@@ -88,9 +124,12 @@ export function coverageMetrics(input: MetricsInput): CoverageMetrics {
     forms,
     fields,
     nav,
+    fieldsProbed: ratio(probedFieldCount, totalFields.size),
+    declaredRoutes,
     element: ratio(elementCovered, elementTotal),
     rbacMatrix: rbacMatrixCoverage(matrix, manifest, config),
     crudByResource,
+    crudExercisedByResource,
     constraintKinds: {
       present: [...presentConstraints].sort(),
       exercised: [...exercisedConstraints].sort(),

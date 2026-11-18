@@ -98,6 +98,10 @@ export const configSchema = z.object({
     // Restrict the generated suite's per-execution durations to one browser (for example `chromium`) so a
     // single-browser baseline is compared like for like; null keeps every browser.
     comparisonBrowser: z.string().nullable().default(null),
+    // Route shapes the application declares (for example from `php artisan route:list`, with `:id` for
+    // parameters). Coverage of this list is measured outside the tool's own crawl, so model coverage is not
+    // only a statement about what the crawler happened to find. Empty disables the measure.
+    expectedRoutes: z.array(z.string()).default([]),
     // `coverage` / `faults` left unset mean "probe the app": `tt eval` enables SUT coverage when
     // GET /__testing/coverage answers and fault injection when POST /__testing/fault/clear does.
     stacks: z.array(z.object({
@@ -124,6 +128,7 @@ export const configSchema = z.object({
     baselineDir: 'tests/manual',
     faultProject: null,
     comparisonBrowser: null,
+    expectedRoutes: [],
     stacks: [],
     faults: { enabled: true, classes: [...FAULT_CLASSES] },
   }),
