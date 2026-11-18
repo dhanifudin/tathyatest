@@ -246,7 +246,7 @@ describe('verdict', () => {
         { outcomes: [{ title: 'base', project: 'p', status: 'passed', durationMs: 500 }] },
       ],
       baselineStatic: {
-        specFiles: 1, testCount: 1,
+        specFiles: 1, sourceFiles: 1, testCount: 1,
         totals: { tests: 1, assertions: 1, locatorCounts: { css: 1 } },
         assertionDensity: 1,
         brittleLocatorRatio: 1,        // baseline has all css (bad)

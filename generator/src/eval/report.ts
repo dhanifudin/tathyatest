@@ -70,10 +70,12 @@ function stackMarkdown(stack: StackReport): string[] {
   out.push('');
 
   out.push('### RQ4 — Test-suite quality', '');
+  out.push(`- Quality instrument: ${report.quality.instrument === 'static' ? 'static analysis of the emitted sources (same analyser as the baseline)' : 'generation manifest (no emitted sources found)'}`);
   out.push(`- Assertion density: ${report.quality.assertionDensity.toFixed(2)} assertions/test`);
   out.push(`- Brittle-locator ratio: ${pct(report.quality.brittleLocatorRatio)}`);
   out.push(`- Locator robustness: ${pct(report.quality.locatorRobustness)}`);
   out.push(`- Smell incidence: ${pct(report.quality.smellIncidence)}`);
+  out.push(`- Manifest cross-check: assertion density ${report.quality.manifestCheck.assertionDensity.toFixed(2)}, brittle ratio ${pct(report.quality.manifestCheck.brittleLocatorRatio)}`);
   out.push(`- Locator strategy mix: ${Object.entries(report.quality.locatorDistribution).map(([strategy, count]) => `${strategy} ${count}`).join(', ') || 'none'}`);
   out.push('');
 

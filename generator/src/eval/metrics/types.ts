@@ -20,6 +20,8 @@ export type MetricsInput = {
   runs: SuiteRun[];
   baselineRuns: SuiteRun[];
   baselineStatic: BaselineStaticAnalysis | null;
+  /** The generated suite analysed with the same instrument as the baseline; null falls back to the manifest. */
+  generatedStatic?: BaselineStaticAnalysis | null;
   faultRuns: FaultRun[];
   /** Fault runs executed against the baseline suite (no manifest needed; localization is n/a). */
   baselineFaultRuns: FaultRun[];
@@ -64,6 +66,10 @@ export type QualityMetrics = {
   brittleLocatorRatio: number;
   locatorRobustness: number;
   smellIncidence: number;
+  /** Where the headline figures come from: the shared static analyser or the generation manifest. */
+  instrument: 'static' | 'manifest';
+  /** Manifest-derived figures, kept as a cross-check when the static analyser supplied the headline. */
+  manifestCheck: { assertionDensity: number; brittleLocatorRatio: number; locatorRobustness: number };
 };
 
 export type ReliabilityMetrics = {

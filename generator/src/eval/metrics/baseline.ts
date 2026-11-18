@@ -12,7 +12,8 @@ export function baselineComparison(
   genMutation: FaultMetrics,
   genEfficiency: EfficiencyMetrics,
 ): BaselineComparison {
-  const generatedDurations = durationsOf(input.runs);
+  const comparisonBrowser = input.config.evaluation.comparisonBrowser ?? undefined;
+  const generatedDurations = durationsOf(input.runs, comparisonBrowser);
   const manualDurations = durationsOf(input.baselineRuns);
 
   const generatedSide: QualitySide = {
@@ -34,8 +35,9 @@ export function baselineComparison(
   const baselineReliability = input.baselineRuns.length > 0 ? reliabilityOf(input.baselineRuns) : null;
   const baselineMutation = input.baselineFaultRuns.length > 0 ? faultMetricsOf(input.baselineFaultRuns) : null;
 
-  // Duration per test: mean execute ms divided by distinct test count (so count differences don't skew).
-  const genDurationPerTest = genEfficiency.perTestMs;
+  // Duration per execution: the mean of per-test durations on BOTH sides (suite wall-clock and the
+  // three-browser fan-out of the generated suite are not part of this figure).
+  const genDurationPerTest = generatedDurations.length > 0 ? generatedDurations.reduce((sum, d) => sum + d, 0) / generatedDurations.length : genEfficiency.perTestMs;
   const baselineTestCount = distinctTitles(input.baselineRuns);
   const baseDurationPerTest = manualDurations.length > 0 && baselineTestCount > 0
     ? manualDurations.reduce((sum, d) => sum + d, 0) / manualDurations.length
@@ -81,7 +83,7 @@ export function computeVerdict(
     verdictRow('Assertion density', genQuality.assertionDensity, baselineSide?.assertionDensity ?? null, 'higher', (v) => v.toFixed(2)),
     verdictRow('Brittle-locator ratio', genQuality.brittleLocatorRatio, baselineSide?.brittleLocatorRatio ?? null, 'lower', fmtPct),
     verdictRow('Locator robustness', genQuality.locatorRobustness, baselineSide ? locatorRobustnessOf(baselineSide.locatorDistribution) : null, 'higher', fmtPct),
-    verdictRow('Duration per test', genDurationPerTest > 0 ? genDurationPerTest : null, baseDurationPerTest, 'lower', (v) => `${Math.round(v)}ms`),
+    verdictRow('Duration per execution', genDurationPerTest > 0 ? genDurationPerTest : null, baseDurationPerTest, 'lower', (v) => `${Math.round(v)}ms`),
   ];
 
   const comparable = rows.filter((row) => row.winner !== 'n/a');

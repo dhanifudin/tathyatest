@@ -129,6 +129,9 @@ async function runStack(stack: StackConfig, rootConfig: TathyaConfig, options: E
 
     const baselineRuns = options.baseline !== false ? await runBaseline(config, repeat) : [];
     const baselineStatic = await analyzeBaselineDir(config.evaluation.baselineDir);
+    // The generated suite goes through the same analyser; its shared helper module is skipped because
+    // helper calls are already counted as assertions where the specs call them.
+    const generatedStatic = await analyzeBaselineDir(config.output.dir, { ignorePath: /[\\/]support[\\/]tathya\.(ts|js)$/ });
     const sutCoverage = collectCoverage ? await fetchCoverage(stack.baseUrl, plane.coverage) : null;
     // Skip fault injection when the app has no fault endpoint (probed or `faults: false`) or when
     // disabled by flag/config.
@@ -137,7 +140,7 @@ async function runStack(stack: StackConfig, rootConfig: TathyaConfig, options: E
     const baselineFaultRuns = runFaultsEnabled ? await runBaselineFaults(stack, rootConfig, config, plane, catalogue) : [];
 
     const input: MetricsInput = {
-      config, manifest, crawls, matrix, runs, baselineRuns, baselineStatic,
+      config, manifest, crawls, matrix, runs, baselineRuns, baselineStatic, generatedStatic,
       faultRuns, baselineFaultRuns, sutCoverage,
       timings: { crawlMs, generateMs, executeMs },
       manualBaselineSecPerCase: rootConfig.evaluation.manualBaselineSecPerCase,

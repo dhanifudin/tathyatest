@@ -1,5 +1,8 @@
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
-import { analyzeSpecSource } from '../../src/eval/baseline-static.js';
+import { analyzeBaselineDir, analyzeSpecSource, classifySelector } from '../../src/eval/baseline-static.js';
 
 // Minimal fixture spec — typical Playwright test with semantic locators.
 const FIXTURE_SEMANTIC = `
@@ -99,5 +102,66 @@ describe('analyzeSpecSource', () => {
     const sem = analyzeSpecSource(FIXTURE_SEMANTIC);
     const density = sem.tests === 0 ? 0 : sem.assertions / sem.tests;
     expect(density).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('analyzer details', () => {
+  it('classifies selector strings by the priority chain', () => {
+    expect(classifySelector('[data-test="login-button"]')).toBe('testid');
+    expect(classifySelector('[data-testid=\'x\']')).toBe('testid');
+    expect(classifySelector('#user-name')).toBe('id');
+    expect(classifySelector('input[name="email"]')).toBe('name');
+    expect(classifySelector('.cart_item > button')).toBe('css');
+  });
+
+  it('does not mistake inherited object members for locator APIs', () => {
+    const result = analyzeSpecSource("test('x', async () => { const s = String(1).toString(); });");
+    expect(Object.keys(result.locatorCounts).sort()).toEqual(['css', 'id', 'label', 'name', 'placeholder', 'role', 'testid']);
+  });
+
+  it('counts string selectors passed to page methods, not locator values', () => {
+    const src = `
+      test('x', async ({ page }) => {
+        await page.click('button[type="submit"]');
+        await page.fill('input[name="email"]', 'a@b.c');
+        await page.getByLabel('Email').fill('a@b.c');
+        await page.locator('#go').click({ force: true });
+      });`;
+    const { locatorCounts } = analyzeSpecSource(src);
+    expect(locatorCounts).toMatchObject({ css: 1, name: 1, label: 1, id: 1 });
+  });
+
+  it('counts expect helpers as one assertion at the call site and ignores test.skip(cond, reason)', () => {
+    const src = `
+      test('a', async ({ page, app }) => {
+        test.skip(!(await page.isVisible('#x')), 'not visible');
+        await expectRouteAllowed(page, null, '/x');
+        await app.expectLoggedIn();
+        await expect(page.getByRole('heading')).toBeVisible();
+        expect.soft(1).toBe(1);
+      });
+      test.skip('b', async () => {});`;
+    const result = analyzeSpecSource(src);
+    expect(result.tests).toBe(2);
+    expect(result.assertions).toBe(4);
+  });
+
+  it('analyses page objects and ignores node_modules', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'tt-static-'));
+    try {
+      await mkdir(join(dir, 'pages'));
+      await mkdir(join(dir, 'node_modules', 'dep'), { recursive: true });
+      await writeFile(join(dir, 'a.spec.ts'), "test('a', async ({ page }) => { await new Cart(page).open(); });\n");
+      await writeFile(join(dir, 'pages', 'cart.ts'), "export class Cart { async open() { await this.page.click('.cart'); await expect(this.page).toHaveURL('/cart'); } }\n");
+      await writeFile(join(dir, 'node_modules', 'dep', 'index.spec.js'), "it('noise', () => { assert(1); assert(2); });\n");
+      const result = await analyzeBaselineDir(dir);
+      expect(result).not.toBeNull();
+      expect(result?.testCount).toBe(1);
+      expect(result?.sourceFiles).toBe(2);
+      expect(result?.totals.assertions).toBe(1);
+      expect(result?.locatorDistribution.css).toBe(1);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 });

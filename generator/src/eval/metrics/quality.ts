@@ -40,12 +40,31 @@ export function qualityMetrics(input: MetricsInput): QualityMetrics {
     }
   }
 
-  return {
-    testCount: manifest.length,
+  const manifestCheck = {
     assertionDensity: manifest.length === 0 ? 0 : assertionSum / manifest.length,
-    locatorDistribution,
     brittleLocatorRatio: withLocator === 0 ? 0 : brittle / withLocator,
     locatorRobustness: withLocator === 0 ? 0 : robustnessSum / withLocator,
+  };
+  const measured = input.generatedStatic ?? null;
+  if (measured === null) {
+    return {
+      testCount: manifest.length,
+      ...manifestCheck,
+      locatorDistribution,
+      smellIncidence: manifest.length === 0 ? 0 : smell / manifest.length,
+      instrument: 'manifest',
+      manifestCheck,
+    };
+  }
+  // Same instrument as the baseline: count the emitted sources, not the generator's own bookkeeping.
+  return {
+    testCount: manifest.length,
+    assertionDensity: measured.assertionDensity,
+    locatorDistribution: measured.locatorDistribution,
+    brittleLocatorRatio: measured.brittleLocatorRatio,
+    locatorRobustness: locatorRobustnessOf(measured.locatorDistribution),
     smellIncidence: manifest.length === 0 ? 0 : smell / manifest.length,
+    instrument: 'static',
+    manifestCheck,
   };
 }

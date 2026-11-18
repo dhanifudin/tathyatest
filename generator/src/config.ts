@@ -95,6 +95,9 @@ export const configSchema = z.object({
     manualBaselineSecPerCase: z.number().positive().default(300),
     baselineDir: z.string().default('tests/manual'),
     faultProject: z.string().nullable().default(null),
+    // Restrict the generated suite's per-execution durations to one browser (for example `chromium`) so a
+    // single-browser baseline is compared like for like; null keeps every browser.
+    comparisonBrowser: z.string().nullable().default(null),
     // `coverage` / `faults` left unset mean "probe the app": `tt eval` enables SUT coverage when
     // GET /__testing/coverage answers and fault injection when POST /__testing/fault/clear does.
     stacks: z.array(z.object({
@@ -120,6 +123,7 @@ export const configSchema = z.object({
     manualBaselineSecPerCase: 300,
     baselineDir: 'tests/manual',
     faultProject: null,
+    comparisonBrowser: null,
     stacks: [],
     faults: { enabled: true, classes: [...FAULT_CLASSES] },
   }),

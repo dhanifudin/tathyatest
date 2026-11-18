@@ -7,8 +7,15 @@ import { type Ratio, type CrudExercised } from './types.js';
 
 // ---- helpers ----------------------------------------------------------------------------------
 
-export function durationsOf(runs: SuiteRun[]): number[] {
-  return runs.flatMap((run) => run.outcomes.filter((outcome) => outcome.status !== 'skipped').map((outcome) => outcome.durationMs));
+/**
+ * Per-execution durations of every executed (non-skipped) test. `browser` restricts to projects named
+ * `<role>-<browser>` or exactly `<browser>`, so a single-browser baseline can be compared like for like.
+ */
+export function durationsOf(runs: SuiteRun[], browser?: string): number[] {
+  const inBrowser = (project: string) => browser === undefined || project === browser || project.endsWith(`-${browser}`);
+  return runs.flatMap((run) => run.outcomes
+    .filter((outcome) => outcome.status !== 'skipped' && inBrowser(outcome.project))
+    .map((outcome) => outcome.durationMs));
 }
 
 export function distinctTitles(runs: SuiteRun[]): number {
