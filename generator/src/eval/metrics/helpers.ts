@@ -18,6 +18,29 @@ export function durationsOf(runs: SuiteRun[], browser?: string): number[] {
     .map((outcome) => outcome.durationMs));
 }
 
+/**
+ * One duration per test: the median over every executed repeat and project of that test. Comparing
+ * these (instead of every pooled execution) respects that repeats of one test are not independent
+ * observations, so each test contributes a single point to the Mann-Whitney comparison.
+ */
+export function medianDurationPerTest(runs: SuiteRun[], browser?: string): number[] {
+  const inBrowser = (project: string) => browser === undefined || project === browser || project.endsWith(`-${browser}`);
+  const byTitle = new Map<string, number[]>();
+  for (const run of runs) {
+    for (const outcome of run.outcomes) {
+      if (outcome.status === 'skipped' || !inBrowser(outcome.project)) continue;
+      const list = byTitle.get(outcome.title) ?? [];
+      list.push(outcome.durationMs);
+      byTitle.set(outcome.title, list);
+    }
+  }
+  return [...byTitle.values()].map((list) => {
+    const sorted = [...list].sort((x, y) => x - y);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 === 1 ? sorted[mid] ?? 0 : ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2;
+  });
+}
+
 export function distinctTitles(runs: SuiteRun[]): number {
   return new Set(runs.flatMap((run) => run.outcomes.map((outcome) => outcome.title))).size;
 }

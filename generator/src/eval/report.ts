@@ -91,7 +91,7 @@ function stackMarkdown(stack: StackReport): string[] {
   out.push(`- Time-savings ratio vs manual: ${report.efficiency.timeSavingsRatio.toFixed(1)}× (sensitivity ${report.efficiency.timeSavingsRange.low.toFixed(1)}–${report.efficiency.timeSavingsRange.high.toFixed(1)}×)`);
   if (report.baseline.available && report.baseline.durationMannWhitney) {
     const mw = report.baseline.durationMannWhitney;
-    out.push(`- Generated vs baseline duration: Mann-Whitney U=${mw.u}, p=${mw.pValue.toFixed(4)}, rank-biserial r=${mw.rankBiserial.toFixed(3)} (${report.baseline.generatedTests} generated vs ${report.baseline.manualTests} baseline tests)`);
+    out.push(`- Generated vs baseline duration: Mann-Whitney U=${mw.u}, p=${mw.pValue.toFixed(4)}, rank-biserial r=${mw.rankBiserial.toFixed(3)} (bootstrap 95% CI ${mw.rankBiserialCI[0].toFixed(2)} to ${mw.rankBiserialCI[1].toFixed(2)}; one median duration per test) (${report.baseline.generatedTests} generated vs ${report.baseline.manualTests} baseline tests)`);
   } else {
     out.push('- Baseline duration comparison: not available (no baseline run or too few data points).');
   }

@@ -23,6 +23,34 @@ export type MannWhitneyResult = {
   rankBiserial: number; // effect size in [-1, 1]
 };
 
+/**
+ * Percentile bootstrap confidence interval (95%) for the rank-biserial effect size: both samples are
+ * resampled with replacement and the statistic recomputed, using a seeded generator so the report is
+ * reproducible. Unlike the normal-approximation p-value it needs no distributional assumption.
+ */
+export function rankBiserialBootstrapCI(a: number[], b: number[], iterations = 1000, seed = 42): [number, number] {
+  if (a.length === 0 || b.length === 0) return [0, 0];
+  const next = mulberry32(seed);
+  const pick = (values: number[]): number[] => values.map(() => values[Math.floor(next() * values.length)] ?? 0);
+  const estimates: number[] = [];
+  for (let i = 0; i < iterations; i += 1) estimates.push(mannWhitneyU(pick(a), pick(b)).rankBiserial);
+  estimates.sort((x, y) => x - y);
+  const low = estimates[Math.floor(0.025 * (iterations - 1))] ?? 0;
+  const high = estimates[Math.ceil(0.975 * (iterations - 1))] ?? 0;
+  return [low, high];
+}
+
+function mulberry32(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 export function mean(values: number[]): number {
   if (values.length === 0) return 0;
   return values.reduce((sum, value) => sum + value, 0) / values.length;

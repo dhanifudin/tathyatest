@@ -288,3 +288,16 @@ describe('reliabilityOf skip handling and agreement', () => {
     expect(r.disagreeingTests).toBe(1);
   });
 });
+
+describe('medianDurationPerTest', () => {
+  it('gives one median per test over repeats and projects and honours the browser filter', async () => {
+    const { medianDurationPerTest } = await import('../../src/eval/metrics/helpers.js');
+    const o = (title: string, project: string, durationMs: number, status: 'passed' | 'skipped' = 'passed') => ({ title, project, status, durationMs });
+    const runs = [
+      { outcomes: [o('a', 'admin-chromium', 10), o('a', 'admin-firefox', 30), o('a', 'user-chromium', 999, 'skipped')] },
+      { outcomes: [o('a', 'admin-chromium', 20), o('a', 'admin-firefox', 40)] },
+    ];
+    expect(medianDurationPerTest(runs)).toEqual([25]);
+    expect(medianDurationPerTest(runs, 'chromium')).toEqual([15]);
+  });
+});

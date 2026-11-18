@@ -133,7 +133,8 @@ export type BaselineComparison = {
   available: boolean;
   generatedTests: number;
   manualTests: number;
-  durationMannWhitney: MannWhitneyResult | null;
+  /** Mann-Whitney on one median duration per test (not pooled executions), with a bootstrap CI for the effect size. */
+  durationMannWhitney: (MannWhitneyResult & { rankBiserialCI: [number, number] }) | null;
   /** Static quality numbers derived from spec sources (independent of execution). */
   quality: {
     generated: QualitySide;

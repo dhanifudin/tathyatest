@@ -37,3 +37,16 @@ describe('stats', () => {
     expect(fleissKappa([[3, 0], [3, 0]])).toBeCloseTo(1, 6);
   });
 });
+
+describe('rankBiserialBootstrapCI', () => {
+  it('is deterministic and brackets a clear separation', async () => {
+    const { rankBiserialBootstrapCI } = await import('../../src/eval/stats.js');
+    const slow = Array.from({ length: 30 }, (_, i) => 100 + i);
+    const fast = Array.from({ length: 30 }, (_, i) => 10 + i);
+    const [low, high] = rankBiserialBootstrapCI(slow, fast);
+    expect(rankBiserialBootstrapCI(slow, fast)).toEqual([low, high]);
+    expect(low).toBeGreaterThan(0.9);
+    expect(high).toBeLessThanOrEqual(1);
+    expect(rankBiserialBootstrapCI([], fast)).toEqual([0, 0]);
+  });
+});

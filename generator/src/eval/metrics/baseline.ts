@@ -1,9 +1,9 @@
-import { mannWhitneyU } from '../stats.js';
+import { mannWhitneyU, rankBiserialBootstrapCI } from '../stats.js';
 import { type MetricsInput, type FaultMetrics, type QualityMetrics, type ReliabilityMetrics, type EfficiencyMetrics, type QualitySide, type VerdictRow, type Verdict, type BaselineComparison } from './types.js';
 import { faultMetricsOf } from './faults.js';
 import { locatorRobustnessOf } from './quality.js';
 import { reliabilityOf } from './reliability.js';
-import { durationsOf, distinctTitles } from './helpers.js';
+import { durationsOf, distinctTitles, medianDurationPerTest } from './helpers.js';
 
 export function baselineComparison(
   input: MetricsInput,
@@ -52,9 +52,7 @@ export function baselineComparison(
     available: input.baselineRuns.length > 0,
     generatedTests: distinctTitles(input.runs),
     manualTests: baselineTestCount,
-    durationMannWhitney: generatedDurations.length > 0 && manualDurations.length > 0
-      ? mannWhitneyU(generatedDurations, manualDurations)
-      : null,
+    durationMannWhitney: durationComparison(medianDurationPerTest(input.runs, comparisonBrowser), medianDurationPerTest(input.baselineRuns)),
     quality: { generated: generatedSide, baseline: baselineSide },
     baselineReliability,
     baselineMutation,
@@ -124,4 +122,9 @@ export function verdictRow(
 
 export function fmtPct(v: number): string {
   return `${(v * 100).toFixed(1)}%`;
+}
+
+function durationComparison(generated: number[], baseline: number[]): BaselineComparison['durationMannWhitney'] {
+  if (generated.length === 0 || baseline.length === 0) return null;
+  return { ...mannWhitneyU(generated, baseline), rankBiserialCI: rankBiserialBootstrapCI(generated, baseline) };
 }
