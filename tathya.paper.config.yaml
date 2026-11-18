@@ -1,0 +1,76 @@
+# Evaluation protocol used for the research article (`make paper-eval`).
+# It is the root config `tt eval` reads: repeat count, seed, fault project, cost assumption and the three
+# stacks. Per-stack settings (roles, data, baseline directory) live in each stack's own config file.
+baseUrl: http://127.0.0.1:8000
+hooks:
+  reset: { method: POST, path: /__testing/reset }
+output:
+  dir: tests/generated
+  language: ts
+coverage: all
+oracle:
+  errorSelector: ".invalid-feedback, [role=alert], .text-red-600, x-input-error p"
+auth:
+  loginPath: /login
+  roles:
+    - name: admin
+      username: admin@example.com
+      password: password
+    - name: user
+      username: user@example.com
+      password: password
+crawl:
+  maxDepth: 3
+  maxPages: 100
+  include:
+    - /todos
+    - /dashboard
+    - /admin
+  exclude:
+    - /logout
+data:
+  fields:
+    contact_email: contact@example.com
+    due_date: "2026-06-15"
+    email: user@example.com
+  defaults:
+    text: Sample
+    email: user@example.com
+    number: "1"
+    date: "2026-06-15"
+  unique:
+    - contact_email
+    - email
+  duplicates:
+    contact_email: admin.todo.01@example.com
+  confirmFields:
+    - contact_email_confirmation
+  faker:
+    locale: en
+    seed: 42
+evaluation:
+  outDir: metrics
+  repeat: 5
+  manualBaselineSecPerCase: 300
+  baselineDir: tests/manual
+  faultProject: chromium
+  stacks:
+    - name: blade
+      dir: .
+      config: tathya.blade.config.yaml
+      baseUrl: http://127.0.0.1:8000
+      coverage: pcov
+    - name: inertia
+      dir: .
+      config: tathya.inertia-react.config.yaml
+      baseUrl: http://127.0.0.1:8001
+      coverage: pcov
+    - name: saucedemo
+      dir: .
+      config: tathya.saucedemo.config.yaml
+      baseUrl: https://www.saucedemo.com
+      coverage: none
+      faults: false
+  faults:
+    enabled: true
+    classes: [validation, authz, crud, pagination, auth]

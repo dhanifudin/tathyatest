@@ -4,7 +4,7 @@ ROOT := $(CURDIR)
 GENERATOR_DIR := $(ROOT)/generator
 TT := node $(GENERATOR_DIR)/dist/cli/main.js
 
-.PHONY: help install uninstall build generator-install generator-uninstall verify generator-test tt-help clean baseline-init setup configs case-study-setup serve clean-outputs
+.PHONY: help install uninstall build generator-install generator-uninstall verify generator-test tt-help clean baseline-init setup configs case-study-setup serve clean-outputs paper-eval
 
 help:
 	@printf '%s\n' \
@@ -13,6 +13,7 @@ help:
 		'  make install         build and link tt into the active Node/bin path' \
 		'  make case-study-setup STACK=blade|inertia   install, configure, migrate, build one case study' \
 		'  make serve STACK=blade|inertia              serve a case study (COVERAGE=1)' \
+		'  make paper-eval      reproduce the article evaluation (Blade, Inertia, SauceDemo, one at a time)' \
 		'  make clean-outputs   delete crawl, generated specs, reports and stored sessions' \
 		'  make uninstall       remove the installed tt binary' \
 		'  make verify          Run generator verification and smoke the compiled tt entrypoint' \
@@ -102,3 +103,7 @@ serve:
 
 clean-outputs:
 	rm -rf crawl/*.json tests/generated storageState/*.json test-results playwright-report metrics metrics-saucedemo
+
+# The evaluation protocol of the article: tathya.paper.config.yaml (repeat 5, seed 42), one stack at a time.
+paper-eval: install
+	sh scripts/paper-eval.sh

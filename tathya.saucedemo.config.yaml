@@ -49,13 +49,15 @@ data:
   confirmFields: []
   faker:
     locale: en
-    seed: null
+    seed: 42
 evaluation:
   outDir: metrics-saucedemo   # separate from the Laravel stacks so reports do not clobber
   repeat: 5
   manualBaselineSecPerCase: 300
   baselineDir: tests/baseline-public/saucedemo
   faultProject: null
+  # The public suites run on Chromium only; compare per-execution durations on the same browser.
+  comparisonBrowser: chromium
   stacks:
     - name: saucedemo
       dir: .
