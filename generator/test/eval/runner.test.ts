@@ -83,3 +83,26 @@ describe('detectCapabilities', () => {
     await expect(detectCapabilities({ baseUrl: 'http://127.0.0.1:1' })).resolves.toEqual({ coverage: false, faults: false });
   });
 });
+
+describe('loadStackReports', () => {
+  it('rebuilds stack reports from per-stack folders, ordered by name, ignoring folders without a report', async () => {
+    const { mkdir, mkdtemp, rm, writeFile } = await import('node:fs/promises');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const { loadStackReports } = await import('../../src/eval/runner.js');
+    const dir = await mkdtemp(join(tmpdir(), 'tt-reports-'));
+    try {
+      for (const name of ['inertia', 'blade']) {
+        await mkdir(join(dir, name));
+        await writeFile(join(dir, name, 'report.json'), JSON.stringify({ stacks: [{ name, provenance: { gitCommit: 'abc' }, quality: { testCount: 1 } }] }));
+      }
+      await mkdir(join(dir, 'stale'));
+      const stacks = await loadStackReports(dir);
+      expect(stacks.map((stack) => stack.name)).toEqual(['blade', 'inertia']);
+      expect((stacks[0]?.report as unknown as { quality: { testCount: number } }).quality.testCount).toBe(1);
+      expect((stacks[0]?.provenance as unknown as { gitCommit: string }).gitCommit).toBe('abc');
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+});

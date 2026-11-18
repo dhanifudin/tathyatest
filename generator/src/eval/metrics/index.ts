@@ -19,6 +19,7 @@ export function computeMetrics(input: MetricsInput): MetricsReport {
   return {
     coverage: coverageMetrics(input),
     sutCoverage: input.sutCoverage,
+    crawlCoverage: input.crawlCoverage ?? null,
     faults,
     quality,
     reliability,

@@ -1,11 +1,13 @@
 import type { MetricsReport, QualitySide, Ratio } from './metrics/index.js';
 
-export type StackReport = { name: string; report: MetricsReport };
+import type { Provenance } from './provenance.js';
+
+export type StackReport = { name: string; report: MetricsReport; provenance?: Provenance };
 
 export function renderReportJson(stacks: StackReport[]): object {
   return {
     generatedAt: new Date().toISOString(),
-    stacks: stacks.map((stack) => ({ name: stack.name, ...stack.report })),
+    stacks: stacks.map((stack) => ({ name: stack.name, provenance: stack.provenance ?? null, ...stack.report })),
     crossStack: crossStackTable(stacks),
   };
 }
@@ -21,9 +23,18 @@ export function renderReportMarkdown(stacks: StackReport[]): string {
   return `${lines.join('\n')}\n`;
 }
 
+function provenanceMarkdown(p: Provenance): string[] {
+  return [
+    `- Run: ${p.generatedAt}; tt ${p.toolVersion} at commit ${p.gitCommit ?? 'unknown'}${p.gitDirty ? ' (uncommitted changes)' : ''}`,
+    `- Host: ${p.host.platform} ${p.host.release} ${p.host.arch}, ${p.host.cpus} x ${p.host.cpuModel}, ${p.host.memoryGiB} GiB; Node ${p.node}; Playwright ${p.playwright ?? 'unknown'}`,
+    `- Protocol: config ${p.protocol.configPath}, repeat ${p.protocol.repeat}, faker seed ${p.protocol.fakerSeed ?? 'none'}, comparison browser ${p.protocol.comparisonBrowser ?? 'all'}, fault project ${p.protocol.faultProject ?? 'all'}, SUT coverage ${p.protocol.coverage ? 'on' : 'off'}, fault injection ${p.protocol.faultInjection ? 'on' : 'off'}, baseline ${p.protocol.baseline ? 'on' : 'off'}, server ${p.protocol.serverMode}`,
+  ];
+}
+
 function stackMarkdown(stack: StackReport): string[] {
   const { report } = stack;
   const out: string[] = [`## Stack: ${stack.name}`, ''];
+  if (stack.provenance) out.push(...provenanceMarkdown(stack.provenance), '');
 
   out.push('### RQ1 — Model / generation coverage', '');
   if (report.coverage.mode === 'read-only') {
@@ -45,6 +56,10 @@ function stackMarkdown(stack: StackReport): string[] {
 
   out.push('### RQ2 — System-under-test code coverage', '');
   if (report.sutCoverage) {
+    out.push('- Attribution: figures below are reached by the crawl plus the first run of the generated suite (the baseline suite and fault runs are excluded).');
+    if (report.crawlCoverage) {
+      out.push(`- Crawl alone: lines ${ratioPct(report.crawlCoverage.lines)}, functions ${ratioPct(report.crawlCoverage.functions)}, routes ${ratioPct(report.crawlCoverage.routes)}`);
+    }
     out.push(`- Lines: ${ratioPct(report.sutCoverage.lines)}`);
     out.push(`- Branches: ${ratioPct(report.sutCoverage.branches)}`);
     out.push(`- Functions: ${ratioPct(report.sutCoverage.functions)}`);

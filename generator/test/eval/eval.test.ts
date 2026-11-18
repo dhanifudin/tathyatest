@@ -66,6 +66,7 @@ function fakeReport(overrides: Partial<MetricsReport> = {}): MetricsReport {
       constraintKinds: { present: ['required', 'maxlength'], exercised: ['required'], ratio: 0.5 },
       tiers: { positive: 5, negative: 8, edge: 3, total: 16 },
     },
+    crawlCoverage: null,
     sutCoverage: { lines: r(0.78), branches: r(0.64), functions: r(0.9), routes: r(0.88) },
     faults: { total: 8, killed: 7, mutationScore: 0.875, byClass: { validation: { total: 4, killed: 4, score: 1 } }, localizationAccuracy: 0.9, perFault: [], detectable: { total: 8, killed: 7, score: 0.875 }, controls: { total: 0, survived: 0 } },
     quality: { testCount: 16, assertionDensity: 1.2, locatorDistribution: { role: 8, label: 6, css: 2 }, brittleLocatorRatio: 0.125, locatorRobustness: 0.8, smellIncidence: 0, instrument: 'manifest', manifestCheck: { assertionDensity: 1.2, brittleLocatorRatio: 0.125, locatorRobustness: 0.8 } },

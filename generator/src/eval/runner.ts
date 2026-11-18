@@ -1,12 +1,13 @@
 import { chdir, cwd } from 'node:process';
-import { access, mkdir, readdir, writeFile } from 'node:fs/promises';
+import { access, mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
 import { controlPlaneOf, DEFAULT_CONTROL_PLANE, loadConfig, type ControlPlane, type TathyaConfig } from '../config.js';
 import { runCrawl } from '../crawl/crawl.js';
 import { assertReachable, isReachable } from '../crawl/reachability.js';
 import type { ManifestEntry } from '../generate/manifest.js';
 import { generateSuite, type GeneratedSuite } from '../pipeline.js';
-import { computeMetrics, type FaultRun, type SuiteRun, type SutCoverage, type MetricsInput } from './metrics/index.js';
+import { computeMetrics, type FaultRun, type MetricsInput, type MetricsReport, type SuiteRun, type SutCoverage } from './metrics/index.js';
+import { collectProvenance, type Provenance } from './provenance.js';
 import { faultsForClasses, loadFaultCatalogue, type FaultSpec } from './faults.js';
 import { runPlaywrightJson } from './playwright.js';
 import { renderReportJson, renderReportMarkdown, type StackReport } from './report.js';
@@ -41,7 +42,8 @@ export async function runEvaluation(rootConfig: TathyaConfig, options: EvalOptio
       await assertReachable(stack.baseUrl);
     }
     log.info(`\n[eval] stack "${stack.name}" (${stack.baseUrl})`);
-    reports.push({ name: stack.name, report: await runStack(stack, rootConfig, options) });
+    const evaluated = await runStack(stack, rootConfig, options);
+    reports.push({ name: stack.name, report: evaluated.report, provenance: evaluated.provenance });
   }
   if (reports.length === 0) throw new Error('[eval] no reachable stack to evaluate');
   await writeReports(rootConfig.evaluation.outDir, reports);
@@ -94,7 +96,7 @@ export async function detectCapabilities(
   return { coverage, faults };
 }
 
-async function runStack(stack: StackConfig, rootConfig: TathyaConfig, options: EvalOptions) {
+async function runStack(stack: StackConfig, rootConfig: TathyaConfig, options: EvalOptions): Promise<{ report: MetricsReport; provenance: Provenance }> {
   const originalCwd = cwd();
   const originalTathyaConfig = process.env.TATHYA_CONFIG;
   chdir(resolve(originalCwd, stack.dir));
@@ -113,39 +115,68 @@ async function runStack(stack: StackConfig, rootConfig: TathyaConfig, options: E
     if (collectCoverage) await control(stack.baseUrl, 'POST', plane.coverageReset);
 
     const crawlMs = await timed(() => runCrawl(config));
+    // Coverage attribution: what the crawl alone reaches is recorded and reset, so the figure reported for
+    // the generated suite is not inflated by the crawl, by the baseline suite, or by fault runs.
+    const crawlCoverage = collectCoverage ? await fetchCoverage(stack.baseUrl, plane.coverage) : null;
+    if (collectCoverage) await control(stack.baseUrl, 'POST', plane.coverageReset);
+
     let suite!: GeneratedSuite;
     const generateMs = await timed(async () => {
       suite = await generateSuite(config);
     });
     const { crawls, matrix, manifest } = suite;
 
+    // Generated and baseline repeats alternate (generated first, then swapped each round) so host or
+    // live-site drift is not confounded with the suite under test. Coverage is read right after the
+    // first generated run, before any baseline test executes.
     const runs: SuiteRun[] = [];
+    const baselineRuns: SuiteRun[] = [];
     const executeMs: number[] = [];
+    const runBaselineToo = options.baseline !== false;
+    let sutCoverage: SutCoverage | null = null;
     for (let i = 0; i < repeat; i += 1) {
-      const start = Date.now();
-      runs.push(await runPlaywrightJson({ cwd: '.' }));
-      executeMs.push(Date.now() - start);
+      const order = i % 2 === 0 ? (['generated', 'baseline'] as const) : (['baseline', 'generated'] as const);
+      for (const which of order) {
+        if (which === 'generated') {
+          const start = Date.now();
+          runs.push(await runPlaywrightJson({ cwd: '.' }));
+          executeMs.push(Date.now() - start);
+          if (i === 0 && collectCoverage) sutCoverage = await fetchCoverage(stack.baseUrl, plane.coverage);
+        } else if (runBaselineToo) {
+          baselineRuns.push(...(await runBaselineOnce(config)));
+        }
+      }
     }
-
-    const baselineRuns = options.baseline !== false ? await runBaseline(config, repeat) : [];
     const baselineStatic = await analyzeBaselineDir(config.evaluation.baselineDir);
     // The generated suite goes through the same analyser; its shared helper module is skipped because
     // helper calls are already counted as assertions where the specs call them.
     const generatedStatic = await analyzeBaselineDir(config.output.dir, { ignorePath: /[\\/]support[\\/]tathya\.(ts|js)$/ });
-    const sutCoverage = collectCoverage ? await fetchCoverage(stack.baseUrl, plane.coverage) : null;
     // Skip fault injection when the app has no fault endpoint (probed or `faults: false`) or when
     // disabled by flag/config.
     const runFaultsEnabled = capabilities.faults && options.faults !== false && rootConfig.evaluation.faults.enabled;
     const faultRuns = runFaultsEnabled ? await runFaults(stack, rootConfig, config, manifest, plane, catalogue) : [];
     const baselineFaultRuns = runFaultsEnabled ? await runBaselineFaults(stack, rootConfig, config, plane, catalogue) : [];
 
+    if (collectCoverage) await control(stack.baseUrl, 'POST', plane.coverageReset);
+
     const input: MetricsInput = {
       config, manifest, crawls, matrix, runs, baselineRuns, baselineStatic, generatedStatic,
-      faultRuns, baselineFaultRuns, sutCoverage,
+      faultRuns, baselineFaultRuns, sutCoverage, crawlCoverage,
       timings: { crawlMs, generateMs, executeMs },
       manualBaselineSecPerCase: rootConfig.evaluation.manualBaselineSecPerCase,
     };
-    return computeMetrics(input);
+    const provenance = collectProvenance({
+      configPath: stack.config,
+      repeat,
+      fakerSeed: config.data.faker.seed ?? null,
+      comparisonBrowser: config.evaluation.comparisonBrowser ?? null,
+      faultProject: rootConfig.evaluation.faultProject,
+      coverage: collectCoverage,
+      faultInjection: runFaultsEnabled,
+      baseline: runBaselineToo,
+      serverMode: collectCoverage ? 'COVERAGE=1 (PCOV)' : 'plain',
+    });
+    return { report: computeMetrics(input), provenance };
   } finally {
     if (originalTathyaConfig === undefined) delete process.env.TATHYA_CONFIG;
     else process.env.TATHYA_CONFIG = originalTathyaConfig;
@@ -153,24 +184,19 @@ async function runStack(stack: StackConfig, rootConfig: TathyaConfig, options: E
   }
 }
 
-async function runBaseline(config: TathyaConfig, repeat: number): Promise<SuiteRun[]> {
+/** One execution of the manual or public baseline suite (empty when the baseline directory has no specs). */
+async function runBaselineOnce(config: TathyaConfig): Promise<SuiteRun[]> {
   const dir = config.evaluation.baselineDir;
   if (!(await hasSpecs(dir))) return [];
   // If the baseline dir ships its own playwright.config.ts, use it so the
   // public suites run under their own setup (no role storageState, correct baseURL).
   const standaloneConfig = join(dir, 'playwright.config.ts');
   const hasConfig = await access(standaloneConfig).then(() => true).catch(() => false);
-  const runs: SuiteRun[] = [];
-  for (let i = 0; i < repeat; i += 1) {
-    if (hasConfig) {
-      runs.push(await runPlaywrightJson({ cwd: '.', config: standaloneConfig }));
-    } else {
-      // The root config's testDir points at tests/generated; retarget it or the baseline
-      // path filter matches zero tests and the run is silently empty.
-      runs.push(await runPlaywrightJson({ cwd: '.', env: { TATHYA_TESTDIR: dir } }));
-    }
-  }
-  return runs;
+  // The root config's testDir points at tests/generated; retarget it or the baseline
+  // path filter matches zero tests and the run is silently empty.
+  return [hasConfig
+    ? await runPlaywrightJson({ cwd: '.', config: standaloneConfig })
+    : await runPlaywrightJson({ cwd: '.', env: { TATHYA_TESTDIR: dir } })];
 }
 
 /**
@@ -289,8 +315,37 @@ async function timed(action: () => Promise<unknown>): Promise<number> {
   return Date.now() - start;
 }
 
+/**
+ * Write one report folder per stack (`<outDir>/<stack>/report.{json,md}`), then rebuild the merged view
+ * (`<outDir>/report.{json,md}`) from every stack folder found, so evaluating one stack at a time (the way
+ * a small machine has to) accumulates instead of overwriting the other stacks' results.
+ */
 async function writeReports(outDir: string, reports: StackReport[]): Promise<void> {
   await mkdir(outDir, { recursive: true });
-  await writeFile(join(outDir, 'report.json'), `${JSON.stringify(renderReportJson(reports), null, 2)}\n`);
-  await writeFile(join(outDir, 'report.md'), renderReportMarkdown(reports));
+  for (const stack of reports) {
+    const dir = join(outDir, stack.name);
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, 'report.json'), `${JSON.stringify(renderReportJson([stack]), null, 2)}\n`);
+    await writeFile(join(dir, 'report.md'), renderReportMarkdown([stack]));
+  }
+  const merged = await loadStackReports(outDir);
+  await writeFile(join(outDir, 'report.json'), `${JSON.stringify(renderReportJson(merged), null, 2)}\n`);
+  await writeFile(join(outDir, 'report.md'), renderReportMarkdown(merged));
+}
+
+/** Read every `<outDir>/<stack>/report.json` back into stack reports, ordered by stack name. */
+export async function loadStackReports(outDir: string): Promise<StackReport[]> {
+  const found: StackReport[] = [];
+  for (const entry of await readdir(outDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    try {
+      const parsed = JSON.parse(await readFile(join(outDir, entry.name, 'report.json'), 'utf8')) as { stacks?: Array<{ name: string; provenance?: Provenance | null } & MetricsReport> };
+      for (const { name, provenance, ...report } of parsed.stacks ?? []) {
+        found.push({ name, report: report as MetricsReport, provenance: provenance ?? undefined });
+      }
+    } catch {
+      // A folder without a report (for example an old run) is not a stack.
+    }
+  }
+  return found.sort((a, b) => a.name.localeCompare(b.name));
 }

@@ -26,6 +26,8 @@ export type MetricsInput = {
   /** Fault runs executed against the baseline suite (no manifest needed; localization is n/a). */
   baselineFaultRuns: FaultRun[];
   sutCoverage: SutCoverage | null;
+  /** Coverage reached by the crawl alone (before any generated test ran); null when coverage is off. */
+  crawlCoverage?: SutCoverage | null;
   timings: Timings;
   manualBaselineSecPerCase: number;
 };
@@ -151,6 +153,8 @@ export type BaselineComparison = {
 export type MetricsReport = {
   coverage: CoverageMetrics;
   sutCoverage: SutCoverage | null;
+  /** What the crawl alone reaches: the part of `sutCoverage` the generated tests did not add. */
+  crawlCoverage: SutCoverage | null;
   faults: FaultMetrics;
   quality: QualityMetrics;
   reliability: ReliabilityMetrics;
