@@ -41,3 +41,6 @@ case-study/*/storage/logs/*
 # Scratch space and OS noise
 /tmp/
 .DS_Store
+
+# graphify knowledge graph (local analysis output)
+/graphify-out/
