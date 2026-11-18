@@ -88,7 +88,7 @@ describe('report rendering', () => {
     expect(md).toContain('## Stack: blade');
     expect(md).toContain('RQ3 — Fault-detection effectiveness');
     expect(md).toContain('Fault-detection rate (all faults): 87.5%');
-    expect(md).toContain('Cross-browser agreement (Fleiss κ): 0.940');
+    expect(md).toContain('Cross-browser agreement (Fleiss κ, mean over repeats): 0.940');
     expect(md).not.toContain('## Cross-stack comparison'); // single stack
   });
 
