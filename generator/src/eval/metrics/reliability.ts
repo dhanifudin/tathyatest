@@ -8,52 +8,96 @@ export function reliabilityMetrics(input: MetricsInput): ReliabilityMetrics {
   return reliabilityOf(input.runs);
 }
 
-/** Pure: compute reliability metrics from a set of suite runs. Reusable for both sides. */
+/**
+ * Pure: compute reliability metrics from a set of suite runs. Reusable for both sides.
+ *
+ * Skipped outcomes are not verdicts: role-gated tests are skipped by every other role's project in
+ * every repeat, so they stay out of the flake denominator, the pass rate and the agreement figures.
+ * A test that passes in one repeat and is skipped in another is reported separately as an
+ * intermittent skip (a runtime `test.skip` can hide a failure, so it must stay visible).
+ */
 export function reliabilityOf(runs: SuiteRun[]): ReliabilityMetrics {
   const repeats = runs.length;
   if (repeats === 0) {
-    return { repeats: 0, flakeRate: 0, crossBrowserKappa: 1, passRate: 0, unstable: [] };
+    return {
+      repeats: 0, flakeRate: 0, crossBrowserKappa: 1, passRate: 0, unstable: [],
+      kappaPerRepeat: [], agreementRate: 1, disagreeingTests: 0, skippedExecutions: 0, intermittentSkips: [],
+    };
   }
 
-  // Flake: per (title, project), status differs across repeats.
+  // Flake: per (title, project), the executed status differs across repeats.
   const statusByKey = new Map<string, Set<TestStatus>>();
+  const skippedKeys = new Set<string>();
   let passed = 0;
   let counted = 0;
+  let skipped = 0;
   for (const run of runs) {
     for (const outcome of run.outcomes) {
       const key = `${outcome.project}::${outcome.title}`;
+      if (outcome.status === 'skipped') {
+        skipped += 1;
+        skippedKeys.add(key);
+        continue;
+      }
       const statuses = statusByKey.get(key) ?? new Set<TestStatus>();
       statuses.add(outcome.status);
       statusByKey.set(key, statuses);
-      if (outcome.status !== 'skipped') {
-        counted += 1;
-        if (outcome.status === 'passed') passed += 1;
-      }
+      counted += 1;
+      if (outcome.status === 'passed') passed += 1;
     }
   }
   let flaky = 0;
   const unstable: string[] = [];
   for (const [key, statuses] of statusByKey) {
     if (statuses.size > 1) flaky += 1;
-    if (statuses.size > 1 || statuses.has('failed')) {
-      const [project, ...title] = key.split('::');
-      unstable.push(`${title.join('::')} [${project}]`);
-    }
+    if (statuses.size > 1 || statuses.has('failed')) unstable.push(labelOf(key));
   }
+  const intermittentSkips = [...skippedKeys].filter((key) => statusByKey.has(key)).map(labelOf).sort();
+
+  const perRepeat = runs.map((run) => crossBrowserStats(run));
+  const disagreeing = new Set<string>();
+  for (const stats of perRepeat) for (const title of stats.disagreeing) disagreeing.add(title);
 
   return {
     repeats,
     flakeRate: statusByKey.size === 0 ? 0 : flaky / statusByKey.size,
-    crossBrowserKappa: crossBrowserAgreement(runs[0]),
+    crossBrowserKappa: mean(perRepeat.map((stats) => stats.kappa)),
     passRate: counted === 0 ? 0 : passed / counted,
     unstable: unstable.sort(),
+    kappaPerRepeat: perRepeat.map((stats) => stats.kappa),
+    agreementRate: mean(perRepeat.map((stats) => stats.agreement)),
+    disagreeingTests: disagreeing.size,
+    skippedExecutions: Math.round(skipped / repeats),
+    intermittentSkips,
   };
 }
 
-export function crossBrowserAgreement(run: SuiteRun): number {
-  // A skip is not a verdict: with per-role projects every test is "skipped" by the other
-  // roles' projects, which would register as systematic disagreement (negative kappa).
-  // Raters are the browser projects that actually ran the test.
+function labelOf(key: string): string {
+  const [project, ...title] = key.split('::');
+  return `${title.join('::')} [${project}]`;
+}
+
+function mean(values: number[]): number {
+  return values.length === 0 ? 1 : values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+export type AgreementStats = {
+  /** Fleiss kappa across the browser projects that ran each test (1 when there is nothing to disagree about). */
+  kappa: number;
+  /** Observed agreement: the share of tests on which every browser gave the same verdict. */
+  agreement: number;
+  /** Titles on which the browsers disagreed in this run. */
+  disagreeing: string[];
+};
+
+/**
+ * Cross-browser agreement of one run. A skip is not a verdict: with per-role projects every test is
+ * "skipped" by the other roles' projects, which would register as systematic disagreement. Raters
+ * are the browser projects that actually ran the test. Kappa is 1 when every verdict is the same by
+ * convention (no variance to explain), which is why percent agreement and the disagreeing titles are
+ * reported next to it: kappa alone degenerates under a heavily skewed status distribution.
+ */
+export function crossBrowserStats(run: SuiteRun): AgreementStats {
   const statuses: TestStatus[] = ['passed', 'failed'];
   const byTitle = new Map<string, number[]>();
   for (const outcome of run.outcomes) {
@@ -62,11 +106,20 @@ export function crossBrowserAgreement(run: SuiteRun): number {
     counts[statuses.indexOf(outcome.status)] += 1;
     byTitle.set(outcome.title, counts);
   }
-  // Keep only subjects rated by every browser project (consistent rater count for Fleiss).
   const raters = Math.max(0, ...[...byTitle.values()].map((counts) => counts.reduce((sum, value) => sum + value, 0)));
-  const subjects = [...byTitle.values()].filter((counts) => counts.reduce((sum, value) => sum + value, 0) === raters);
-  if (raters < 2 || subjects.length === 0) return 1;
-  return fleissKappa(subjects);
+  const rated = [...byTitle.entries()].filter(([, counts]) => counts.reduce((sum, value) => sum + value, 0) === raters);
+  if (raters < 2 || rated.length === 0) return { kappa: 1, agreement: 1, disagreeing: [] };
+  const disagreeing = rated.filter(([, counts]) => counts.filter((count) => count > 0).length > 1).map(([title]) => title);
+  return {
+    kappa: fleissKappa(rated.map(([, counts]) => counts)),
+    agreement: (rated.length - disagreeing.length) / rated.length,
+    disagreeing: disagreeing.sort(),
+  };
+}
+
+/** Kappa of one run (kept for callers that only need the coefficient). */
+export function crossBrowserAgreement(run: SuiteRun): number {
+  return crossBrowserStats(run).kappa;
 }
 
 export function efficiencyMetrics(input: MetricsInput): EfficiencyMetrics {

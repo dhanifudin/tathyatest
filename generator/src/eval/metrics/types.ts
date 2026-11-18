@@ -79,6 +79,16 @@ export type ReliabilityMetrics = {
   passRate: number;
   /** Tests (as "title [project]") that failed or changed status across repeats on the clean build. */
   unstable: string[];
+  /** Fleiss kappa of each repeat; `crossBrowserKappa` is their mean. */
+  kappaPerRepeat: number[];
+  /** Mean observed cross-browser agreement (share of tests with identical verdicts). */
+  agreementRate: number;
+  /** Distinct tests on which the browsers disagreed in at least one repeat. */
+  disagreeingTests: number;
+  /** Executions skipped per repeat (role gates and runtime skips). */
+  skippedExecutions: number;
+  /** Tests that were executed in some repeats and skipped in others (a runtime skip can hide a failure). */
+  intermittentSkips: string[];
 };
 
 export type EfficiencyMetrics = {

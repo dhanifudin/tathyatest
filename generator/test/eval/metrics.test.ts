@@ -262,3 +262,29 @@ describe('verdict', () => {
     expect(v.generatedWins).toBeGreaterThan(v.baselineWins);
   });
 });
+
+describe('reliabilityOf skip handling and agreement', () => {
+  const o = (title: string, project: string, status: 'passed' | 'failed' | 'skipped') => ({ title, project, status, durationMs: 1 });
+
+  it('keeps role-gated skips out of the flake denominator and reports intermittent runtime skips', () => {
+    const runs = [
+      { outcomes: [o('a', 'admin-chromium', 'passed'), o('a', 'user-chromium', 'skipped'), o('b', 'admin-chromium', 'passed')] },
+      { outcomes: [o('a', 'admin-chromium', 'passed'), o('a', 'user-chromium', 'skipped'), o('b', 'admin-chromium', 'skipped')] },
+    ];
+    const r = reliabilityOf(runs);
+    expect(r.flakeRate).toBe(0);            // 2 executed keys, none changed status
+    expect(r.passRate).toBe(1);
+    expect(r.intermittentSkips).toEqual(['b [admin-chromium]']);
+    expect(r.skippedExecutions).toBe(2);    // three skipped executions over two repeats: 1.5 per repeat, rounded
+  });
+
+  it('computes kappa per repeat, observed agreement and the disagreeing titles', () => {
+    const agree = { outcomes: [o('a', 'admin-chromium', 'passed'), o('a', 'admin-firefox', 'passed'), o('b', 'admin-chromium', 'passed'), o('b', 'admin-firefox', 'passed')] };
+    const split = { outcomes: [o('a', 'admin-chromium', 'passed'), o('a', 'admin-firefox', 'failed'), o('b', 'admin-chromium', 'passed'), o('b', 'admin-firefox', 'passed')] };
+    const r = reliabilityOf([agree, split]);
+    expect(r.kappaPerRepeat[0]).toBe(1);
+    expect(r.kappaPerRepeat[1]).toBeLessThan(1);
+    expect(r.agreementRate).toBeCloseTo((1 + 0.5) / 2);
+    expect(r.disagreeingTests).toBe(1);
+  });
+});

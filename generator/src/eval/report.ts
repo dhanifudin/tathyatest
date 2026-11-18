@@ -82,7 +82,8 @@ function stackMarkdown(stack: StackReport): string[] {
   out.push('### RQ5 — Reliability, efficiency & baseline', '');
   out.push(`- Repeats: ${report.reliability.repeats}`);
   out.push(`- Flake rate: ${pct(report.reliability.flakeRate)}`);
-  out.push(`- Cross-browser agreement (Fleiss κ): ${report.reliability.crossBrowserKappa.toFixed(3)}`);
+  out.push(`- Cross-browser agreement (Fleiss κ, mean over repeats): ${report.reliability.crossBrowserKappa.toFixed(3)}; observed agreement ${pct(report.reliability.agreementRate)}; ${report.reliability.disagreeingTests} test(s) with a browser disagreement`);
+  out.push(`- Skipped executions per repeat: ${report.reliability.skippedExecutions}; intermittent skips: ${report.reliability.intermittentSkips.length === 0 ? 'none' : report.reliability.intermittentSkips.join('; ')}`);
   out.push(`- Pass rate: ${pct(report.reliability.passRate)}`);
   out.push(`- Tests failing or flaky on the clean build: ${report.reliability.unstable.length === 0 ? 'none' : `${report.reliability.unstable.length} (${report.reliability.unstable.join('; ')})`}`);
   out.push(`- Crawl: ${ms(report.efficiency.crawlMs)}; generate: ${ms(report.efficiency.generateMs)}; execute: ${ms(report.efficiency.executeMs.mean)} ± ${ms(report.efficiency.executeMs.marginOfError)} (95% CI, n=${report.efficiency.executeMs.n})`);
