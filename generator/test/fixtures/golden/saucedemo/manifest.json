@@ -12,6 +12,7 @@
     "assertionCount": 1,
     "locatorStrategy": null,
     "faultClass": "auth",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -27,6 +28,7 @@
     "assertionCount": 1,
     "locatorStrategy": null,
     "faultClass": "auth",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -42,6 +44,7 @@
     "assertionCount": 1,
     "locatorStrategy": null,
     "faultClass": "authz",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -57,6 +60,7 @@
     "assertionCount": 2,
     "locatorStrategy": "role",
     "faultClass": null,
+    "scenarioKey": "link:/inventory.html",
     "mutating": false
   },
   {
@@ -72,6 +76,7 @@
     "assertionCount": 1,
     "locatorStrategy": "role",
     "faultClass": null,
+    "scenarioKey": "button:Open Menu",
     "mutating": true
   },
   {
@@ -87,6 +92,7 @@
     "assertionCount": 1,
     "locatorStrategy": "role",
     "faultClass": null,
+    "scenarioKey": "button:Close Menu",
     "mutating": true
   },
   {
@@ -102,6 +108,7 @@
     "assertionCount": 1,
     "locatorStrategy": "role",
     "faultClass": null,
+    "scenarioKey": "button:Add to cart",
     "mutating": true
   },
   {
@@ -117,6 +124,7 @@
     "assertionCount": 1,
     "locatorStrategy": "role",
     "faultClass": null,
+    "scenarioKey": "select:role:combobox:Sort products",
     "mutating": false
   },
   {
@@ -132,6 +140,7 @@
     "assertionCount": 1,
     "locatorStrategy": null,
     "faultClass": "authz",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -147,6 +156,7 @@
     "assertionCount": 2,
     "locatorStrategy": "role",
     "faultClass": null,
+    "scenarioKey": "link:/cart.html",
     "mutating": false
   },
   {
@@ -162,6 +172,7 @@
     "assertionCount": 1,
     "locatorStrategy": "role",
     "faultClass": null,
+    "scenarioKey": "button:Continue Shopping",
     "mutating": true
   },
   {
@@ -177,6 +188,7 @@
     "assertionCount": 1,
     "locatorStrategy": "role",
     "faultClass": null,
+    "scenarioKey": "button:Checkout",
     "mutating": true
   },
   {
@@ -192,6 +204,7 @@
     "assertionCount": 1,
     "locatorStrategy": null,
     "faultClass": "authz",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -207,6 +220,7 @@
     "assertionCount": 2,
     "locatorStrategy": "role",
     "faultClass": "crud",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -222,6 +236,7 @@
     "assertionCount": 1,
     "locatorStrategy": "role",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -237,6 +252,7 @@
     "assertionCount": 1,
     "locatorStrategy": "role",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -252,6 +268,7 @@
     "assertionCount": 1,
     "locatorStrategy": "role",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -267,6 +284,7 @@
     "assertionCount": 1,
     "locatorStrategy": "role",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -282,6 +300,7 @@
     "assertionCount": 1,
     "locatorStrategy": "role",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -297,6 +316,7 @@
     "assertionCount": 1,
     "locatorStrategy": "role",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -312,6 +332,7 @@
     "assertionCount": 1,
     "locatorStrategy": "role",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -327,6 +348,7 @@
     "assertionCount": 1,
     "locatorStrategy": "role",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -342,6 +364,7 @@
     "assertionCount": 1,
     "locatorStrategy": "role",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -357,6 +380,7 @@
     "assertionCount": 1,
     "locatorStrategy": "role",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -372,6 +396,7 @@
     "assertionCount": 1,
     "locatorStrategy": "role",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -387,6 +412,7 @@
     "assertionCount": 1,
     "locatorStrategy": "role",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -402,6 +428,7 @@
     "assertionCount": 2,
     "locatorStrategy": "role",
     "faultClass": null,
+    "scenarioKey": "link:/checkout-step-one.html",
     "mutating": false
   },
   {
@@ -417,6 +444,7 @@
     "assertionCount": 1,
     "locatorStrategy": "role",
     "faultClass": null,
+    "scenarioKey": "button:Cancel",
     "mutating": true
   },
   {
@@ -432,6 +460,7 @@
     "assertionCount": 1,
     "locatorStrategy": null,
     "faultClass": "authz",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -447,6 +476,7 @@
     "assertionCount": 2,
     "locatorStrategy": "role",
     "faultClass": null,
+    "scenarioKey": "link:/checkout-step-two.html",
     "mutating": false
   },
   {
@@ -462,6 +492,7 @@
     "assertionCount": 1,
     "locatorStrategy": "role",
     "faultClass": null,
+    "scenarioKey": "button:Finish",
     "mutating": true
   }
 ]

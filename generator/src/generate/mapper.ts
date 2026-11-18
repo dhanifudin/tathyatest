@@ -324,8 +324,12 @@ export function navScenarioKeysForPage(page: PageModel, baseUrl: string): string
   const keys: string[] = [];
   const pageShape = routeShape(canonicalPath(page.url));
   const formSubmitLocators = new Set(page.forms.map((form) => locatorKey(form.submit.locator)));
+  // A logout link beside a logout form is the auth logout scenario, not a navigation one (see
+  // interactionCasesForPage), so it must not appear in the navigation denominator either.
+  const hasLogoutForm = page.forms.some((form) => form.crudOp === 'logout');
   for (const link of page.links) {
     const action = paginationActionForControl(link.text, link.locator.value, link.href, page.url, baseUrl);
+    if (!action && hasLogoutForm && isLogoutPath(resolveHrefPathAndSearch(link.href, baseUrl))) continue;
     keys.push(action ? `pagination:${pageShape}:${action}` : `link:${targetShapeKey(link.href, baseUrl)}`);
   }
   for (const button of page.buttons) {
@@ -369,6 +373,7 @@ function interactionCasesForPage(role: string, page: PageModel, canonicalPageUrl
     seen.add(key);
     cases.push({
       kind: 'interaction',
+      scenarioKey: key,
       tier: 'positive',
       title: `${role} · ${canonicalPageUrl} · follows the ${link.text ? `"${normalizeTitleText(link.text)}" link` : 'link'} to ${target}`,
       role,
@@ -392,6 +397,7 @@ function interactionCasesForPage(role: string, page: PageModel, canonicalPageUrl
     seen.add(key);
     cases.push({
       kind: 'interaction',
+      scenarioKey: key,
       tier: 'positive',
       title: `${role} · ${canonicalPageUrl} · clicks the "${label}" button`,
       role,
@@ -416,6 +422,7 @@ function interactionCasesForPage(role: string, page: PageModel, canonicalPageUrl
     const representative = [...options].reverse().find((opt) => opt.value !== '') ?? options[0];
     cases.push({
       kind: 'interaction',
+      scenarioKey: key,
       tier: 'positive',
       title: `${role} · ${canonicalPageUrl} · selects ${representative ? `"${representative.label || representative.value}"` : 'an option'} in the ${label} control`,
       role,
@@ -520,6 +527,7 @@ function paginationCasesForPage(role: string, page: PageModel, canonicalPageUrl:
     seen.add(control.action);
     cases.push({
       kind: 'pagination',
+      scenarioKey: `pagination:${routeShape(canonicalPageUrl)}:${control.action}`,
       tier: 'positive',
       title: paginationTitle(role, canonicalPageUrl, control.action, control.label),
       role,

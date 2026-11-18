@@ -12,6 +12,7 @@
     "assertionCount": 1,
     "locatorStrategy": null,
     "faultClass": "auth",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -27,6 +28,7 @@
     "assertionCount": 1,
     "locatorStrategy": null,
     "faultClass": "auth",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -42,6 +44,7 @@
     "assertionCount": 1,
     "locatorStrategy": null,
     "faultClass": "auth",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -57,6 +60,7 @@
     "assertionCount": 1,
     "locatorStrategy": null,
     "faultClass": "auth",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -72,6 +76,7 @@
     "assertionCount": 1,
     "locatorStrategy": null,
     "faultClass": "authz",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -87,6 +92,7 @@
     "assertionCount": 1,
     "locatorStrategy": "css",
     "faultClass": "auth",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -102,6 +108,7 @@
     "assertionCount": 2,
     "locatorStrategy": "role",
     "faultClass": null,
+    "scenarioKey": "link:/dashboard",
     "mutating": false
   },
   {
@@ -117,6 +124,7 @@
     "assertionCount": 2,
     "locatorStrategy": "role",
     "faultClass": null,
+    "scenarioKey": "link:/todos",
     "mutating": false
   },
   {
@@ -132,6 +140,7 @@
     "assertionCount": 2,
     "locatorStrategy": "role",
     "faultClass": null,
+    "scenarioKey": "link:/admin/users",
     "mutating": false
   },
   {
@@ -147,6 +156,7 @@
     "assertionCount": 1,
     "locatorStrategy": "role",
     "faultClass": null,
+    "scenarioKey": "button:Admin",
     "mutating": true
   },
   {
@@ -162,6 +172,7 @@
     "assertionCount": 1,
     "locatorStrategy": "css",
     "faultClass": null,
+    "scenarioKey": "button:css:button",
     "mutating": true
   },
   {
@@ -177,6 +188,7 @@
     "assertionCount": 1,
     "locatorStrategy": null,
     "faultClass": "authz",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -192,6 +204,7 @@
     "assertionCount": 1,
     "locatorStrategy": null,
     "faultClass": "authz",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -207,6 +220,7 @@
     "assertionCount": 2,
     "locatorStrategy": "label",
     "faultClass": "crud",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -222,6 +236,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -237,6 +252,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -252,6 +268,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -267,6 +284,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -282,6 +300,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -297,6 +316,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -312,6 +332,7 @@
     "assertionCount": 2,
     "locatorStrategy": "role",
     "faultClass": "crud",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -327,6 +348,7 @@
     "assertionCount": 2,
     "locatorStrategy": "role",
     "faultClass": "crud",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -342,6 +364,7 @@
     "assertionCount": 2,
     "locatorStrategy": "role",
     "faultClass": "crud",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -357,6 +380,7 @@
     "assertionCount": 2,
     "locatorStrategy": "role",
     "faultClass": "pagination",
+    "scenarioKey": "pagination:/todos:page",
     "mutating": false
   },
   {
@@ -372,6 +396,7 @@
     "assertionCount": 2,
     "locatorStrategy": "role",
     "faultClass": "pagination",
+    "scenarioKey": "pagination:/todos:next",
     "mutating": false
   },
   {
@@ -387,6 +412,7 @@
     "assertionCount": 2,
     "locatorStrategy": "role",
     "faultClass": null,
+    "scenarioKey": "link:/todos/create",
     "mutating": false
   },
   {
@@ -402,6 +428,7 @@
     "assertionCount": 2,
     "locatorStrategy": "role",
     "faultClass": null,
+    "scenarioKey": "link:/todos/:id/edit",
     "mutating": false
   },
   {
@@ -417,6 +444,7 @@
     "assertionCount": 1,
     "locatorStrategy": null,
     "faultClass": "authz",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -432,6 +460,7 @@
     "assertionCount": 1,
     "locatorStrategy": null,
     "faultClass": "authz",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -447,6 +476,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "crud",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -462,6 +492,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -477,6 +508,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -492,6 +524,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -507,6 +540,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -522,6 +556,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -537,6 +572,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -552,6 +588,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -567,6 +604,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -582,6 +620,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -597,6 +636,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -612,6 +652,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -627,6 +668,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -642,6 +684,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -657,6 +700,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -672,6 +716,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -687,6 +732,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -702,6 +748,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -717,6 +764,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -732,6 +780,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -747,6 +796,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -762,6 +812,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -777,6 +828,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -792,6 +844,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -807,6 +860,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -822,6 +876,7 @@
     "assertionCount": 1,
     "locatorStrategy": null,
     "faultClass": "authz",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -837,6 +892,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "crud",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -852,6 +908,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -867,6 +924,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -882,6 +940,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -897,6 +956,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -912,6 +972,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -927,6 +988,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -942,6 +1004,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -957,6 +1020,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -972,6 +1036,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -987,6 +1052,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -1002,6 +1068,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -1017,6 +1084,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -1032,6 +1100,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -1047,6 +1116,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -1062,6 +1132,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -1077,6 +1148,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -1092,6 +1164,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -1107,6 +1180,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -1122,6 +1196,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -1137,6 +1212,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -1152,6 +1228,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -1167,6 +1244,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -1182,6 +1260,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "validation",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -1197,6 +1276,7 @@
     "assertionCount": 1,
     "locatorStrategy": null,
     "faultClass": "authz",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -1212,6 +1292,7 @@
     "assertionCount": 1,
     "locatorStrategy": null,
     "faultClass": "authz",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -1227,6 +1308,7 @@
     "assertionCount": 1,
     "locatorStrategy": "css",
     "faultClass": "auth",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -1242,6 +1324,7 @@
     "assertionCount": 2,
     "locatorStrategy": "role",
     "faultClass": null,
+    "scenarioKey": "link:/dashboard",
     "mutating": false
   },
   {
@@ -1257,6 +1340,7 @@
     "assertionCount": 2,
     "locatorStrategy": "role",
     "faultClass": null,
+    "scenarioKey": "link:/todos",
     "mutating": false
   },
   {
@@ -1272,6 +1356,7 @@
     "assertionCount": 1,
     "locatorStrategy": "role",
     "faultClass": null,
+    "scenarioKey": "button:User",
     "mutating": true
   },
   {
@@ -1287,6 +1372,7 @@
     "assertionCount": 1,
     "locatorStrategy": "css",
     "faultClass": null,
+    "scenarioKey": "button:css:button",
     "mutating": true
   },
   {
@@ -1302,6 +1388,7 @@
     "assertionCount": 1,
     "locatorStrategy": null,
     "faultClass": "authz",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -1317,6 +1404,7 @@
     "assertionCount": 1,
     "locatorStrategy": null,
     "faultClass": "authz",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -1332,6 +1420,7 @@
     "assertionCount": 2,
     "locatorStrategy": "label",
     "faultClass": "crud",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -1347,6 +1436,7 @@
     "assertionCount": 2,
     "locatorStrategy": "role",
     "faultClass": "crud",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -1362,6 +1452,7 @@
     "assertionCount": 2,
     "locatorStrategy": "role",
     "faultClass": "crud",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -1377,6 +1468,7 @@
     "assertionCount": 2,
     "locatorStrategy": "role",
     "faultClass": "crud",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -1392,6 +1484,7 @@
     "assertionCount": 2,
     "locatorStrategy": "role",
     "faultClass": "pagination",
+    "scenarioKey": "pagination:/todos:page",
     "mutating": false
   },
   {
@@ -1407,6 +1500,7 @@
     "assertionCount": 2,
     "locatorStrategy": "role",
     "faultClass": "pagination",
+    "scenarioKey": "pagination:/todos:next",
     "mutating": false
   },
   {
@@ -1422,6 +1516,7 @@
     "assertionCount": 2,
     "locatorStrategy": "role",
     "faultClass": null,
+    "scenarioKey": "link:/todos/create",
     "mutating": false
   },
   {
@@ -1437,6 +1532,7 @@
     "assertionCount": 2,
     "locatorStrategy": "role",
     "faultClass": null,
+    "scenarioKey": "link:/todos/:id/edit",
     "mutating": false
   },
   {
@@ -1452,6 +1548,7 @@
     "assertionCount": 1,
     "locatorStrategy": null,
     "faultClass": "authz",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -1467,6 +1564,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "crud",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -1482,6 +1580,7 @@
     "assertionCount": 1,
     "locatorStrategy": null,
     "faultClass": "authz",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -1497,6 +1596,7 @@
     "assertionCount": 1,
     "locatorStrategy": "label",
     "faultClass": "crud",
+    "scenarioKey": null,
     "mutating": true
   },
   {
@@ -1512,6 +1612,7 @@
     "assertionCount": 1,
     "locatorStrategy": null,
     "faultClass": "authz",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -1527,6 +1628,7 @@
     "assertionCount": 1,
     "locatorStrategy": "role",
     "faultClass": "authz",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -1542,6 +1644,7 @@
     "assertionCount": 1,
     "locatorStrategy": null,
     "faultClass": "authz",
+    "scenarioKey": null,
     "mutating": false
   },
   {
@@ -1557,6 +1660,7 @@
     "assertionCount": 1,
     "locatorStrategy": null,
     "faultClass": "authz",
+    "scenarioKey": null,
     "mutating": false
   }
 ]

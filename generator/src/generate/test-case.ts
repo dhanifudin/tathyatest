@@ -27,6 +27,8 @@ export type TestCase =
     }
   | {
       kind: 'interaction';
+      /** Navigation scenario this case covers (the key `navScenarioKeysForPage` yields), without the role prefix. */
+      scenarioKey?: string;
       tier: 'positive';
       title: string;
       role: string;
@@ -43,6 +45,8 @@ export type TestCase =
     }
   | {
       kind: 'pagination';
+      /** Navigation scenario this case covers (`pagination:<route shape>:<action>`), without the role prefix. */
+      scenarioKey?: string;
       tier: 'positive';
       title: string;
       role: string;

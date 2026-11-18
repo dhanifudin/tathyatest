@@ -67,12 +67,14 @@ export function coverageMetrics(input: MetricsInput): CoverageMetrics {
   // A field is covered when its form is exercised at all (the positive case fills every field).
   const coveredFormKeys = new Set([...totalForms].filter((key) => [...coveredForms].some((covered) => keysAlign(covered, key))));
   const coveredFieldCount = [...totalFields].filter((fieldKey) => [...coveredFormKeys].some((formKey) => fieldKey.startsWith(`${formKey}|`))).length;
-  const navTests = manifest.filter((entry) => entry.category === 'nav').length;
+  // Navigation is matched by scenario key (the generator records the key each nav test covers), so a surplus
+  // test can no longer hide a missing scenario the way a plain count could.
+  const coveredNavKeys = new Set(manifest.filter((entry) => entry.category === 'nav' && entry.scenarioKey).map((entry) => `${entry.role}|${entry.scenarioKey}`));
 
   const routes = ratio(intersectionSize(totalRoutes, coveredRoutes), totalRoutes.size);
   const forms = ratio(coveredFormKeys.size, totalForms.size);
   const fields = ratio(coveredFieldCount, totalFields.size);
-  const nav = ratio(Math.min(navTests, navScenarios.size), navScenarios.size);
+  const nav = ratio(intersectionSize(navScenarios, coveredNavKeys), navScenarios.size);
 
   const elementCovered = routes.covered + forms.covered + fields.covered + nav.covered;
   const elementTotal = routes.total + forms.total + fields.total + nav.total;

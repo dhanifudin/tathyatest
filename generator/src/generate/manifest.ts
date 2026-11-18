@@ -26,6 +26,8 @@ export type ManifestEntry = {
   faultClass: FaultClass | null;
   /** Running the test can change app data (POST forms, button clicks, failed logins). */
   mutating: boolean;
+  /** Navigation scenario (`link:`, `button:`, `select:`, `pagination:` key) this test covers; null for other categories. */
+  scenarioKey?: string | null;
 };
 
 export function buildManifest(cases: TestCase[]): ManifestEntry[] {
@@ -48,6 +50,7 @@ function classify(testCase: TestCase): Omit<CaseMeta, 'mutating'> {
         targetForm: testCase.logout ? `${testCase.logout.form.method}:${canonicalPath(testCase.logout.form.action)}` : null,
         targetField: null, constraintKind: null,
         assertionCount: 1, locatorStrategy: testCase.logout?.form.submit.locator.strategy ?? null, faultClass: 'auth',
+        scenarioKey: null,
       };
     case 'form': {
       const negative = testCase.variant.kind !== 'positive';
@@ -60,6 +63,7 @@ function classify(testCase: TestCase): Omit<CaseMeta, 'mutating'> {
         assertionCount: formAssertionCount(testCase),
         locatorStrategy: (testCase.targetField ?? testCase.form.fields[0])?.locator.strategy ?? testCase.form.submit.locator.strategy,
         faultClass: negative ? 'validation' : 'crud',
+        scenarioKey: null,
       };
     }
     case 'interaction':
@@ -67,7 +71,7 @@ function classify(testCase: TestCase): Omit<CaseMeta, 'mutating'> {
         category: 'nav', tier: 'positive', role: testCase.role,
         route: canonicalPath(testCase.page.url), targetForm: null, targetField: null,
         constraintKind: null, assertionCount: hasLandingAssertion(testCase) ? 2 : 1, locatorStrategy: testCase.interaction.locator.strategy,
-        faultClass: null,
+        faultClass: null, scenarioKey: testCase.scenarioKey ?? null,
       };
     case 'pagination':
       return {
@@ -75,12 +79,14 @@ function classify(testCase: TestCase): Omit<CaseMeta, 'mutating'> {
         route: canonicalPath(testCase.page.url), targetForm: null, targetField: null,
         constraintKind: null, assertionCount: testCase.pagination.href ? 2 : 1,
         locatorStrategy: testCase.pagination.locator.strategy, faultClass: 'pagination',
+        scenarioKey: testCase.scenarioKey ?? null,
       };
     case 'rbac':
       return {
         category: 'rbac', tier: testCase.tier, role: testCase.role,
         route: canonicalPath(testCase.route), targetForm: null, targetField: null,
         constraintKind: null, assertionCount: 1, locatorStrategy: testCase.affordance?.locator.strategy ?? null, faultClass: 'authz',
+        scenarioKey: null,
       };
   }
 }
