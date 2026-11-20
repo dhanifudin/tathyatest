@@ -96,7 +96,7 @@ The selection order of `formAssertion` (before) and `formOracles` (after) is ide
 | 22 | error outcome otherwise (HTML5 validation) | `errorAssertionSource` native branch | `native-invalid {target}` | `toHaveJSProperty('validity.valid', false)` | `expectInvalid(loc)` (`validity.valid === false`) |
 | 23 | graceful outcome (edge variants) | `gracefulAssertionSource` | `body-graceful` | body not matching `/500\|server error\|exception/i` | `expectGraceful()` (same regex) |
 | 24 | state-change form | `expectStateFlipped` | `state-flipped {formSelector}` | `expectStateFlipped(page, form, before)` | `expectStateFlipped(form, '@before')` |
-| 25 | valid GET form with submitted values | `submittedParamsSource` | `query-echo {params}` | `expectQueryEcho(page, {…})` | `expectQueryEcho({…})` |
+| 25 | valid GET form with submitted values (only when the `<form>` has an `action` attribute) | `submittedParamsSource` | `query-echo {params}` | `expectQueryEcho(page, {…})` | `expectQueryEcho({…})` |
 | 26 | valid create/update with a text value to echo | `representativeTextValue` | `text-visible {value}` | `getByText(v).first()` visible | `expectTextVisible(v)` |
 | 27 | anything else | graceful | `body-graceful` | as #23 | as #23 |
 

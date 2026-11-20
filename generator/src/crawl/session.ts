@@ -37,6 +37,8 @@ async function login(page: Page, config: TathyaConfig, roleName: string, usernam
     page.waitForURL((url) => normalizePath(url.toString(), config.baseUrl) !== beforePath, { timeout: LOGIN_REDIRECT_TIMEOUT_MS }).catch(() => undefined),
     playwrightLocator(page, controls.submit).click(),
   ]);
+  // SPAs push the new URL before the login DOM is replaced; wait for the form to go away.
+  await playwrightLocator(page, controls.password).waitFor({ state: 'hidden', timeout: LOGIN_REDIRECT_TIMEOUT_MS }).catch(() => undefined);
   await page.waitForLoadState('domcontentloaded').catch(() => undefined);
   await page.waitForLoadState('networkidle').catch(() => undefined);
   const landingPath = normalizePath(page.url(), config.baseUrl);

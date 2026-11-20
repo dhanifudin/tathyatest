@@ -53,6 +53,14 @@ describe('planFor (scenario rules, no framework)', () => {
     expect(steps.at(-1)).toMatchObject({ oracles: [{ type: 'state-flipped' }] });
   });
 
+  it('echoes a valid GET form into the URL only when the form declares an action', () => {
+    const search = { ...createForm, action: '/todos', method: 'GET' as const, crudOp: 'unknown' as const, noValidate: false };
+    const echoed = planFor(formCase({ form: search }), config).steps.at(-1);
+    expect(echoed).toMatchObject({ oracles: [{ type: 'query-echo' }] });
+    const jsForm = planFor(formCase({ form: { ...search, actionDeclared: false } }), config).steps.at(-1);
+    expect(jsForm).toMatchObject({ oracles: [{ type: 'body-graceful' }] });
+  });
+
   it('reuses the session and checks each page is up in read-only mode', () => {
     const pagination: TestCase = {
       kind: 'pagination', tier: 'positive', title: 'admin · /todos · next', role: 'admin', page: emptyPage('/todos', 'Todos'),

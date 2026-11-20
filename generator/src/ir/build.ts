@@ -202,7 +202,8 @@ function formOracles(testCase: FormCase, config: TathyaConfig): Oracle[] {
   }
   if (testCase.variant.outcome === 'graceful') return [{ type: 'body-graceful' }];
   if (isStateChangeForm(testCase)) return [{ type: 'state-flipped', formSelector }];
-  if (testCase.form.method === 'GET' && testCase.variant.name === 'valid') {
+  // A form without an `action` is handled by JS (SPA): nothing guarantees the values reach the URL.
+  if (testCase.form.method === 'GET' && testCase.form.actionDeclared !== false && testCase.variant.name === 'valid') {
     const params = submittedParams(testCase);
     if (params.length > 0) return [{ type: 'query-echo', params }];
   }

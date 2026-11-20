@@ -41,6 +41,8 @@ export type Form = {
   method: 'GET' | 'POST';
   crudOp: CrudOp;
   noValidate: boolean;
+  /** False when the <form> has no `action` attribute (JS-handled forms, e.g. React SPAs); absent = declared. */
+  actionDeclared?: boolean;
   fields: Field[];
   submit: { text: string | null; locator: Locator };
 };
@@ -109,6 +111,7 @@ export const crawlOutputSchema: z.ZodType<CrawlOutput, z.ZodTypeDef, unknown> = 
       method: z.enum(['GET', 'POST']),
       crudOp: z.enum(['create', 'update', 'delete', 'logout', 'unknown']),
       noValidate: z.boolean(),
+      actionDeclared: z.boolean().default(true),
       fields: z.array(z.object({
         name: z.string(),
         type: z.string(),
