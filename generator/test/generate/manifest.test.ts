@@ -16,7 +16,7 @@ const form = {
   action: '/todos',
   method: 'POST' as const,
   crudOp: 'create' as const,
-  noValidate: true,
+  noValidate: true, declaresTarget: true,
   fields: [field],
   submit: { text: 'Create', locator: { strategy: 'role' as const, value: 'button:Create' } },
 };

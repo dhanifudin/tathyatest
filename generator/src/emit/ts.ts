@@ -266,12 +266,18 @@ function submittedParamsSource(testCase: FormCase): string | null {
   return entries.length > 0 ? `{ ${entries.join(', ')} }` : null;
 }
 
+// A GET form that names its own target is a real navigation, so its values must reach the URL; one
+// with neither `method` nor `action` is script-handled and promises nothing about the URL.
+function echoesQuery(testCase: FormCase): boolean {
+  return testCase.form.method === 'GET' && testCase.variant.name === 'valid' && testCase.form.declaresTarget;
+}
+
 function outcomeStepTitle(testCase: FormCase): string {
   if (testCase.variant.name === 'delete') return 'Expect the record to be gone';
   if (testCase.variant.outcome === 'error') return 'Expect a validation error';
   if (testCase.variant.outcome === 'graceful') return 'Expect no server error';
   if (isStateChangeForm(testCase)) return 'Expect the state to have changed';
-  if (testCase.form.method === 'GET' && testCase.variant.name === 'valid') return 'Expect the filters in the URL';
+  if (echoesQuery(testCase)) return 'Expect the filters in the URL';
   return 'Expect the submission to succeed';
 }
 
@@ -517,7 +523,7 @@ function formAssertion(testCase: FormCase, config: TathyaConfig): string {
   if (isStateChangeForm(testCase)) {
     return `await expectStateFlipped(page, ${q(formActionSelector(testCase.form.action))}, before);`;
   }
-  if (testCase.form.method === 'GET' && testCase.variant.name === 'valid') {
+  if (echoesQuery(testCase)) {
     const params = submittedParamsSource(testCase);
     if (params) return `await expectQueryEcho(page, ${params});`;
   }

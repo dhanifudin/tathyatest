@@ -157,6 +157,7 @@ export async function extractPage(page: Page): Promise<DomPageModel> {
           method: ((form.method || 'GET').toUpperCase() === 'GET' ? 'GET' : 'POST') as 'GET' | 'POST',
           crudSignals: crudSignalsFor(form, submit, actionPath, submitText),
           noValidate: form.noValidate,
+          declaresTarget: form.hasAttribute('method') || form.hasAttribute('action'),
           fields,
           submit: {
             text: submitText,

@@ -26,7 +26,7 @@ const form: Form = {
   action: '/login',
   method: 'POST',
   crudOp: 'unknown',
-  noValidate: false,
+  noValidate: false, declaresTarget: true,
   fields: [field],
   submit: { text: 'Login', locator: { strategy: 'role', value: 'button:Login' } },
 };

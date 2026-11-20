@@ -69,7 +69,7 @@ describe('emitTs', () => {
         kind: 'auth', tier: 'positive', title: 'admin logs out', role: 'admin', username: 'admin@example.com', password: 'password', expectSuccess: true,
         logout: {
           page: emptyPage('/dashboard', 'Dashboard'),
-          form: { action: '/logout', method: 'POST', crudOp: 'logout', noValidate: false, fields: [], submit: { text: 'Log Out', locator: { strategy: 'role', value: 'button:Log Out' } } },
+          form: { action: '/logout', method: 'POST', crudOp: 'logout', noValidate: false, declaresTarget: true, fields: [], submit: { text: 'Log Out', locator: { strategy: 'role', value: 'button:Log Out' } } },
         },
       }], { ...config, output: { ...config.output, dir } });
       const logoutSpec = await readFile(join(dir, 'auth', 'login.spec.ts'), 'utf8');
@@ -111,7 +111,7 @@ describe('emitTs', () => {
         action: '/todos',
         method: 'POST' as const,
         crudOp: 'create' as const,
-        noValidate: true,
+        noValidate: true, declaresTarget: true,
         fields: [titleField],
         submit: { text: 'Create', locator: { strategy: 'role' as const, value: 'button:Create' } },
       };
@@ -156,7 +156,7 @@ describe('emitTs', () => {
         name: 'avatar', type: 'file', label: 'Avatar', required: true, constraints: { ...noConstraints, accept: 'image/*' },
         options: null, nameHints: [], locator: { strategy: 'label' as const, value: 'Avatar' },
       };
-      const form = { action: '/profile', method: 'POST' as const, crudOp: 'update' as const, noValidate: true, fields: [avatar], submit: { text: 'Save', locator: { strategy: 'role' as const, value: 'button:Save' } } };
+      const form = { action: '/profile', method: 'POST' as const, crudOp: 'update' as const, noValidate: true, declaresTarget: true, fields: [avatar], submit: { text: 'Save', locator: { strategy: 'role' as const, value: 'button:Save' } } };
       const cases: TestCase[] = [
         {
           kind: 'form', tier: 'positive', title: 'admin · /profile · "Save" form → POST /profile · submits valid data successfully', role: 'admin',
@@ -195,14 +195,14 @@ describe('emitTs', () => {
         {
           kind: 'form', tier: 'positive', title: 'admin · /todos · "Apply" form → GET /todos · submits valid data successfully', role: 'admin',
           page: emptyPage('/todos', 'Todos'),
-          form: { action: '/todos', method: 'GET', crudOp: 'unknown', noValidate: false, fields: [search, status], submit: { text: 'Apply', locator: { strategy: 'role', value: 'button:Apply' } } },
+          form: { action: '/todos', method: 'GET', crudOp: 'unknown', noValidate: false, declaresTarget: true, fields: [search, status], submit: { text: 'Apply', locator: { strategy: 'role', value: 'button:Apply' } } },
           targetField: null, variant: { kind: 'positive', name: 'valid', value: '', outcome: 'success' },
           values: { search: { kind: 'runtime', expr: 'faker.lorem.word()' }, status: { kind: 'literal', value: 'open' } },
         },
         {
           kind: 'form', tier: 'positive', title: 'admin · /todos · "Mark done" form → POST /todos/1/toggle · submits successfully', role: 'admin',
           page: emptyPage('/todos', 'Todos'),
-          form: { action: '/todos/1/toggle', method: 'POST', crudOp: 'update', noValidate: false, fields: [], submit: { text: 'Mark done', locator: { strategy: 'role', value: 'button:Mark done' } } },
+          form: { action: '/todos/1/toggle', method: 'POST', crudOp: 'update', noValidate: false, declaresTarget: true, fields: [], submit: { text: 'Mark done', locator: { strategy: 'role', value: 'button:Mark done' } } },
           targetField: null, variant: { kind: 'positive', name: 'valid', value: '', outcome: 'success' }, values: {},
         },
         {
@@ -233,6 +233,26 @@ describe('emitTs', () => {
     }
   });
 
+  it('does not expect query echo from a GET form that declares neither method nor action', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'tt-emit-script-form-'));
+    try {
+      const name = { name: 'firstName', type: 'text', label: null, required: false, constraints: noConstraints, options: null, nameHints: [], locator: { strategy: 'role' as const, value: 'textbox:First Name' } };
+      const cases: TestCase[] = [{
+        kind: 'form', tier: 'positive', title: 'standard_user · /checkout · "Continue" form → GET /checkout · submits valid data successfully', role: 'standard_user',
+        page: emptyPage('/checkout', 'Checkout'),
+        form: { action: '/checkout', method: 'GET', crudOp: 'unknown', noValidate: false, declaresTarget: false, fields: [name], submit: { text: 'Continue', locator: { strategy: 'id', value: 'continue' } } },
+        targetField: null, variant: { kind: 'positive', name: 'valid', value: '', outcome: 'success' },
+        values: { firstName: { kind: 'literal', value: 'Jane' } },
+      }];
+      await emitTs(cases, { ...config, output: { ...config.output, dir } });
+      const forms = await readFile(join(dir, 'forms', 'checkout.spec.ts'), 'utf8');
+      expect(forms).not.toContain('await expectQueryEcho(page,');
+      expect(forms).toContain('Expect the submission to succeed');
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it('forces invalid select values through a temporary option', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'tt-emit-'));
     try {
@@ -248,7 +268,7 @@ describe('emitTs', () => {
           title: 'admin /todos create - status invalid-option -> error',
           role: 'admin',
           page: emptyPage('/todos/create', 'Create Todo'),
-          form: { action: '/todos', method: 'POST', crudOp: 'create', noValidate: true, fields: [status], submit: { text: 'Create', locator: { strategy: 'role', value: 'button:Create' } } },
+          form: { action: '/todos', method: 'POST', crudOp: 'create', noValidate: true, declaresTarget: true, fields: [status], submit: { text: 'Create', locator: { strategy: 'role', value: 'button:Create' } } },
           targetField: status,
           variant: { kind: 'negative', name: 'invalid-option', value: '__invalid_option__', outcome: 'error', forceInvalidOption: true },
           values: { status: { kind: 'literal', value: '__invalid_option__' } },
@@ -287,7 +307,7 @@ describe('emitTs', () => {
         {
           kind: 'form', tier: 'negative', title: 'admin /todos create - status required-empty -> error', role: 'admin',
           page: emptyPage('/todos/create', 'Create Todo'),
-          form: { action: '/todos', method: 'POST', crudOp: 'create', noValidate: true, fields: [status], submit },
+          form: { action: '/todos', method: 'POST', crudOp: 'create', noValidate: true, declaresTarget: true, fields: [status], submit },
           targetField: status,
           variant: { kind: 'negative', name: 'required-empty', value: '', outcome: 'error' },
           values: { status: { kind: 'literal', value: '' } },
@@ -295,7 +315,7 @@ describe('emitTs', () => {
         {
           kind: 'form', tier: 'negative', title: 'admin /todos create - choice required-empty -> error', role: 'admin',
           page: emptyPage('/todos/create', 'Create Todo'),
-          form: { action: '/todos', method: 'POST', crudOp: 'create', noValidate: true, fields: [choice], submit },
+          form: { action: '/todos', method: 'POST', crudOp: 'create', noValidate: true, declaresTarget: true, fields: [choice], submit },
           targetField: choice,
           variant: { kind: 'negative', name: 'required-empty', value: '', outcome: 'error' },
           values: { choice: { kind: 'literal', value: '' } },

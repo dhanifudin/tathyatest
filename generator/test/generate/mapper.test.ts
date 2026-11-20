@@ -41,7 +41,7 @@ describe('mapTestCases', () => {
               action: '/todos',
               method: 'POST',
               crudOp: 'create',
-              noValidate: true,
+              noValidate: true, declaresTarget: true,
               fields: [
                 {
                   name: 'contact_email',
@@ -119,7 +119,7 @@ describe('mapTestCases', () => {
               action: '/todos',
               method: 'POST',
               crudOp: 'create',
-              noValidate: true,
+              noValidate: true, declaresTarget: true,
               fields: [
                 {
                   name: 'status',
@@ -190,7 +190,7 @@ describe('mapTestCases', () => {
               action: '/todos',
               method: 'GET',
               crudOp: 'unknown',
-              noValidate: false,
+              noValidate: false, declaresTarget: true,
               fields: [field('Native title'), { ...selectField, label: 'Native status', locator: { strategy: 'label', value: 'Native status' } }],
               submit: { text: 'Apply', locator: { strategy: 'role', value: 'button:Apply' } },
             },
@@ -198,7 +198,7 @@ describe('mapTestCases', () => {
               action: '/todos/nv',
               method: 'POST',
               crudOp: 'create',
-              noValidate: true,
+              noValidate: true, declaresTarget: true,
               fields: [field('NV title'), { ...selectField, label: 'NV status', locator: { strategy: 'label', value: 'NV status' } }],
               submit: { text: 'Create', locator: { strategy: 'role', value: 'button:Create' } },
             },
@@ -286,7 +286,7 @@ describe('mapTestCases', () => {
               action: '/search',
               method: 'GET',
               crudOp: 'unknown',
-              noValidate: false,
+              noValidate: false, declaresTarget: true,
               fields: [
                 {
                   name: 'q',
@@ -342,7 +342,7 @@ describe('mapTestCases', () => {
               action: '/basket',
               method: 'GET',
               crudOp: 'unknown',
-              noValidate: false,
+              noValidate: false, declaresTarget: true,
               fields: [],
               submit: { text: 'Redeem', locator: { strategy: 'role', value: 'button:Redeem' } },
             },
@@ -350,7 +350,7 @@ describe('mapTestCases', () => {
               action: '/basket',
               method: 'GET',
               crudOp: 'unknown',
-              noValidate: true,
+              noValidate: true, declaresTarget: true,
               fields: [],
               submit: { text: 'Continue to checkout', locator: { strategy: 'role', value: 'button:Continue to checkout' } },
             },
@@ -387,7 +387,7 @@ describe('mapTestCases', () => {
               action: '/basket',
               method: 'GET',
               crudOp: 'unknown',
-              noValidate: false,
+              noValidate: false, declaresTarget: true,
               fields: [],
               submit: { text: 'Checkout', locator: { strategy: 'role', value: 'button:Checkout' } },
             },
@@ -395,7 +395,7 @@ describe('mapTestCases', () => {
               action: '/basket',
               method: 'GET',
               crudOp: 'unknown',
-              noValidate: false,
+              noValidate: false, declaresTarget: true,
               fields: [],
               submit: { text: 'Checkout', locator: { strategy: 'role', value: 'button:Checkout' } },
             },
@@ -431,7 +431,7 @@ describe('mapTestCases', () => {
               action: '/todos',
               method: 'GET',
               crudOp: 'unknown',
-              noValidate: false,
+              noValidate: false, declaresTarget: true,
               fields: [
                 {
                   name: 'search',
@@ -492,7 +492,7 @@ describe('mapTestCases', () => {
               action: '/todos/2',
               method: 'POST',
               crudOp: 'update',
-              noValidate: true,
+              noValidate: true, declaresTarget: true,
               fields,
               submit: { text: 'Update', locator: { strategy: 'role', value: 'button:Update' } },
             },
@@ -509,7 +509,7 @@ describe('mapTestCases', () => {
               action: '/todos/3',
               method: 'POST',
               crudOp: 'update',
-              noValidate: true,
+              noValidate: true, declaresTarget: true,
               fields,
               submit: { text: 'Update', locator: { strategy: 'role', value: 'button:Update' } },
             },
@@ -646,7 +646,7 @@ describe('mapTestCases', () => {
           action: '/todos',
           method: 'GET',
           crudOp: 'unknown',
-          noValidate: false,
+          noValidate: false, declaresTarget: true,
           fields: [],
           submit: { text: 'Apply', locator: { strategy: 'role', value: 'button:Apply' } },
         },
@@ -714,7 +714,7 @@ describe('mapTestCases', () => {
               action: '/todos',
               method: 'POST',
               crudOp: 'create',
-              noValidate: true,
+              noValidate: true, declaresTarget: true,
               fields: [
                 {
                   name: 'title',
@@ -920,9 +920,9 @@ describe('mapTestCases', () => {
         url: '/todos',
         title: 'Todos',
         forms: [
-          { action: '/todos', method: 'GET', crudOp: 'unknown', noValidate: false, fields: [searchField], submit: { text: 'Apply', locator: { strategy: 'role', value: 'button:Apply' } } },
-          { action: '/todos', method: 'POST', crudOp: 'create', noValidate: true, fields: [textField], submit: { text: 'Create', locator: { strategy: 'role', value: 'button:Create' } } },
-          { action: '/todos/1', method: 'POST', crudOp: 'delete', noValidate: false, fields: [], submit: { text: 'Delete', locator: { strategy: 'role', value: 'button:Delete' } } },
+          { action: '/todos', method: 'GET', crudOp: 'unknown', noValidate: false, declaresTarget: true, fields: [searchField], submit: { text: 'Apply', locator: { strategy: 'role', value: 'button:Apply' } } },
+          { action: '/todos', method: 'POST', crudOp: 'create', noValidate: true, declaresTarget: true, fields: [textField], submit: { text: 'Create', locator: { strategy: 'role', value: 'button:Create' } } },
+          { action: '/todos/1', method: 'POST', crudOp: 'delete', noValidate: false, declaresTarget: true, fields: [], submit: { text: 'Delete', locator: { strategy: 'role', value: 'button:Delete' } } },
         ],
         links: [
           { href: '/dashboard', text: 'Dashboard', locator: { strategy: 'role', value: 'link:Dashboard' } },
@@ -963,7 +963,7 @@ describe('mapTestCases', () => {
   });
 
   it('turns a logout form into one auth scenario per role and drops the matching link', () => {
-    const logoutForm = { action: '/logout', method: 'POST' as const, crudOp: 'logout' as const, noValidate: false, fields: [], submit: { text: 'Log Out', locator: { strategy: 'role' as const, value: 'button:Log Out' } } };
+    const logoutForm = { action: '/logout', method: 'POST' as const, crudOp: 'logout' as const, noValidate: false, declaresTarget: true, fields: [], submit: { text: 'Log Out', locator: { strategy: 'role' as const, value: 'button:Log Out' } } };
     const page = (url: string) => ({
       url, title: url,
       forms: [logoutForm, { ...logoutForm }],
@@ -996,7 +996,7 @@ describe('mapTestCases', () => {
   });
 
   it('infers unlinked REST show routes from edit pages and delete forms', () => {
-    const deleteForm = { action: '/todos/4', method: 'POST' as const, crudOp: 'delete' as const, noValidate: false, fields: [], submit: { text: 'Delete', locator: { strategy: 'role' as const, value: 'button:Delete' } } };
+    const deleteForm = { action: '/todos/4', method: 'POST' as const, crudOp: 'delete' as const, noValidate: false, declaresTarget: true, fields: [], submit: { text: 'Delete', locator: { strategy: 'role' as const, value: 'button:Delete' } } };
     const crawl: CrawlOutput = {
       baseUrl: config.baseUrl, schemaVersion: 2, role: 'admin', crawledAt: '2026-06-15T00:00:00.000Z',
       pages: [

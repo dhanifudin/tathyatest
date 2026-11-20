@@ -41,6 +41,12 @@ export type Form = {
   method: 'GET' | 'POST';
   crudOp: CrudOp;
   noValidate: boolean;
+  /**
+   * False when the `<form>` carries neither a `method` nor an `action` attribute. Such a form is
+   * handled by client-side script (its GET default is never exercised), so a submission cannot be
+   * expected to echo values into the URL.
+   */
+  declaresTarget: boolean;
   fields: Field[];
   submit: { text: string | null; locator: Locator };
 };
@@ -109,6 +115,7 @@ export const crawlOutputSchema: z.ZodType<CrawlOutput, z.ZodTypeDef, unknown> = 
       method: z.enum(['GET', 'POST']),
       crudOp: z.enum(['create', 'update', 'delete', 'logout', 'unknown']),
       noValidate: z.boolean(),
+      declaresTarget: z.boolean().default(true),
       fields: z.array(z.object({
         name: z.string(),
         type: z.string(),

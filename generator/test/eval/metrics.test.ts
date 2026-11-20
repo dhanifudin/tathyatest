@@ -16,7 +16,7 @@ const crawl: CrawlOutput = {
   pages: [{
     url: '/todos/create', title: 'Create', tables: [], links: [], buttons: [],
     forms: [{
-      action: '/todos', method: 'POST', crudOp: 'create', noValidate: true,
+      action: '/todos', method: 'POST', crudOp: 'create', noValidate: true, declaresTarget: true,
       fields: [{ name: 'title', type: 'text', label: 'Title', required: true, constraints: { minlength: null, maxlength: 255, min: null, max: null, step: null, pattern: null, inputmode: null, accept: null }, options: null, nameHints: [], locator: { strategy: 'label', value: 'Title' } }],
       submit: { text: 'Create', locator: { strategy: 'role', value: 'button:Create' } },
     }],
