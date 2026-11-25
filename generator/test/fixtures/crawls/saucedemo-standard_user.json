@@ -1,8 +1,10 @@
 {
   "baseUrl": "https://www.saucedemo.com",
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "role": "standard_user",
-  "crawledAt": "2026-10-11T21:57:30.680Z",
+  "crawledAt": "2026-11-25T13:10:53.012Z",
+  "landingPath": "/inventory.html",
+  "configFingerprint": "72a3fb1bb70ffc2e3bbe6b250acde4dd823aa5e1a42d979222f812256119780a",
   "pages": [
     {
       "url": "/inventory.html",
@@ -14,144 +16,176 @@
           "text": "All Items",
           "locator": {
             "strategy": "role",
-            "value": "link:All Items"
+            "value": "button:All Items"
           },
-          "visible": true
+          "visible": true,
+          "inPage": true,
+          "method": null
         },
         {
           "href": "/inventory.html",
           "text": "Dynamic Catalog",
           "locator": {
             "strategy": "role",
-            "value": "link:Dynamic Catalog"
+            "value": "button:Dynamic Catalog"
           },
-          "visible": true
+          "visible": true,
+          "inPage": true,
+          "method": null
         },
         {
           "href": "/inventory.html",
           "text": "Logout",
           "locator": {
             "strategy": "role",
-            "value": "link:Logout"
+            "value": "button:Logout"
           },
-          "visible": true
+          "visible": true,
+          "inPage": true,
+          "method": null
         },
         {
           "href": "/inventory.html",
           "text": "Reset App State",
           "locator": {
             "strategy": "role",
-            "value": "link:Reset App State"
+            "value": "button:Reset App State"
           },
-          "visible": true
+          "visible": true,
+          "inPage": true,
+          "method": null
         },
         {
           "href": "/inventory.html",
           "text": "",
           "locator": {
             "strategy": "role",
-            "value": "link:View details for Sauce Labs Backpack"
+            "value": "button:View details for Sauce Labs Backpack"
           },
-          "visible": true
+          "visible": true,
+          "inPage": true,
+          "method": null
         },
         {
           "href": "/inventory.html",
           "text": "Sauce Labs Backpack",
           "locator": {
             "strategy": "role",
-            "value": "link:View details for Sauce Labs Backpack"
+            "value": "button:View details for Sauce Labs Backpack"
           },
-          "visible": true
+          "visible": true,
+          "inPage": true,
+          "method": null
         },
         {
           "href": "/inventory.html",
           "text": "",
           "locator": {
             "strategy": "role",
-            "value": "link:View details for Sauce Labs Bike Light"
+            "value": "button:View details for Sauce Labs Bike Light"
           },
-          "visible": true
+          "visible": true,
+          "inPage": true,
+          "method": null
         },
         {
           "href": "/inventory.html",
           "text": "Sauce Labs Bike Light",
           "locator": {
             "strategy": "role",
-            "value": "link:View details for Sauce Labs Bike Light"
+            "value": "button:View details for Sauce Labs Bike Light"
           },
-          "visible": true
+          "visible": true,
+          "inPage": true,
+          "method": null
         },
         {
           "href": "/inventory.html",
           "text": "",
           "locator": {
             "strategy": "role",
-            "value": "link:View details for Sauce Labs Bolt T-Shirt"
+            "value": "button:View details for Sauce Labs Bolt T-Shirt"
           },
-          "visible": true
+          "visible": true,
+          "inPage": true,
+          "method": null
         },
         {
           "href": "/inventory.html",
           "text": "Sauce Labs Bolt T-Shirt",
           "locator": {
             "strategy": "role",
-            "value": "link:View details for Sauce Labs Bolt T-Shirt"
+            "value": "button:View details for Sauce Labs Bolt T-Shirt"
           },
-          "visible": true
+          "visible": true,
+          "inPage": true,
+          "method": null
         },
         {
           "href": "/inventory.html",
           "text": "",
           "locator": {
             "strategy": "role",
-            "value": "link:View details for Sauce Labs Fleece Jacket"
+            "value": "button:View details for Sauce Labs Fleece Jacket"
           },
-          "visible": true
+          "visible": true,
+          "inPage": true,
+          "method": null
         },
         {
           "href": "/inventory.html",
           "text": "Sauce Labs Fleece Jacket",
           "locator": {
             "strategy": "role",
-            "value": "link:View details for Sauce Labs Fleece Jacket"
+            "value": "button:View details for Sauce Labs Fleece Jacket"
           },
-          "visible": true
+          "visible": true,
+          "inPage": true,
+          "method": null
         },
         {
           "href": "/inventory.html",
           "text": "",
           "locator": {
             "strategy": "role",
-            "value": "link:View details for Sauce Labs Onesie"
+            "value": "button:View details for Sauce Labs Onesie"
           },
-          "visible": true
+          "visible": true,
+          "inPage": true,
+          "method": null
         },
         {
           "href": "/inventory.html",
           "text": "Sauce Labs Onesie",
           "locator": {
             "strategy": "role",
-            "value": "link:View details for Sauce Labs Onesie"
+            "value": "button:View details for Sauce Labs Onesie"
           },
-          "visible": true
+          "visible": true,
+          "inPage": true,
+          "method": null
         },
         {
           "href": "/inventory.html",
           "text": "",
           "locator": {
             "strategy": "role",
-            "value": "link:View details for Test.allTheThings() T-Shirt (Red)"
+            "value": "button:View details for Test.allTheThings() T-Shirt (Red)"
           },
-          "visible": true
+          "visible": true,
+          "inPage": true,
+          "method": null
         },
         {
           "href": "/inventory.html",
           "text": "Test.allTheThings() T-Shirt (Red)",
           "locator": {
             "strategy": "role",
-            "value": "link:View details for Test.allTheThings() T-Shirt (Red)"
+            "value": "button:View details for Test.allTheThings() T-Shirt (Red)"
           },
-          "visible": true
+          "visible": true,
+          "inPage": true,
+          "method": null
         }
       ],
       "buttons": [
@@ -260,36 +294,44 @@
           "text": "All Items",
           "locator": {
             "strategy": "role",
-            "value": "link:All Items"
+            "value": "button:All Items"
           },
-          "visible": true
+          "visible": true,
+          "inPage": true,
+          "method": null
         },
         {
           "href": "/cart.html",
           "text": "Dynamic Catalog",
           "locator": {
             "strategy": "role",
-            "value": "link:Dynamic Catalog"
+            "value": "button:Dynamic Catalog"
           },
-          "visible": true
+          "visible": true,
+          "inPage": true,
+          "method": null
         },
         {
           "href": "/cart.html",
           "text": "Logout",
           "locator": {
             "strategy": "role",
-            "value": "link:Logout"
+            "value": "button:Logout"
           },
-          "visible": true
+          "visible": true,
+          "inPage": true,
+          "method": null
         },
         {
           "href": "/cart.html",
           "text": "Reset App State",
           "locator": {
             "strategy": "role",
-            "value": "link:Reset App State"
+            "value": "button:Reset App State"
           },
-          "visible": true
+          "visible": true,
+          "inPage": true,
+          "method": null
         }
       ],
       "buttons": [
@@ -337,6 +379,8 @@
           "action": "/checkout-step-one.html",
           "method": "GET",
           "noValidate": false,
+          "declaresTarget": false,
+          "hasActionAttribute": false,
           "fields": [
             {
               "name": "firstName",
@@ -358,7 +402,8 @@
               "locator": {
                 "strategy": "role",
                 "value": "textbox:First Name"
-              }
+              },
+              "prefilled": false
             },
             {
               "name": "lastName",
@@ -380,7 +425,8 @@
               "locator": {
                 "strategy": "role",
                 "value": "textbox:Last Name"
-              }
+              },
+              "prefilled": false
             },
             {
               "name": "postalCode",
@@ -402,7 +448,8 @@
               "locator": {
                 "strategy": "role",
                 "value": "textbox:Zip/Postal Code"
-              }
+              },
+              "prefilled": false
             }
           ],
           "submit": {
@@ -421,36 +468,44 @@
           "text": "All Items",
           "locator": {
             "strategy": "role",
-            "value": "link:All Items"
+            "value": "button:All Items"
           },
-          "visible": true
+          "visible": true,
+          "inPage": true,
+          "method": null
         },
         {
           "href": "/checkout-step-one.html",
           "text": "Dynamic Catalog",
           "locator": {
             "strategy": "role",
-            "value": "link:Dynamic Catalog"
+            "value": "button:Dynamic Catalog"
           },
-          "visible": true
+          "visible": true,
+          "inPage": true,
+          "method": null
         },
         {
           "href": "/checkout-step-one.html",
           "text": "Logout",
           "locator": {
             "strategy": "role",
-            "value": "link:Logout"
+            "value": "button:Logout"
           },
-          "visible": true
+          "visible": true,
+          "inPage": true,
+          "method": null
         },
         {
           "href": "/checkout-step-one.html",
           "text": "Reset App State",
           "locator": {
             "strategy": "role",
-            "value": "link:Reset App State"
+            "value": "button:Reset App State"
           },
-          "visible": true
+          "visible": true,
+          "inPage": true,
+          "method": null
         }
       ],
       "buttons": [
@@ -500,36 +555,44 @@
           "text": "All Items",
           "locator": {
             "strategy": "role",
-            "value": "link:All Items"
+            "value": "button:All Items"
           },
-          "visible": true
+          "visible": true,
+          "inPage": true,
+          "method": null
         },
         {
           "href": "/checkout-step-two.html",
           "text": "Dynamic Catalog",
           "locator": {
             "strategy": "role",
-            "value": "link:Dynamic Catalog"
+            "value": "button:Dynamic Catalog"
           },
-          "visible": true
+          "visible": true,
+          "inPage": true,
+          "method": null
         },
         {
           "href": "/checkout-step-two.html",
           "text": "Logout",
           "locator": {
             "strategy": "role",
-            "value": "link:Logout"
+            "value": "button:Logout"
           },
-          "visible": true
+          "visible": true,
+          "inPage": true,
+          "method": null
         },
         {
           "href": "/checkout-step-two.html",
           "text": "Reset App State",
           "locator": {
             "strategy": "role",
-            "value": "link:Reset App State"
+            "value": "button:Reset App State"
           },
-          "visible": true
+          "visible": true,
+          "inPage": true,
+          "method": null
         }
       ],
       "buttons": [

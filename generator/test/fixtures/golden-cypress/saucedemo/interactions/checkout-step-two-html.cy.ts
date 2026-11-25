@@ -8,8 +8,8 @@ describe("standard_user · /checkout-step-two.html", function () {
     // tier: positive · category: nav · route: /checkout-step-two.html
     step("Log in as standard_user", () => loginAs("standard_user"));
     step("Open /checkout-step-two.html", () => openPage("/checkout-step-two.html"));
-    skipUnlessVisible(this, byRole("link", "All Items"), 0, "interaction target is not visible");
-    step("Click link \"All Items\"", () => nth(byRole("link", "All Items"), 0).click());
+    skipUnlessVisible(this, byRole("button", "All Items"), 0, "interaction target is not visible");
+    step("Click link \"All Items\"", () => nth(byRole("button", "All Items"), 0).click());
     step("Expect to land on /checkout-step-two.html", () => expectLanded("/checkout-step-two.html", false));
     step("Expect no server error", () => expectNoServerError());
   });

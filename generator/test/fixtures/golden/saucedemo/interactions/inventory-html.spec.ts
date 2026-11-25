@@ -7,7 +7,7 @@ test.describe("standard_user · /inventory.html", () => {
   test("standard_user · /inventory.html · follows the \"All Items\" link to /inventory.html", { tag: ["@positive","@nav","@role:standard_user","@read"], annotation: [{"type":"tier","description":"positive"},{"type":"category","description":"nav"},{"type":"route","description":"/inventory.html"}] }, async ({ page, app }) => {
     await test.step("Log in as standard_user", () => app.loginAs("standard_user"));
     await test.step("Open /inventory.html", () => page.goto("/inventory.html"));
-    const target = page.getByRole("link", { name: "All Items" }).first();
+    const target = page.getByRole("button", { name: "All Items" }).first();
     test.skip(await target.count() === 0 || !(await target.isVisible().catch(() => false)), 'interaction target is not visible');
     await test.step("Click link \"All Items\"", () => target.click());
     await test.step("Expect to land on /inventory.html", () => expect(page).toHaveURL((url) => url.pathname === "/inventory.html"));

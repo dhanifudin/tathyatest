@@ -8,8 +8,8 @@ describe("standard_user · /inventory.html", function () {
     // tier: positive · category: nav · route: /inventory.html
     step("Log in as standard_user", () => loginAs("standard_user"));
     step("Open /inventory.html", () => openPage("/inventory.html"));
-    skipUnlessVisible(this, byRole("link", "All Items"), 0, "interaction target is not visible");
-    step("Click link \"All Items\"", () => nth(byRole("link", "All Items"), 0).click());
+    skipUnlessVisible(this, byRole("button", "All Items"), 0, "interaction target is not visible");
+    step("Click link \"All Items\"", () => nth(byRole("button", "All Items"), 0).click());
     step("Expect to land on /inventory.html", () => expectLanded("/inventory.html", false));
     step("Expect no server error", () => expectNoServerError());
   });

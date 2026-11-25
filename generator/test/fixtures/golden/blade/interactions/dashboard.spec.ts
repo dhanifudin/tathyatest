@@ -42,15 +42,6 @@ test.describe("admin · /dashboard", () => {
     await test.step("Click button \"Admin\"", () => target.click());
     await test.step('Expect no server error', () => expectNoServerError(page));
   });
-
-  test("admin · /dashboard · clicks the \"css:button\" button", { tag: ["@positive","@nav","@role:admin","@write"], annotation: [{"type":"tier","description":"positive"},{"type":"category","description":"nav"},{"type":"route","description":"/dashboard"}] }, async ({ page, app }) => {
-    await test.step("Log in as admin", () => app.loginAs("admin"));
-    await test.step("Open /dashboard", () => page.goto("/dashboard"));
-    const target = page.locator("button").first();
-    test.skip(await target.count() === 0 || !(await target.isVisible().catch(() => false)), 'interaction target is not visible');
-    await test.step("Click button \"css:button\"", () => target.click());
-    await test.step('Expect no server error', () => expectNoServerError(page));
-  });
 });
 
 test.describe("user · /dashboard", () => {
@@ -82,15 +73,6 @@ test.describe("user · /dashboard", () => {
     const target = page.getByRole("button", { name: "User" }).first();
     test.skip(await target.count() === 0 || !(await target.isVisible().catch(() => false)), 'interaction target is not visible');
     await test.step("Click button \"User\"", () => target.click());
-    await test.step('Expect no server error', () => expectNoServerError(page));
-  });
-
-  test("user · /dashboard · clicks the \"css:button\" button", { tag: ["@positive","@nav","@role:user","@write"], annotation: [{"type":"tier","description":"positive"},{"type":"category","description":"nav"},{"type":"route","description":"/dashboard"}] }, async ({ page, app }) => {
-    await test.step("Log in as user", () => app.loginAs("user"));
-    await test.step("Open /dashboard", () => page.goto("/dashboard"));
-    const target = page.locator("button").first();
-    test.skip(await target.count() === 0 || !(await target.isVisible().catch(() => false)), 'interaction target is not visible');
-    await test.step("Click button \"css:button\"", () => target.click());
     await test.step('Expect no server error', () => expectNoServerError(page));
   });
 });

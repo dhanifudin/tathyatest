@@ -1,8 +1,10 @@
 {
   "baseUrl": "http://127.0.0.1:8000",
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "role": "user",
-  "crawledAt": "2026-11-05T06:22:29.437Z",
+  "crawledAt": "2026-11-25T13:11:31.223Z",
+  "landingPath": "/dashboard",
+  "configFingerprint": "662c4047db68ae17616b23abba90b7d31ecf985d7116ccd8d4bf67af8efecee7",
   "pages": [
     {
       "url": "/dashboard",
@@ -12,6 +14,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -26,6 +30,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -45,7 +51,9 @@
             "strategy": "role",
             "value": "link:Tathya Todo"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -54,7 +62,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -63,7 +73,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -72,7 +84,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -81,7 +95,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -90,7 +106,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -99,7 +117,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         }
       ],
       "buttons": [
@@ -110,14 +130,6 @@
             "value": "button:User"
           },
           "visible": true
-        },
-        {
-          "text": "",
-          "locator": {
-            "strategy": "css",
-            "value": "button"
-          },
-          "visible": false
         }
       ],
       "tables": [],
@@ -135,7 +147,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -144,7 +158,9 @@
             "strategy": "role",
             "value": "link:Open todos"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         }
       ],
       "buttons": [],
@@ -159,6 +175,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -173,6 +191,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -187,6 +207,8 @@
           "action": "/todos",
           "method": "GET",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [
             {
               "name": "search",
@@ -208,7 +230,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Search todos"
-              }
+              },
+              "prefilled": false
             },
             {
               "name": "status",
@@ -243,7 +266,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Filter"
-              }
+              },
+              "prefilled": false
             }
           ],
           "submit": {
@@ -259,6 +283,8 @@
           "action": "/todos/13/toggle",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Mark done",
@@ -273,6 +299,8 @@
           "action": "/todos/13",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Delete",
@@ -287,6 +315,8 @@
           "action": "/todos/14/toggle",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Mark undone",
@@ -301,6 +331,8 @@
           "action": "/todos/14",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Delete",
@@ -315,6 +347,8 @@
           "action": "/todos/15/toggle",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Mark done",
@@ -329,6 +363,8 @@
           "action": "/todos/15",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Delete",
@@ -343,6 +379,8 @@
           "action": "/todos/16/toggle",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Mark done",
@@ -357,6 +395,8 @@
           "action": "/todos/16",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Delete",
@@ -371,6 +411,8 @@
           "action": "/todos/17/toggle",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Mark undone",
@@ -385,6 +427,8 @@
           "action": "/todos/17",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Delete",
@@ -399,6 +443,8 @@
           "action": "/todos/18/toggle",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Mark done",
@@ -413,6 +459,8 @@
           "action": "/todos/18",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Delete",
@@ -427,6 +475,8 @@
           "action": "/todos/19/toggle",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Mark done",
@@ -441,6 +491,8 @@
           "action": "/todos/19",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Delete",
@@ -455,6 +507,8 @@
           "action": "/todos/20/toggle",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Mark done",
@@ -469,6 +523,8 @@
           "action": "/todos/20",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Delete",
@@ -483,6 +539,8 @@
           "action": "/todos/21/toggle",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Mark undone",
@@ -497,6 +555,8 @@
           "action": "/todos/21",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Delete",
@@ -511,6 +571,8 @@
           "action": "/todos/22/toggle",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Mark done",
@@ -525,6 +587,8 @@
           "action": "/todos/22",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Delete",
@@ -544,7 +608,9 @@
             "strategy": "role",
             "value": "link:Tathya Todo"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -553,7 +619,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -562,7 +630,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -571,7 +641,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -580,7 +652,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -589,7 +663,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -598,7 +674,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos/create",
@@ -607,7 +685,9 @@
             "strategy": "role",
             "value": "link:New todo"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -616,7 +696,9 @@
             "strategy": "role",
             "value": "link:Reset"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos/13/edit",
@@ -625,7 +707,9 @@
             "strategy": "role",
             "value": "link:Edit"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos/14/edit",
@@ -634,7 +718,9 @@
             "strategy": "role",
             "value": "link:Edit"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos/15/edit",
@@ -643,7 +729,9 @@
             "strategy": "role",
             "value": "link:Edit"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos/16/edit",
@@ -652,7 +740,9 @@
             "strategy": "role",
             "value": "link:Edit"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos/17/edit",
@@ -661,7 +751,9 @@
             "strategy": "role",
             "value": "link:Edit"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos/18/edit",
@@ -670,7 +762,9 @@
             "strategy": "role",
             "value": "link:Edit"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos/19/edit",
@@ -679,7 +773,9 @@
             "strategy": "role",
             "value": "link:Edit"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos/20/edit",
@@ -688,7 +784,9 @@
             "strategy": "role",
             "value": "link:Edit"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos/21/edit",
@@ -697,7 +795,9 @@
             "strategy": "role",
             "value": "link:Edit"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos/22/edit",
@@ -706,7 +806,9 @@
             "strategy": "role",
             "value": "link:Edit"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos?page=2",
@@ -715,7 +817,9 @@
             "strategy": "role",
             "value": "link:Next"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos?page=2",
@@ -724,7 +828,9 @@
             "strategy": "role",
             "value": "link:Go to page 2"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos?page=2",
@@ -733,7 +839,9 @@
             "strategy": "role",
             "value": "link:Next"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         }
       ],
       "buttons": [
@@ -744,14 +852,6 @@
             "value": "button:User"
           },
           "visible": true
-        },
-        {
-          "text": "",
-          "locator": {
-            "strategy": "css",
-            "value": "button"
-          },
-          "visible": false
         },
         {
           "text": "Apply",
@@ -943,6 +1043,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -957,6 +1059,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -971,6 +1075,8 @@
           "action": "/todos",
           "method": "POST",
           "noValidate": true,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [
             {
               "name": "contact_email",
@@ -992,7 +1098,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Contact email"
-              }
+              },
+              "prefilled": false
             },
             {
               "name": "contact_email_confirmation",
@@ -1016,7 +1123,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Confirm contact email"
-              }
+              },
+              "prefilled": false
             },
             {
               "name": "title",
@@ -1038,7 +1146,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Title"
-              }
+              },
+              "prefilled": false
             },
             {
               "name": "status",
@@ -1073,7 +1182,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Status"
-              }
+              },
+              "prefilled": false
             },
             {
               "name": "body",
@@ -1095,7 +1205,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Body"
-              }
+              },
+              "prefilled": false
             },
             {
               "name": "due_date",
@@ -1117,7 +1228,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Due date"
-              }
+              },
+              "prefilled": false
             },
             {
               "name": "done",
@@ -1139,7 +1251,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Done"
-              }
+              },
+              "prefilled": false
             }
           ],
           "submit": {
@@ -1160,7 +1273,9 @@
             "strategy": "role",
             "value": "link:Tathya Todo"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -1169,7 +1284,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -1178,7 +1295,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -1187,7 +1306,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -1196,7 +1317,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -1205,7 +1328,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -1214,7 +1339,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         }
       ],
       "buttons": [
@@ -1225,14 +1352,6 @@
             "value": "button:User"
           },
           "visible": true
-        },
-        {
-          "text": "",
-          "locator": {
-            "strategy": "css",
-            "value": "button"
-          },
-          "visible": false
         },
         {
           "text": "Create",
@@ -1254,6 +1373,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -1268,6 +1389,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -1282,6 +1405,8 @@
           "action": "/todos/13",
           "method": "POST",
           "noValidate": true,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [
             {
               "name": "contact_email",
@@ -1303,7 +1428,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Contact email"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "contact_email_confirmation",
@@ -1327,7 +1453,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Confirm contact email"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "title",
@@ -1349,7 +1476,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Title"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "status",
@@ -1384,7 +1512,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Status"
-              }
+              },
+              "prefilled": false
             },
             {
               "name": "body",
@@ -1406,7 +1535,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Body"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "due_date",
@@ -1428,7 +1558,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Due date"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "done",
@@ -1450,7 +1581,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Done"
-              }
+              },
+              "prefilled": false
             }
           ],
           "submit": {
@@ -1471,7 +1603,9 @@
             "strategy": "role",
             "value": "link:Tathya Todo"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -1480,7 +1614,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -1489,7 +1625,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -1498,7 +1636,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -1507,7 +1647,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -1516,7 +1658,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -1525,7 +1669,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         }
       ],
       "buttons": [
@@ -1536,14 +1682,6 @@
             "value": "button:User"
           },
           "visible": true
-        },
-        {
-          "text": "",
-          "locator": {
-            "strategy": "css",
-            "value": "button"
-          },
-          "visible": false
         },
         {
           "text": "Update",
@@ -1565,6 +1703,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -1579,6 +1719,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -1593,6 +1735,8 @@
           "action": "/todos/14",
           "method": "POST",
           "noValidate": true,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [
             {
               "name": "contact_email",
@@ -1614,7 +1758,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Contact email"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "contact_email_confirmation",
@@ -1638,7 +1783,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Confirm contact email"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "title",
@@ -1660,7 +1806,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Title"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "status",
@@ -1695,7 +1842,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Status"
-              }
+              },
+              "prefilled": false
             },
             {
               "name": "body",
@@ -1717,7 +1865,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Body"
-              }
+              },
+              "prefilled": false
             },
             {
               "name": "due_date",
@@ -1739,7 +1888,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Due date"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "done",
@@ -1761,7 +1911,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Done"
-              }
+              },
+              "prefilled": false
             }
           ],
           "submit": {
@@ -1782,7 +1933,9 @@
             "strategy": "role",
             "value": "link:Tathya Todo"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -1791,7 +1944,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -1800,7 +1955,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -1809,7 +1966,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -1818,7 +1977,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -1827,7 +1988,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -1836,7 +1999,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         }
       ],
       "buttons": [
@@ -1847,14 +2012,6 @@
             "value": "button:User"
           },
           "visible": true
-        },
-        {
-          "text": "",
-          "locator": {
-            "strategy": "css",
-            "value": "button"
-          },
-          "visible": false
         },
         {
           "text": "Update",
@@ -1876,6 +2033,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -1890,6 +2049,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -1904,6 +2065,8 @@
           "action": "/todos/15",
           "method": "POST",
           "noValidate": true,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [
             {
               "name": "contact_email",
@@ -1925,7 +2088,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Contact email"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "contact_email_confirmation",
@@ -1949,7 +2113,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Confirm contact email"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "title",
@@ -1971,7 +2136,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Title"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "status",
@@ -2006,7 +2172,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Status"
-              }
+              },
+              "prefilled": false
             },
             {
               "name": "body",
@@ -2028,7 +2195,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Body"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "due_date",
@@ -2050,7 +2218,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Due date"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "done",
@@ -2072,7 +2241,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Done"
-              }
+              },
+              "prefilled": false
             }
           ],
           "submit": {
@@ -2093,7 +2263,9 @@
             "strategy": "role",
             "value": "link:Tathya Todo"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -2102,7 +2274,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -2111,7 +2285,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -2120,7 +2296,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -2129,7 +2307,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -2138,7 +2318,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -2147,7 +2329,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         }
       ],
       "buttons": [
@@ -2158,14 +2342,6 @@
             "value": "button:User"
           },
           "visible": true
-        },
-        {
-          "text": "",
-          "locator": {
-            "strategy": "css",
-            "value": "button"
-          },
-          "visible": false
         },
         {
           "text": "Update",
@@ -2187,6 +2363,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -2201,6 +2379,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -2215,6 +2395,8 @@
           "action": "/todos/16",
           "method": "POST",
           "noValidate": true,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [
             {
               "name": "contact_email",
@@ -2236,7 +2418,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Contact email"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "contact_email_confirmation",
@@ -2260,7 +2443,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Confirm contact email"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "title",
@@ -2282,7 +2466,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Title"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "status",
@@ -2317,7 +2502,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Status"
-              }
+              },
+              "prefilled": false
             },
             {
               "name": "body",
@@ -2339,7 +2525,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Body"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "due_date",
@@ -2361,7 +2548,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Due date"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "done",
@@ -2383,7 +2571,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Done"
-              }
+              },
+              "prefilled": false
             }
           ],
           "submit": {
@@ -2404,7 +2593,9 @@
             "strategy": "role",
             "value": "link:Tathya Todo"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -2413,7 +2604,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -2422,7 +2615,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -2431,7 +2626,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -2440,7 +2637,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -2449,7 +2648,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -2458,7 +2659,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         }
       ],
       "buttons": [
@@ -2469,14 +2672,6 @@
             "value": "button:User"
           },
           "visible": true
-        },
-        {
-          "text": "",
-          "locator": {
-            "strategy": "css",
-            "value": "button"
-          },
-          "visible": false
         },
         {
           "text": "Update",
@@ -2498,6 +2693,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -2512,6 +2709,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -2526,6 +2725,8 @@
           "action": "/todos/17",
           "method": "POST",
           "noValidate": true,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [
             {
               "name": "contact_email",
@@ -2547,7 +2748,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Contact email"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "contact_email_confirmation",
@@ -2571,7 +2773,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Confirm contact email"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "title",
@@ -2593,7 +2796,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Title"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "status",
@@ -2628,7 +2832,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Status"
-              }
+              },
+              "prefilled": false
             },
             {
               "name": "body",
@@ -2650,7 +2855,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Body"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "due_date",
@@ -2672,7 +2878,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Due date"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "done",
@@ -2694,7 +2901,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Done"
-              }
+              },
+              "prefilled": false
             }
           ],
           "submit": {
@@ -2715,7 +2923,9 @@
             "strategy": "role",
             "value": "link:Tathya Todo"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -2724,7 +2934,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -2733,7 +2945,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -2742,7 +2956,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -2751,7 +2967,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -2760,7 +2978,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -2769,7 +2989,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         }
       ],
       "buttons": [
@@ -2780,14 +3002,6 @@
             "value": "button:User"
           },
           "visible": true
-        },
-        {
-          "text": "",
-          "locator": {
-            "strategy": "css",
-            "value": "button"
-          },
-          "visible": false
         },
         {
           "text": "Update",
@@ -2809,6 +3023,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -2823,6 +3039,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -2837,6 +3055,8 @@
           "action": "/todos/18",
           "method": "POST",
           "noValidate": true,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [
             {
               "name": "contact_email",
@@ -2858,7 +3078,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Contact email"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "contact_email_confirmation",
@@ -2882,7 +3103,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Confirm contact email"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "title",
@@ -2904,7 +3126,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Title"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "status",
@@ -2939,7 +3162,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Status"
-              }
+              },
+              "prefilled": false
             },
             {
               "name": "body",
@@ -2961,7 +3185,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Body"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "due_date",
@@ -2983,7 +3208,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Due date"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "done",
@@ -3005,7 +3231,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Done"
-              }
+              },
+              "prefilled": false
             }
           ],
           "submit": {
@@ -3026,7 +3253,9 @@
             "strategy": "role",
             "value": "link:Tathya Todo"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -3035,7 +3264,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -3044,7 +3275,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -3053,7 +3286,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -3062,7 +3297,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -3071,7 +3308,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -3080,7 +3319,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         }
       ],
       "buttons": [
@@ -3091,14 +3332,6 @@
             "value": "button:User"
           },
           "visible": true
-        },
-        {
-          "text": "",
-          "locator": {
-            "strategy": "css",
-            "value": "button"
-          },
-          "visible": false
         },
         {
           "text": "Update",
@@ -3120,6 +3353,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -3134,6 +3369,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -3148,6 +3385,8 @@
           "action": "/todos/19",
           "method": "POST",
           "noValidate": true,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [
             {
               "name": "contact_email",
@@ -3169,7 +3408,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Contact email"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "contact_email_confirmation",
@@ -3193,7 +3433,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Confirm contact email"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "title",
@@ -3215,7 +3456,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Title"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "status",
@@ -3250,7 +3492,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Status"
-              }
+              },
+              "prefilled": false
             },
             {
               "name": "body",
@@ -3272,7 +3515,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Body"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "due_date",
@@ -3294,7 +3538,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Due date"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "done",
@@ -3316,7 +3561,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Done"
-              }
+              },
+              "prefilled": false
             }
           ],
           "submit": {
@@ -3337,7 +3583,9 @@
             "strategy": "role",
             "value": "link:Tathya Todo"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -3346,7 +3594,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -3355,7 +3605,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -3364,7 +3616,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -3373,7 +3627,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -3382,7 +3638,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -3391,7 +3649,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         }
       ],
       "buttons": [
@@ -3402,14 +3662,6 @@
             "value": "button:User"
           },
           "visible": true
-        },
-        {
-          "text": "",
-          "locator": {
-            "strategy": "css",
-            "value": "button"
-          },
-          "visible": false
         },
         {
           "text": "Update",
@@ -3431,6 +3683,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -3445,6 +3699,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -3459,6 +3715,8 @@
           "action": "/todos/20",
           "method": "POST",
           "noValidate": true,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [
             {
               "name": "contact_email",
@@ -3480,7 +3738,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Contact email"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "contact_email_confirmation",
@@ -3504,7 +3763,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Confirm contact email"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "title",
@@ -3526,7 +3786,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Title"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "status",
@@ -3561,7 +3822,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Status"
-              }
+              },
+              "prefilled": false
             },
             {
               "name": "body",
@@ -3583,7 +3845,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Body"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "due_date",
@@ -3605,7 +3868,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Due date"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "done",
@@ -3627,7 +3891,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Done"
-              }
+              },
+              "prefilled": false
             }
           ],
           "submit": {
@@ -3648,7 +3913,9 @@
             "strategy": "role",
             "value": "link:Tathya Todo"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -3657,7 +3924,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -3666,7 +3935,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -3675,7 +3946,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -3684,7 +3957,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -3693,7 +3968,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -3702,7 +3979,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         }
       ],
       "buttons": [
@@ -3713,14 +3992,6 @@
             "value": "button:User"
           },
           "visible": true
-        },
-        {
-          "text": "",
-          "locator": {
-            "strategy": "css",
-            "value": "button"
-          },
-          "visible": false
         },
         {
           "text": "Update",
@@ -3742,6 +4013,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -3756,6 +4029,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -3770,6 +4045,8 @@
           "action": "/todos/21",
           "method": "POST",
           "noValidate": true,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [
             {
               "name": "contact_email",
@@ -3791,7 +4068,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Contact email"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "contact_email_confirmation",
@@ -3815,7 +4093,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Confirm contact email"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "title",
@@ -3837,7 +4116,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Title"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "status",
@@ -3872,7 +4152,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Status"
-              }
+              },
+              "prefilled": false
             },
             {
               "name": "body",
@@ -3894,7 +4175,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Body"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "due_date",
@@ -3916,7 +4198,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Due date"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "done",
@@ -3938,7 +4221,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Done"
-              }
+              },
+              "prefilled": false
             }
           ],
           "submit": {
@@ -3959,7 +4243,9 @@
             "strategy": "role",
             "value": "link:Tathya Todo"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -3968,7 +4254,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -3977,7 +4265,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -3986,7 +4276,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -3995,7 +4287,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -4004,7 +4298,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -4013,7 +4309,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         }
       ],
       "buttons": [
@@ -4024,14 +4322,6 @@
             "value": "button:User"
           },
           "visible": true
-        },
-        {
-          "text": "",
-          "locator": {
-            "strategy": "css",
-            "value": "button"
-          },
-          "visible": false
         },
         {
           "text": "Update",
@@ -4053,6 +4343,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -4067,6 +4359,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -4081,6 +4375,8 @@
           "action": "/todos/22",
           "method": "POST",
           "noValidate": true,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [
             {
               "name": "contact_email",
@@ -4102,7 +4398,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Contact email"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "contact_email_confirmation",
@@ -4126,7 +4423,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Confirm contact email"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "title",
@@ -4148,7 +4446,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Title"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "status",
@@ -4183,7 +4482,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Status"
-              }
+              },
+              "prefilled": false
             },
             {
               "name": "body",
@@ -4205,7 +4505,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Body"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "due_date",
@@ -4227,7 +4528,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Due date"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "done",
@@ -4249,7 +4551,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Done"
-              }
+              },
+              "prefilled": false
             }
           ],
           "submit": {
@@ -4270,7 +4573,9 @@
             "strategy": "role",
             "value": "link:Tathya Todo"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -4279,7 +4584,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -4288,7 +4595,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -4297,7 +4606,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -4306,7 +4617,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -4315,7 +4628,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -4324,7 +4639,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         }
       ],
       "buttons": [
@@ -4335,14 +4652,6 @@
             "value": "button:User"
           },
           "visible": true
-        },
-        {
-          "text": "",
-          "locator": {
-            "strategy": "css",
-            "value": "button"
-          },
-          "visible": false
         },
         {
           "text": "Update",
@@ -4364,6 +4673,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -4378,6 +4689,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -4392,6 +4705,8 @@
           "action": "/todos",
           "method": "GET",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [
             {
               "name": "search",
@@ -4413,7 +4728,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Search todos"
-              }
+              },
+              "prefilled": false
             },
             {
               "name": "status",
@@ -4448,7 +4764,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Filter"
-              }
+              },
+              "prefilled": false
             }
           ],
           "submit": {
@@ -4464,6 +4781,8 @@
           "action": "/todos/23/toggle",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Mark done",
@@ -4478,6 +4797,8 @@
           "action": "/todos/23",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Delete",
@@ -4492,6 +4813,8 @@
           "action": "/todos/24/toggle",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Mark done",
@@ -4506,6 +4829,8 @@
           "action": "/todos/24",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Delete",
@@ -4525,7 +4850,9 @@
             "strategy": "role",
             "value": "link:Tathya Todo"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -4534,7 +4861,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -4543,7 +4872,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -4552,7 +4883,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -4561,7 +4894,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -4570,7 +4905,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -4579,7 +4916,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos/create",
@@ -4588,7 +4927,9 @@
             "strategy": "role",
             "value": "link:New todo"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -4597,7 +4938,9 @@
             "strategy": "role",
             "value": "link:Reset"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos/23/edit",
@@ -4606,7 +4949,9 @@
             "strategy": "role",
             "value": "link:Edit"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos/24/edit",
@@ -4615,7 +4960,9 @@
             "strategy": "role",
             "value": "link:Edit"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos?page=1",
@@ -4624,7 +4971,9 @@
             "strategy": "role",
             "value": "link:Previous"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos?page=1",
@@ -4633,7 +4982,9 @@
             "strategy": "role",
             "value": "link:Previous"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos?page=1",
@@ -4642,7 +4993,9 @@
             "strategy": "role",
             "value": "link:Go to page 1"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         }
       ],
       "buttons": [
@@ -4653,14 +5006,6 @@
             "value": "button:User"
           },
           "visible": true
-        },
-        {
-          "text": "",
-          "locator": {
-            "strategy": "css",
-            "value": "button"
-          },
-          "visible": false
         },
         {
           "text": "Apply",
@@ -4724,6 +5069,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -4738,6 +5085,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -4752,6 +5101,8 @@
           "action": "/todos/23",
           "method": "POST",
           "noValidate": true,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [
             {
               "name": "contact_email",
@@ -4773,7 +5124,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Contact email"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "contact_email_confirmation",
@@ -4797,7 +5149,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Confirm contact email"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "title",
@@ -4819,7 +5172,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Title"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "status",
@@ -4854,7 +5208,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Status"
-              }
+              },
+              "prefilled": false
             },
             {
               "name": "body",
@@ -4876,7 +5231,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Body"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "due_date",
@@ -4898,7 +5254,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Due date"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "done",
@@ -4920,7 +5277,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Done"
-              }
+              },
+              "prefilled": false
             }
           ],
           "submit": {
@@ -4941,7 +5299,9 @@
             "strategy": "role",
             "value": "link:Tathya Todo"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -4950,7 +5310,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -4959,7 +5321,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -4968,7 +5332,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -4977,7 +5343,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -4986,7 +5354,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -4995,7 +5365,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         }
       ],
       "buttons": [
@@ -5006,14 +5378,6 @@
             "value": "button:User"
           },
           "visible": true
-        },
-        {
-          "text": "",
-          "locator": {
-            "strategy": "css",
-            "value": "button"
-          },
-          "visible": false
         },
         {
           "text": "Update",
@@ -5035,6 +5399,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -5049,6 +5415,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -5063,6 +5431,8 @@
           "action": "/todos/24",
           "method": "POST",
           "noValidate": true,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [
             {
               "name": "contact_email",
@@ -5084,7 +5454,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Contact email"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "contact_email_confirmation",
@@ -5108,7 +5479,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Confirm contact email"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "title",
@@ -5130,7 +5502,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Title"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "status",
@@ -5165,7 +5538,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Status"
-              }
+              },
+              "prefilled": false
             },
             {
               "name": "body",
@@ -5187,7 +5561,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Body"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "due_date",
@@ -5209,7 +5584,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Due date"
-              }
+              },
+              "prefilled": true
             },
             {
               "name": "done",
@@ -5231,7 +5607,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Done"
-              }
+              },
+              "prefilled": false
             }
           ],
           "submit": {
@@ -5252,7 +5629,9 @@
             "strategy": "role",
             "value": "link:Tathya Todo"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -5261,7 +5640,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -5270,7 +5651,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -5279,7 +5662,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -5288,7 +5673,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -5297,7 +5684,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -5306,7 +5695,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         }
       ],
       "buttons": [
@@ -5317,14 +5708,6 @@
             "value": "button:User"
           },
           "visible": true
-        },
-        {
-          "text": "",
-          "locator": {
-            "strategy": "css",
-            "value": "button"
-          },
-          "visible": false
         },
         {
           "text": "Update",
@@ -5346,6 +5729,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -5360,6 +5745,8 @@
           "action": "/logout",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": null,
@@ -5374,6 +5761,8 @@
           "action": "/todos",
           "method": "GET",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [
             {
               "name": "search",
@@ -5395,7 +5784,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Search todos"
-              }
+              },
+              "prefilled": false
             },
             {
               "name": "status",
@@ -5430,7 +5820,8 @@
               "locator": {
                 "strategy": "label",
                 "value": "Filter"
-              }
+              },
+              "prefilled": false
             }
           ],
           "submit": {
@@ -5446,6 +5837,8 @@
           "action": "/todos/13/toggle",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Mark done",
@@ -5460,6 +5853,8 @@
           "action": "/todos/13",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Delete",
@@ -5474,6 +5869,8 @@
           "action": "/todos/14/toggle",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Mark undone",
@@ -5488,6 +5885,8 @@
           "action": "/todos/14",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Delete",
@@ -5502,6 +5901,8 @@
           "action": "/todos/15/toggle",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Mark done",
@@ -5516,6 +5917,8 @@
           "action": "/todos/15",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Delete",
@@ -5530,6 +5933,8 @@
           "action": "/todos/16/toggle",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Mark done",
@@ -5544,6 +5949,8 @@
           "action": "/todos/16",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Delete",
@@ -5558,6 +5965,8 @@
           "action": "/todos/17/toggle",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Mark undone",
@@ -5572,6 +5981,8 @@
           "action": "/todos/17",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Delete",
@@ -5586,6 +5997,8 @@
           "action": "/todos/18/toggle",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Mark done",
@@ -5600,6 +6013,8 @@
           "action": "/todos/18",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Delete",
@@ -5614,6 +6029,8 @@
           "action": "/todos/19/toggle",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Mark done",
@@ -5628,6 +6045,8 @@
           "action": "/todos/19",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Delete",
@@ -5642,6 +6061,8 @@
           "action": "/todos/20/toggle",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Mark done",
@@ -5656,6 +6077,8 @@
           "action": "/todos/20",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Delete",
@@ -5670,6 +6093,8 @@
           "action": "/todos/21/toggle",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Mark undone",
@@ -5684,6 +6109,8 @@
           "action": "/todos/21",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Delete",
@@ -5698,6 +6125,8 @@
           "action": "/todos/22/toggle",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Mark done",
@@ -5712,6 +6141,8 @@
           "action": "/todos/22",
           "method": "POST",
           "noValidate": false,
+          "declaresTarget": true,
+          "hasActionAttribute": true,
           "fields": [],
           "submit": {
             "text": "Delete",
@@ -5731,7 +6162,9 @@
             "strategy": "role",
             "value": "link:Tathya Todo"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -5740,7 +6173,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -5749,7 +6184,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -5758,7 +6195,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/dashboard",
@@ -5767,7 +6206,9 @@
             "strategy": "role",
             "value": "link:Dashboard"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -5776,7 +6217,9 @@
             "strategy": "role",
             "value": "link:Todos"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/logout",
@@ -5785,7 +6228,9 @@
             "strategy": "role",
             "value": "link:Log Out"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos/create",
@@ -5794,7 +6239,9 @@
             "strategy": "role",
             "value": "link:New todo"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos",
@@ -5803,7 +6250,9 @@
             "strategy": "role",
             "value": "link:Reset"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos/13/edit",
@@ -5812,7 +6261,9 @@
             "strategy": "role",
             "value": "link:Edit"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos/14/edit",
@@ -5821,7 +6272,9 @@
             "strategy": "role",
             "value": "link:Edit"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos/15/edit",
@@ -5830,7 +6283,9 @@
             "strategy": "role",
             "value": "link:Edit"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos/16/edit",
@@ -5839,7 +6294,9 @@
             "strategy": "role",
             "value": "link:Edit"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos/17/edit",
@@ -5848,7 +6305,9 @@
             "strategy": "role",
             "value": "link:Edit"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos/18/edit",
@@ -5857,7 +6316,9 @@
             "strategy": "role",
             "value": "link:Edit"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos/19/edit",
@@ -5866,7 +6327,9 @@
             "strategy": "role",
             "value": "link:Edit"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos/20/edit",
@@ -5875,7 +6338,9 @@
             "strategy": "role",
             "value": "link:Edit"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos/21/edit",
@@ -5884,7 +6349,9 @@
             "strategy": "role",
             "value": "link:Edit"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos/22/edit",
@@ -5893,7 +6360,9 @@
             "strategy": "role",
             "value": "link:Edit"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos?page=2",
@@ -5902,7 +6371,9 @@
             "strategy": "role",
             "value": "link:Next"
           },
-          "visible": false
+          "visible": false,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos?page=2",
@@ -5911,7 +6382,9 @@
             "strategy": "role",
             "value": "link:Go to page 2"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         },
         {
           "href": "/todos?page=2",
@@ -5920,7 +6393,9 @@
             "strategy": "role",
             "value": "link:Next"
           },
-          "visible": true
+          "visible": true,
+          "inPage": false,
+          "method": null
         }
       ],
       "buttons": [
@@ -5931,14 +6406,6 @@
             "value": "button:User"
           },
           "visible": true
-        },
-        {
-          "text": "",
-          "locator": {
-            "strategy": "css",
-            "value": "button"
-          },
-          "visible": false
         },
         {
           "text": "Apply",

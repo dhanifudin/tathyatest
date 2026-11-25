@@ -8,8 +8,8 @@ describe("standard_user · /cart.html", function () {
     // tier: positive · category: nav · route: /cart.html
     step("Log in as standard_user", () => loginAs("standard_user"));
     step("Open /cart.html", () => openPage("/cart.html"));
-    skipUnlessVisible(this, byRole("link", "All Items"), 0, "interaction target is not visible");
-    step("Click link \"All Items\"", () => nth(byRole("link", "All Items"), 0).click());
+    skipUnlessVisible(this, byRole("button", "All Items"), 0, "interaction target is not visible");
+    step("Click link \"All Items\"", () => nth(byRole("button", "All Items"), 0).click());
     step("Expect to land on /cart.html", () => expectLanded("/cart.html", false));
     step("Expect no server error", () => expectNoServerError());
   });
