@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildInitConfig, defaultRoleName, initProjectPaths, slugifyProjectName } from '../../src/cli/init.js';
-import { inferLoginControlsFromHtml, normalizeBaseUrl } from '../../src/auth/login.js';
+import { normalizeBaseUrl } from '../../src/auth/login.js';
 
 describe('init project helpers', () => {
   it('slugifies project names for directory creation', () => {
@@ -73,37 +73,5 @@ describe('init project helpers', () => {
     });
 
     expect(config.hooks).toEqual({ reset: { method: 'POST', path: '/__testing/reset' } });
-  });
-
-  it('infers Sauce Demo login controls from rendered DOM', () => {
-    const controls = inferLoginControlsFromHtml(`
-      <form>
-        <input type="text" name="user-name" placeholder="Username" data-test="username" />
-        <input type="password" name="password" placeholder="Password" data-test="password" />
-        <input type="submit" value="Login" data-test="login-button" />
-      </form>
-    `);
-
-    expect(controls).toEqual({
-      username: { strategy: 'css', value: '[data-test="username"]' },
-      password: { strategy: 'css', value: '[data-test="password"]' },
-      submit: { strategy: 'css', value: '[data-test="login-button"]' },
-    });
-  });
-
-  it('falls back to name-based selectors when no richer signal exists', () => {
-    const controls = inferLoginControlsFromHtml(`
-      <form method="POST" action="/login">
-        <input type="text" name="login" />
-        <input type="password" name="secret" />
-        <button type="submit">Login</button>
-      </form>
-    `);
-
-    expect(controls).toEqual({
-      username: { strategy: 'name', value: 'login' },
-      password: { strategy: 'name', value: 'secret' },
-      submit: { strategy: 'role', value: 'button:Login' },
-    });
   });
 });

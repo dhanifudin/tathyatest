@@ -24,6 +24,14 @@ describe('playwright global setup config parsing', () => {
 
       chdir(dir);
       const config = loadConfig();
+      await writeFile(join(dir, 'short.yaml'), YAML.stringify({ baseUrl: '127.0.0.1:8000', auth: { roles: [{ name: 'admin', username: 'a', password: 'b' }] } }));
+      await writeFile(join(dir, 'broken.yaml'), YAML.stringify({ baseUrl: 'http://127.0.0.1:8000' }));
+      process.env.TATHYA_CONFIG = 'short.yaml';
+      // Defaults and URL normalisation come from the same validator the CLI uses.
+      expect(loadConfig()).toMatchObject({ baseUrl: 'http://127.0.0.1:8000', auth: { loginPath: '/login' } });
+      process.env.TATHYA_CONFIG = 'broken.yaml';
+      expect(() => loadConfig()).toThrow(/Invalid config broken\.yaml/);
+      delete process.env.TATHYA_CONFIG;
 
       expect(config).not.toBeNull();
       expect(config?.auth.roles).toHaveLength(1);

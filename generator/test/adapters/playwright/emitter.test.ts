@@ -84,6 +84,7 @@ describe('emitTs', () => {
       // Login mechanics live in the support module, not in every spec.
       expect(authSpec).not.toContain('inferLoginControls');
       expect(support).toContain('export async function inferLoginControls');
+      expect(support).toContain('export function loginControlsOfDocument');
       expect(support).toContain('await page.goto(loginPath);');
       expect(support).toContain('const loginPath = "/login";');
       expect(support).toContain('export const test = base.extend<{ role: string; app: App }>');

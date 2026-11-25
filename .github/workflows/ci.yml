@@ -27,6 +27,9 @@ jobs:
         working-directory: generator
       - run: npm run lint
         working-directory: generator
+      # The crawler tests drive a real browser against a local fixture app (skipped without one).
+      - run: npx playwright install --with-deps chromium
+        working-directory: generator
       - run: npm test
         working-directory: generator
 

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { assertRenderedLoginSucceeded, isMeaningfulErrorPage, renderedCrawlSeeds, shouldExtractCrawlPage } from '../../src/crawl/session.js';
+import { assertRenderedLoginSucceeded } from '../../src/auth/login-runtime.js';
+import { isMeaningfulErrorPage, renderedCrawlSeeds, shouldExtractCrawlPage } from '../../src/crawl/session.js';
 
 const baseConfig = {
+  baseUrl: 'https://shop.test',
   auth: {
     loginPath: '/',
     roles: [{ name: 'standard', username: 'standard_user', password: 'secret_sauce' }],
@@ -21,24 +23,34 @@ describe('rendered crawl URL normalization', () => {
     expect(seeds).not.toContain('/admin');
   });
 
+  it('resolves include entries against the app and drops other origins', () => {
+    const include = ['reports', 'https://shop.test/orders?page=2', 'https://elsewhere.test/x'];
+    expect(renderedCrawlSeeds({ ...baseConfig, crawl: { ...baseConfig.crawl, include } }, '/inventory.html'))
+      .toEqual(['/inventory.html', '/reports', '/orders?page=2']);
+  });
+
   it('extracts an already-loaded rendered landing page without requiring a navigation response', () => {
     expect(shouldExtractCrawlPage(null, '/inventory.html', '/inventory.html')).toBe(true);
     // SPA hosts serve deep links with a 404 status while the client router renders the page.
-    expect(shouldExtractCrawlPage(false, '/cart.html', '/cart.html')).toBe(true);
-    expect(shouldExtractCrawlPage(false, '/inventory.html', '/redirected.html')).toBe(false);
-    expect(shouldExtractCrawlPage(true, '/inventory.html', '/redirected.html')).toBe(true);
+    expect(shouldExtractCrawlPage(404, '/cart.html', '/cart.html')).toBe(true);
+    expect(shouldExtractCrawlPage(404, '/inventory.html', '/redirected.html')).toBe(false);
+    expect(shouldExtractCrawlPage(200, '/inventory.html', '/redirected.html')).toBe(true);
+  });
+
+  it('never records a denied or failed response, whatever layout it renders', () => {
+    for (const status of [401, 403, 500, 503]) expect(shouldExtractCrawlPage(status, '/admin/users', '/admin/users'), String(status)).toBe(false);
   });
 
   it('filters genuine error pages by their lack of navigable content', () => {
     const empty = { forms: [], links: [], controls: [] };
     const withLinks = { ...empty, links: [{ href: '/cart.html', text: 'Cart', locator: { strategy: 'role' as const, value: 'link:Cart' } }] };
-    expect(isMeaningfulErrorPage(false, empty)).toBe(true);       // Laravel 404 page
-    expect(isMeaningfulErrorPage(false, withLinks)).toBe(false);  // SPA page behind a 404 status
-    expect(isMeaningfulErrorPage(true, empty)).toBe(false);       // ok responses are always kept
+    expect(isMeaningfulErrorPage(404, empty)).toBe(true);         // Laravel 404 page
+    expect(isMeaningfulErrorPage(404, withLinks)).toBe(false);    // SPA page behind a 404 status
+    expect(isMeaningfulErrorPage(200, empty)).toBe(false);        // ok responses are always kept
     expect(isMeaningfulErrorPage(null, empty)).toBe(false);       // already-on-page extraction
     // Debug error pages (e.g. Laravel 405 with APP_DEBUG=true) render buttons but no
     // same-origin links/forms — they must still be filtered, so buttons carry no signal.
-    expect(isMeaningfulErrorPage(false, empty)).toBe(true);
+    expect(isMeaningfulErrorPage(404, empty)).toBe(true);
   });
 
   it('fails clearly when login remains on the login page with controls visible', async () => {
@@ -50,7 +62,7 @@ describe('rendered crawl URL normalization', () => {
       }),
     };
 
-    await expect(assertRenderedLoginSucceeded(page as never, baseConfig, 'standard', '/')).rejects.toThrow(
+    await expect(assertRenderedLoginSucceeded(page as never, baseConfig.auth.loginPath, 'standard', '/')).rejects.toThrow(
       /role "standard".*credentials may be invalid.*login page/,
     );
   });
@@ -64,6 +76,6 @@ describe('rendered crawl URL normalization', () => {
       }),
     };
 
-    await expect(assertRenderedLoginSucceeded(page as never, baseConfig, 'standard', '/')).resolves.toBeUndefined();
+    await expect(assertRenderedLoginSucceeded(page as never, baseConfig.auth.loginPath, 'standard', '/')).resolves.toBeUndefined();
   });
 });

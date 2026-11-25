@@ -47,9 +47,6 @@ export const test = base.extend<{ role: string; app: App }>({
   },
 });
 
-type LoginLocator = { strategy: 'testid' | 'role' | 'label' | 'placeholder' | 'id' | 'name' | 'css'; value: string };
-type LoginControls = { username: LoginLocator; password: LoginLocator; submit: LoginLocator };
-
 export async function resetAppData(page: Page): Promise<void> {
   if (!resetHook) return;
   await page.request.fetch(resetHook.path, { method: resetHook.method });
@@ -88,7 +85,7 @@ export async function performLogin(page: Page, username: string, password: strin
     page.waitForURL((url) => url.pathname !== beforePath, { timeout: 5000 }).catch(() => undefined),
     loginLocator(page, controls.submit).click(),
   ]);
-  await page.waitForLoadState('networkidle').catch(() => undefined);
+  await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => undefined);
 }
 
 /** Logged in = we left the login page, or the password field is gone. */
@@ -109,7 +106,7 @@ export async function assertLoggedIn(page: Page): Promise<void> {
 export async function assertLoggedOut(page: Page, protectedPath: string): Promise<void> {
   await page.waitForLoadState('domcontentloaded').catch(() => undefined);
   await page.goto(protectedPath);
-  await page.waitForLoadState('networkidle').catch(() => undefined);
+  await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => undefined);
   const expectedLoginPath = new URL(loginPath, 'http://tathyatest.local').pathname;
   const landed = new URL(page.url()).pathname;
   if (landed === expectedLoginPath) return;
@@ -169,7 +166,7 @@ export async function expectStateFlipped(page: Page, formSelector: string, befor
 export async function expectNoServerError(page: Page, response?: Response | null): Promise<void> {
   if (response) expect(response.status(), 'server answered ' + response.status()).toBeLessThan(500);
   await page.waitForLoadState('domcontentloaded').catch(() => undefined);
-  await page.waitForLoadState('networkidle').catch(() => undefined);
+  await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => undefined);
   const title = await page.title().catch(() => '');
   expect(title, 'page title looks like a server error').not.toMatch(/^\s*5\d\d\b|server error|\b[A-Z]\w*Exception\b/);
   await expect(page.locator('body')).not.toContainText(/(internal )?server error|whoops, looks like something went wrong/i);
@@ -183,7 +180,7 @@ export async function expectNoServerError(page: Page, response?: Response | null
 export async function expectRouteAllowed(page: Page, response: Response | null, routePath: string): Promise<void> {
   const status = response?.status() ?? 200;
   if (status >= 400) {
-    await page.waitForLoadState('networkidle').catch(() => undefined);
+    await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => undefined);
     expect(new URL(page.url()).pathname).toBe(routePath);
     expect(await page.locator('a, button, form, select, input').count()).toBeGreaterThan(0);
   }
@@ -244,124 +241,103 @@ function loginLocator(page: Page, locator: LoginLocator) {
   }
 }
 
-/** Score the login page's inputs/buttons the same way the crawler does (see generator/src/login.ts). */
+// <tathya:login-infer>
+export type LoginLocator = { strategy: 'testid' | 'role' | 'label' | 'placeholder' | 'id' | 'name' | 'css'; value: string };
+export type LoginControls = { username: LoginLocator; password: LoginLocator; submit: LoginLocator };
+
+/** `root` is the login page's document; pass null to use the document the code runs in. */
+export function loginControlsOfDocument(root: Document | null): LoginControls {
+  type Candidate = {
+    tag: 'input' | 'button';
+    type: string;
+    name: string;
+    id: string;
+    placeholder: string;
+    autocomplete: string;
+    ariaLabel: string;
+    dataAttr: string;
+    dataValue: string;
+    text: string;
+  };
+  const doc = root ?? document;
+  const attr = (el: Element, name: string): string => el.getAttribute(name) ?? '';
+  const visible = (el: Element): boolean =>
+    el.getClientRects().length > 0 && doc.defaultView?.getComputedStyle(el).visibility !== 'hidden';
+  const candidate = (el: Element): Candidate => {
+    const tag = el.tagName.toLowerCase() === 'button' ? 'button' : 'input';
+    const dataAttr = attr(el, 'data-test') ? 'data-test' : attr(el, 'data-testid') ? 'data-testid' : '';
+    return {
+      tag,
+      // A <button> without a type submits its form.
+      type: (attr(el, 'type') || (tag === 'button' ? 'submit' : 'text')).toLowerCase(),
+      name: attr(el, 'name'),
+      id: attr(el, 'id'),
+      placeholder: attr(el, 'placeholder'),
+      autocomplete: attr(el, 'autocomplete').toLowerCase(),
+      ariaLabel: attr(el, 'aria-label'),
+      dataAttr,
+      dataValue: dataAttr ? attr(el, dataAttr) : '',
+      text: tag === 'button' ? (el.textContent ?? '').replace(/\s+/g, ' ').trim() : attr(el, 'value'),
+    };
+  };
+  const haystack = (c: Candidate): string =>
+    [c.type, c.name, c.id, c.placeholder, c.autocomplete, c.ariaLabel, c.dataValue, c.text].join(' ').toLowerCase();
+  const best = (candidates: Candidate[], score: (c: Candidate) => number): Candidate | undefined =>
+    candidates
+      .map((c) => ({ c, points: score(c) }))
+      .filter(({ points }) => points > 0)
+      .sort((a, b) => b.points - a.points)[0]?.c;
+  /** Prefer what a user can see; a page that shows nothing yet still yields its elements. */
+  const shown = (elements: Element[]): Candidate[] => {
+    const onScreen = elements.filter(visible);
+    return (onScreen.length > 0 ? onScreen : elements).map(candidate);
+  };
+
+  const skipped = ['hidden', 'submit', 'button', 'reset', 'image', 'file'];
+  const inputs = shown(Array.from(doc.querySelectorAll('input')).filter((el) => !skipped.includes(attr(el, 'type').toLowerCase()) && !el.disabled));
+  const buttons = shown(Array.from(doc.querySelectorAll('button, input[type="submit"], input[type="button"]')));
+
+  const password = best(inputs, (c) => (c.type === 'password' ? 100 : 0) + (/(password|passcode|pin)/.test(haystack(c)) ? 50 : 0));
+  const others = inputs.filter((c) => c !== password);
+  const username = best(others, (c) =>
+    (c.type === 'email' ? 100 : 0)
+    + (c.autocomplete === 'username' ? 90 : 0)
+    + (c.autocomplete === 'email' ? 80 : 0)
+    + (/(email|username|user|account|identifier|handle)/.test(haystack(c)) ? 50 : 0))
+    ?? others.find((c) => ['text', 'tel', 'number', 'search'].includes(c.type));
+  const submit = best(buttons, (c) =>
+    (c.dataValue ? 100 : 0)
+    + (c.tag === 'button' ? 20 : 0)
+    + (/(log in|login|sign in|sign-in)/.test(haystack(c)) ? 50 : 0)
+    + (c.type === 'submit' ? 10 : 0)) ?? buttons[0];
+
+  const locatorFor = (c: Candidate | undefined, fallback: string): LoginLocator => {
+    if (!c) return { strategy: 'css', value: fallback };
+    if (c.dataValue) {
+      const escaped = c.dataValue.replace(/["\\]/g, '\\$&');
+      return { strategy: 'css', value: '[' + c.dataAttr + '="' + escaped + '"]' };
+    }
+    if (c.placeholder) return { strategy: 'placeholder', value: c.placeholder };
+    if (c.id && !/[0-9a-f]{8,}|:/.test(c.id)) return { strategy: 'id', value: c.id };
+    if (c.name) return { strategy: 'name', value: c.name };
+    if (c.tag === 'button' && c.text) return { strategy: 'role', value: 'button:' + c.text };
+    return { strategy: 'css', value: fallback };
+  };
+
+  return {
+    username: locatorFor(username, 'input:not([type="hidden"]):not([type="password"])'),
+    password: locatorFor(password, 'input[type="password"]'),
+    submit: locatorFor(submit, 'button[type="submit"], input[type="submit"], button:not([type])'),
+  };
+}
+// </tathya:login-infer>
+
+/** The login page's controls, inferred from what it renders (the same rule the crawler uses). */
 export async function inferLoginControls(page: Page): Promise<LoginControls> {
   await page.waitForLoadState('domcontentloaded').catch(() => undefined);
-  return page.evaluate(() => {
-    type Candidate = {
-      tag: 'input' | 'button';
-      type: string;
-      name: string;
-      id: string;
-      placeholder: string;
-      autocomplete: string;
-      ariaLabel: string;
-      dataAttr: string;
-      dataValue: string;
-      text: string;
-      value: string;
-    };
-    const attr = (el: Element, name: string): string => el.getAttribute(name) ?? '';
-    const text = (el: Element): string => (el.textContent ?? '').replace(/\s+/g, ' ').trim();
-    const candidateText = (candidate: Candidate): string => [
-      candidate.type,
-      candidate.name,
-      candidate.id,
-      candidate.placeholder,
-      candidate.autocomplete,
-      candidate.ariaLabel,
-      candidate.dataValue,
-      candidate.text,
-      candidate.value,
-    ].join(' ').toLowerCase();
-    const stableId = (value: string): boolean => value.length > 0 && !/[0-9a-f]{8,}|:/.test(value);
-    const cssEscape = (value: string): string => {
-      const escaper = (globalThis as typeof globalThis & { CSS?: { escape?: (v: string) => string } }).CSS?.escape;
-      return escaper ? escaper(value) : value.replace(/["\\]/g, '\\$&');
-    };
-    const inputCandidate = (input: HTMLInputElement): Candidate => ({
-      tag: 'input',
-      type: (input.type || 'text').toLowerCase(),
-      name: input.name,
-      id: input.id,
-      placeholder: input.placeholder,
-      autocomplete: input.autocomplete,
-      ariaLabel: attr(input, 'aria-label'),
-      dataAttr: attr(input, 'data-test') ? 'data-test' : attr(input, 'data-testid') ? 'data-testid' : '',
-      dataValue: attr(input, 'data-test') || attr(input, 'data-testid'),
-      text: '',
-      value: input.value,
-    });
-    const buttonCandidate = (button: HTMLButtonElement | HTMLInputElement): Candidate => ({
-      tag: button.tagName.toLowerCase() === 'button' ? 'button' : 'input',
-      type: (attr(button, 'type') || (button instanceof HTMLButtonElement ? 'submit' : 'text')).toLowerCase(),
-      name: attr(button, 'name'),
-      id: attr(button, 'id'),
-      placeholder: attr(button, 'placeholder'),
-      autocomplete: attr(button, 'autocomplete'),
-      ariaLabel: attr(button, 'aria-label'),
-      dataAttr: attr(button, 'data-test') ? 'data-test' : attr(button, 'data-testid') ? 'data-testid' : '',
-      dataValue: attr(button, 'data-test') || attr(button, 'data-testid'),
-      text: button instanceof HTMLInputElement ? '' : text(button),
-      value: button instanceof HTMLInputElement ? button.value : attr(button, 'value'),
-    });
-    const locatorFor = (candidate: Candidate | undefined, kind: 'username' | 'password' | 'submit'): LoginLocator => {
-      if (!candidate) {
-        if (kind === 'submit') return { strategy: 'css', value: 'button[type="submit"], input[type="submit"], button:not([type])' };
-        return { strategy: 'css', value: kind === 'username' ? 'input:not([type="hidden"]):not([type="password"])' : 'input[type="password"]' };
-      }
-      if (candidate.dataAttr && candidate.dataValue) return { strategy: 'css', value: '[' + candidate.dataAttr + '="' + cssEscape(candidate.dataValue) + '"]' };
-      if (candidate.placeholder) return { strategy: 'placeholder', value: candidate.placeholder };
-      if (stableId(candidate.id)) return { strategy: 'id', value: candidate.id };
-      if (candidate.name) return { strategy: 'name', value: candidate.name };
-      const buttonText = candidate.text || candidate.value;
-      if (candidate.tag === 'button' && buttonText) return { strategy: 'role', value: 'button:' + buttonText };
-      return { strategy: 'css', value: candidate.tag === 'button' ? 'button' : 'input' };
-    };
-    const inputs = Array.from(document.querySelectorAll<HTMLInputElement>('input'))
-      .map(inputCandidate)
-      .filter((input) => !['hidden', 'submit', 'button', 'reset', 'image', 'file'].includes(input.type));
-    const buttons = [
-      ...Array.from(document.querySelectorAll<HTMLButtonElement>('button')).map(buttonCandidate),
-      ...Array.from(document.querySelectorAll<HTMLInputElement>('input[type="submit"], input[type="button"]')).map(buttonCandidate),
-    ];
-    const username = inputs
-      .map((input) => {
-        const haystack = candidateText(input);
-        let score = 0;
-        if (input.type === 'email') score += 100;
-        if (input.autocomplete.toLowerCase() === 'username') score += 90;
-        if (input.autocomplete.toLowerCase() === 'email') score += 80;
-        if (/(email|username|user|account|identifier|handle)/.test(haystack)) score += 50;
-        return { input, score };
-      })
-      .sort((a, b) => b.score - a.score)[0]?.input ?? inputs[0];
-    const password = inputs
-      .map((input) => {
-        const haystack = candidateText(input);
-        let score = 0;
-        if (input.type === 'password') score += 100;
-        if (/(password|passcode|pin)/.test(haystack)) score += 50;
-        return { input, score };
-      })
-      .sort((a, b) => b.score - a.score)[0]?.input ?? inputs.find((input) => input !== username) ?? inputs[1] ?? inputs[0];
-    const submit = buttons
-      .map((button) => {
-        const haystack = candidateText(button);
-        let score = 0;
-        if (button.dataValue) score += 100;
-        if (button.tag === 'button') score += 20;
-        if (/(log in|login|sign in|sign-in)/.test(haystack)) score += 50;
-        if (button.type === 'submit') score += 10;
-        return { button, score };
-      })
-      .sort((a, b) => b.score - a.score)[0]?.button ?? buttons[0];
-    return {
-      username: locatorFor(username, 'username'),
-      password: locatorFor(password, 'password'),
-      submit: locatorFor(submit, 'submit'),
-    };
-  });
+  // A client-rendered login page starts as an empty shell.
+  await page.locator('input:not([type="hidden"])').first().waitFor({ timeout: 5000 }).catch(() => undefined);
+  return page.evaluate(loginControlsOfDocument, null);
 }
 
 function cssEscape(value: string): string {
