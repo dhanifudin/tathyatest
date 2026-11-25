@@ -96,7 +96,7 @@ function entryFor(testCase: TestCase, index: number): ManifestEntry {
 }
 
 /**
- * Mirrors emit/ts.ts formAssertion: delete → gone + graceful; fieldless update with a labelled
+ * Mirrors ir/build.ts formOracles: delete → gone + graceful; fieldless update with a labelled
  * submit → state flip + graceful; valid GET form → query echo + graceful; everything else one
  * assertion.
  */
@@ -109,7 +109,7 @@ function formAssertionCount(testCase: Extract<TestCase, { kind: 'form' }>): numb
   return 1;
 }
 
-/** Mirrors emit/ts.ts linkLandingPath without needing the base URL: a navigable same-origin-looking href. */
+/** Mirrors ir/layout.ts linkLandingPath without needing the base URL: a navigable same-origin-looking href. */
 function hasLandingAssertion(testCase: Extract<TestCase, { kind: 'interaction' }>): boolean {
   const href = testCase.interaction.href?.trim() ?? '';
   if (testCase.interaction.type !== 'link' || href === '' || href.startsWith('#') || /^(javascript|mailto|tel|https?):/i.test(href)) return false;

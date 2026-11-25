@@ -15,6 +15,9 @@ hooks:                  # optional endpoints of the app the generated specs may 
 output:
   dir: tests/generated
   language: ts          # ts | js
+  framework: playwright # playwright | cypress; `--framework` overrides it per command
+cypress:                # read by the Cypress adapter only
+  browsers: [electron]  # one run per role and browser: electron (ships with Cypress), chrome, firefox, webkit (needs playwright-webkit)
 coverage: all           # positive | negative | edge | all
 oracle:
   errorSelector: ".invalid-feedback, [role=alert], .text-red-600, x-input-error p"
@@ -59,8 +62,8 @@ evaluation:             # `tt eval` — metric-based evaluation (writes metrics/
   outDir: metrics
   repeat: 10            # measurement repeats → 95% CI on timing + flake rate
   manualBaselineSecPerCase: 300   # labelled assumption for the time-savings ratio
-  baselineDir: tests/manual       # hand-written reference suite for the baseline comparison
-  faultProject: null   # restrict fault runs to one browser project (e.g. chromium) for speed
+  baselineDir: tests/manual       # hand-written reference suite (*.spec.ts for Playwright, *.cy.ts for Cypress)
+  faultProject: null   # restrict fault runs to one browser for every role (e.g. chromium, or electron for Cypress)
   # A bare `tt eval` evaluates THIS config as one stack. The stacks below are only used by
   # `tt eval --stack <name>` / `tt eval --all-stacks` (the cross-stack research study).
   # `coverage` (pcov | xdebug | none) and `faults` (true | false) are optional: left out, tt eval

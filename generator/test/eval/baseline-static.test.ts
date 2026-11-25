@@ -2,7 +2,10 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
-import { analyzeBaselineDir, analyzeSpecSource, classifySelector } from '../../src/eval/baseline-static.js';
+import { analyzeSpecSource, classifySelector } from '../../src/adapters/playwright/analyze.js';
+import { analyzeCypressSource, cypressRunner } from '../../src/adapters/cypress/runner.js';
+import { playwrightRunner } from '../../src/adapters/playwright/runner.js';
+import { analyzeBaselineDir } from '../../src/eval/baseline-static.js';
 
 // Minimal fixture spec — typical Playwright test with semantic locators.
 const FIXTURE_SEMANTIC = `
@@ -154,7 +157,7 @@ describe('analyzer details', () => {
       await writeFile(join(dir, 'a.spec.ts'), "test('a', async ({ page }) => { await new Cart(page).open(); });\n");
       await writeFile(join(dir, 'pages', 'cart.ts'), "export class Cart { async open() { await this.page.click('.cart'); await expect(this.page).toHaveURL('/cart'); } }\n");
       await writeFile(join(dir, 'node_modules', 'dep', 'index.spec.js'), "it('noise', () => { assert(1); assert(2); });\n");
-      const result = await analyzeBaselineDir(dir);
+      const result = await analyzeBaselineDir(dir, playwrightRunner);
       expect(result).not.toBeNull();
       expect(result?.testCount).toBe(1);
       expect(result?.sourceFiles).toBe(2);
@@ -163,5 +166,26 @@ describe('analyzer details', () => {
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe('a baseline directory shared by both frameworks', () => {
+  it('analyses only the framework\'s own specs', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'tt-static-shared-'));
+    try {
+      await writeFile(join(dir, 'a.spec.ts'), "test('a', async ({ page }) => { await expect(page).toHaveURL('/'); });\n");
+      await writeFile(join(dir, 'a.cy.ts'), "it('a', () => { cy.get('.x').should('exist'); });\nit('b', () => { cy.get('.y').should('exist'); });\n");
+      expect((await analyzeBaselineDir(dir, playwrightRunner))?.testCount).toBe(1);
+      expect((await analyzeBaselineDir(dir, cypressRunner))?.testCount).toBe(2);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('counts the generated Cypress helpers as assertions and byName as a name locator', () => {
+    const result = analyzeCypressSource('it("a", () => { fillIn(byName("q"), "x"); expectGraceful(); assertLoggedIn(); });');
+    expect(result.assertions).toBe(2);
+    expect(result.locatorCounts.name).toBe(1);
+    expect(result.locatorCounts.css).toBe(0);
   });
 });

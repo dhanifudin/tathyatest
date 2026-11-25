@@ -11,6 +11,11 @@ const cases: TestCase[] = [
   { kind: 'auth', tier: 'negative', title: 'admin is rejected with a wrong password', role: 'admin', username: 'admin@example.com', password: 'nope', expectSuccess: false },
 ];
 
+/** Every path under `dir`, `/`-separated on every platform. */
+async function listing(dir: string): Promise<string[]> {
+  return (await readdir(dir, { recursive: true })).map((entry) => entry.replaceAll('\\', '/')).sort();
+}
+
 describe('emit', () => {
   it('writes the suite in the configured language plus the manifest', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'tt-emit-index-'));
@@ -18,14 +23,27 @@ describe('emit', () => {
       const base = parseConfig({ baseUrl: 'http://127.0.0.1:8000', auth: { roles: [{ name: 'admin', username: 'admin@example.com', password: 'password' }] }, output: { dir } });
 
       await emit(cases, base);
-      let files = (await readdir(dir, { recursive: true })).filter((entry) => !entry.includes('/') || entry.endsWith('.ts') || entry.endsWith('.json')).sort();
-      expect(files).toEqual(['auth', 'auth/login.spec.ts', 'manifest.json', 'rbac', 'rbac/todos.spec.ts', 'support', 'support/tathya.ts']);
+      expect(await listing(dir)).toEqual(['auth', 'auth/login.spec.ts', 'manifest.json', 'rbac', 'rbac/todos.spec.ts', 'support', 'support/tathya.ts']);
       const manifest = JSON.parse(await readFile(join(dir, 'manifest.json'), 'utf8')) as Array<Record<string, unknown>>;
       expect(manifest.map((entry) => [entry.id, entry.category, entry.mutating])).toEqual([['t0001', 'rbac', false], ['t0002', 'auth', true]]);
 
       await emit(cases, { ...base, output: { ...base.output, language: 'js' } });
-      files = (await readdir(dir, { recursive: true })).sort();
-      expect(files).toEqual(['auth', 'auth/login.spec.js', 'manifest.json', 'rbac', 'rbac/todos.spec.js', 'support', 'support/tathya.js']);
+      expect(await listing(dir)).toEqual(['auth', 'auth/login.spec.js', 'manifest.json', 'rbac', 'rbac/todos.spec.js', 'support', 'support/tathya.js']);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('writes the Cypress suite and the same manifest for framework: cypress', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'tt-emit-cypress-'));
+    try {
+      const base = parseConfig({ baseUrl: 'http://127.0.0.1:8000', auth: { roles: [{ name: 'admin', username: 'admin@example.com', password: 'password' }] }, output: { dir, framework: 'cypress' } });
+      const manifest = await emit(cases, base);
+      expect(await listing(dir)).toEqual(['auth', 'auth/login.cy.ts', 'manifest.json', 'rbac', 'rbac/todos.cy.ts', 'support', 'support/e2e.ts', 'support/tathya.ts']);
+      expect(manifest).toEqual(await emit(cases, { ...base, output: { ...base.output, framework: 'playwright' } }));
+
+      await emit(cases, { ...base, output: { ...base.output, language: 'js' } });
+      expect(await listing(dir)).toEqual(['auth', 'auth/login.cy.js', 'manifest.json', 'rbac', 'rbac/todos.cy.js', 'support', 'support/e2e.js', 'support/tathya.js']);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

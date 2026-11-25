@@ -2,11 +2,13 @@ import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { emitJs } from '../../src/emit/js.js';
-import { emitTs, specFilesFor, specPathFor } from '../../src/emit/ts.js';
-import type { TathyaConfig } from '../../src/config.js';
-import type { TestCase } from '../../src/generate/test-case.js';
-import { emptyPage, makeConfig, noConstraints } from '../helpers/fixtures.js';
+import { emit } from '../../../src/emit/index.js';
+import { playwrightEmitter } from '../../../src/adapters/playwright/emitter.js';
+import { planFor } from '../../../src/ir/build.js';
+import { specStemFor } from '../../../src/ir/layout.js';
+import type { TathyaConfig } from '../../../src/config.js';
+import type { TestCase } from '../../../src/generate/test-case.js';
+import { emptyPage, makeConfig, noConstraints } from '../../helpers/fixtures.js';
 
 const config = makeConfig({ output: { dir: '', language: 'ts' } });
 
@@ -29,15 +31,15 @@ const paginationCase: TestCase = {
 
 describe('spec layout', () => {
   it('puts every case in a file per category and route shape', () => {
-    expect(specPathFor({ kind: 'auth', tier: 'positive', title: 't', role: 'admin', username: 'u', password: 'p', expectSuccess: true })).toBe('auth/login.spec.ts');
-    expect(specPathFor(paginationCase)).toBe('pagination/products.spec.ts');
-    expect(specPathFor({ kind: 'rbac', tier: 'negative', title: 't', role: 'user', route: '/todos/7/edit?tab=1', expectAllowed: false })).toBe('rbac/todos-id-edit.spec.ts');
-    expect(specPathFor({ kind: 'rbac', tier: 'positive', title: 't', role: 'admin', route: '/', expectAllowed: true })).toBe('rbac/root.spec.ts');
-    expect(specPathFor({ kind: 'interaction', tier: 'positive', title: 't', role: 'admin', page: emptyPage('/inventory.html', 'Inventory'), interaction: { type: 'link', label: 'Cart', locator: { strategy: 'role', value: 'link:Cart' }, ordinal: 0, href: '/cart.html' } })).toBe('interactions/inventory-html.spec.ts');
+    expect(`${specStemFor({ kind: 'auth', tier: 'positive', title: 't', role: 'admin', username: 'u', password: 'p', expectSuccess: true })}.spec.ts`).toBe('auth/login.spec.ts');
+    expect(`${specStemFor(paginationCase)}.spec.ts`).toBe('pagination/products.spec.ts');
+    expect(`${specStemFor({ kind: 'rbac', tier: 'negative', title: 't', role: 'user', route: '/todos/7/edit?tab=1', expectAllowed: false })}.spec.ts`).toBe('rbac/todos-id-edit.spec.ts');
+    expect(`${specStemFor({ kind: 'rbac', tier: 'positive', title: 't', role: 'admin', route: '/', expectAllowed: true })}.spec.ts`).toBe('rbac/root.spec.ts');
+    expect(`${specStemFor({ kind: 'interaction', tier: 'positive', title: 't', role: 'admin', page: emptyPage('/inventory.html', 'Inventory'), interaction: { type: 'link', label: 'Cart', locator: { strategy: 'role', value: 'link:Cart' }, ordinal: 0, href: '/cart.html' } })}.spec.ts`).toBe('interactions/inventory-html.spec.ts');
   });
 
   it('always ships the support module and one spec per group', () => {
-    const files = specFilesFor([paginationCase], config);
+    const files = playwrightEmitter.files([planFor(paginationCase, config)], config);
 
     expect([...files.keys()]).toEqual(['support/tathya.ts', 'pagination/products.spec.ts']);
     expect(files.get('pagination/products.spec.ts')).toContain("from '../support/tathya.js';");
@@ -54,7 +56,7 @@ describe('emitTs', () => {
         { kind: 'auth', tier: 'negative', title: 'login admin wrong-password -> error', role: 'admin', username: 'admin@example.com', password: 'password-wrong', expectSuccess: false },
       ];
 
-      await emitTs(cases, { ...config, output: { ...config.output, dir } });
+      await emit(cases, { ...config, output: { ...config.output, dir } });
       const authSpec = await readFile(join(dir, 'auth', 'login.spec.ts'), 'utf8');
       const support = await readFile(join(dir, 'support', 'tathya.ts'), 'utf8');
 
@@ -65,7 +67,7 @@ describe('emitTs', () => {
       expect(authSpec).toContain('assertLoggedIn(page)');
       expect(authSpec).toContain('assertLoginRejected(page)');
 
-      await emitTs([{
+      await emit([{
         kind: 'auth', tier: 'positive', title: 'admin logs out', role: 'admin', username: 'admin@example.com', password: 'password', expectSuccess: true,
         logout: {
           page: emptyPage('/dashboard', 'Dashboard'),
@@ -129,7 +131,7 @@ describe('emitTs', () => {
         },
       ];
 
-      await emitTs(cases, localConfig);
+      await emit(cases, localConfig);
       const formsSpec = await readFile(join(dir, 'forms', 'todos-create.spec.ts'), 'utf8');
 
       expect(formsSpec).toContain("import { faker } from '@faker-js/faker';");
@@ -172,7 +174,7 @@ describe('emitTs', () => {
         },
       ];
 
-      await emitTs(cases, { ...config, output: { ...config.output, dir } });
+      await emit(cases, { ...config, output: { ...config.output, dir } });
       const spec = await readFile(join(dir, 'forms', 'profile.spec.ts'), 'utf8');
       const support = await readFile(join(dir, 'support', 'tathya.ts'), 'utf8');
 
@@ -217,7 +219,7 @@ describe('emitTs', () => {
         },
       ];
 
-      await emitTs(cases, { ...config, output: { ...config.output, dir } });
+      await emit(cases, { ...config, output: { ...config.output, dir } });
       const forms = await readFile(join(dir, 'forms', 'todos.spec.ts'), 'utf8');
       const links = await readFile(join(dir, 'interactions', 'dashboard.spec.ts'), 'utf8');
 
@@ -244,7 +246,7 @@ describe('emitTs', () => {
         targetField: null, variant: { kind: 'positive', name: 'valid', value: '', outcome: 'success' },
         values: { firstName: { kind: 'literal', value: 'Jane' } },
       }];
-      await emitTs(cases, { ...config, output: { ...config.output, dir } });
+      await emit(cases, { ...config, output: { ...config.output, dir } });
       const forms = await readFile(join(dir, 'forms', 'checkout.spec.ts'), 'utf8');
       expect(forms).not.toContain('await expectQueryEcho(page,');
       expect(forms).toContain('Expect the submission to succeed');
@@ -275,7 +277,7 @@ describe('emitTs', () => {
         },
       ];
 
-      await emitTs(cases, { ...config, output: { ...config.output, dir } });
+      await emit(cases, { ...config, output: { ...config.output, dir } });
       const formsSpec = await readFile(join(dir, 'forms', 'todos-create.spec.ts'), 'utf8');
 
       expect(formsSpec).toContain('HTMLSelectElement');
@@ -322,7 +324,7 @@ describe('emitTs', () => {
         },
       ];
 
-      await emitTs(cases, { ...config, output: { ...config.output, dir } });
+      await emit(cases, { ...config, output: { ...config.output, dir } });
       const formsSpec = await readFile(join(dir, 'forms', 'todos-create.spec.ts'), 'utf8');
 
       expect(formsSpec).toContain('selectedIndex = -1');
@@ -347,7 +349,7 @@ describe('emitTs', () => {
         },
       ];
 
-      await emitTs(cases, { ...config, output: { ...config.output, dir } });
+      await emit(cases, { ...config, output: { ...config.output, dir } });
       const interactionsSpec = await readFile(join(dir, 'interactions', 'inventory-html.spec.ts'), 'utf8');
 
       expect(interactionsSpec).toContain('page.getByRole("button", { name: "Add to cart" }).nth(1)');
@@ -371,7 +373,7 @@ describe('emitTs', () => {
         { kind: 'rbac', tier: 'positive', title: 'standard_user can visit /cart.html -> allowed', role: 'standard_user', route: '/cart.html', expectAllowed: true },
       ];
 
-      await emitTs(cases, { ...config, output: { ...config.output, dir } });
+      await emit(cases, { ...config, output: { ...config.output, dir } });
       const adminUsers = await readFile(join(dir, 'rbac', 'admin-users.spec.ts'), 'utf8');
       const cart = await readFile(join(dir, 'rbac', 'cart-html.spec.ts'), 'utf8');
       const support = await readFile(join(dir, 'support', 'tathya.ts'), 'utf8');
@@ -386,7 +388,7 @@ describe('emitTs', () => {
       expect(adminUsers).toContain('expectRouteBlocked(page, response, "/admin/users")');
       expect(cart).toContain('expectRouteAllowed(page, response, "/cart.html")');
 
-      await emitTs([{
+      await emit([{
         kind: 'rbac', tier: 'negative', title: 'user does not see the "Users" link to /admin/users on /dashboard', role: 'user', route: '/dashboard', expectAllowed: false,
         affordance: { label: 'Users', locator: { strategy: 'role', value: 'link:Users' }, href: '/admin/users', page: emptyPage('/dashboard', 'Dashboard') },
       }], { ...config, output: { ...config.output, dir } });
@@ -417,7 +419,7 @@ describe('emitTs', () => {
   it('emits pagination specs with a web-first landing assertion', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'tt-emit-pagination-'));
     try {
-      await emitTs([paginationCase], { ...config, output: { ...config.output, dir } });
+      await emit([paginationCase], { ...config, output: { ...config.output, dir } });
       const paginationSpec = await readFile(join(dir, 'pagination', 'products.spec.ts'), 'utf8');
 
       expect(paginationSpec).toContain('app.loginAs("admin")');
@@ -434,12 +436,12 @@ describe('emitTs', () => {
     try {
       const cases: TestCase[] = [{ kind: 'rbac', tier: 'positive', title: 'admin can open /todos', role: 'admin', route: '/todos', expectAllowed: true }];
 
-      await emitTs(cases, { ...config, output: { ...config.output, dir } });
+      await emit(cases, { ...config, output: { ...config.output, dir } });
       const withoutHook = await readFile(join(dir, 'support', 'tathya.ts'), 'utf8');
       expect(withoutHook).not.toContain('__testing');
       expect(withoutHook).toContain('const resetHook: { method: \'POST\' | \'GET\' | \'DELETE\'; path: string } | null = null;');
 
-      await emitTs(cases, { ...config, output: { ...config.output, dir }, hooks: { reset: { method: 'POST', path: '/__testing/reset' } } });
+      await emit(cases, { ...config, output: { ...config.output, dir }, hooks: { reset: { method: 'POST', path: '/__testing/reset' } } });
       const withHook = await readFile(join(dir, 'support', 'tathya.ts'), 'utf8');
       expect(withHook).toContain('= {"method":"POST","path":"/__testing/reset"};');
       expect(withHook).toContain('await page.request.fetch(resetHook.path, { method: resetHook.method });');
@@ -461,14 +463,14 @@ describe('emitTs', () => {
         },
       ];
 
-      await emitTs(cases, { ...config, output: { ...config.output, dir }, hooks: { reset: { method: 'POST', path: '/__testing/reset' } } });
+      await emit(cases, { ...config, output: { ...config.output, dir }, hooks: { reset: { method: 'POST', path: '/__testing/reset' } } });
       const readWrite = await readFile(join(dir, 'pagination', 'products.spec.ts'), 'utf8');
       const buttons = await readFile(join(dir, 'interactions', 'inventory-html.spec.ts'), 'utf8');
       expect(readWrite).toContain('"@role:admin","@read"]');
       expect(buttons).toContain('"@role:admin","@write"]');
       expect(readWrite).toContain('app.loginAs("admin")');
 
-      await emitTs(cases, { ...config, mode: 'read-only', output: { ...config.output, dir }, hooks: { reset: { method: 'POST', path: '/__testing/reset' } } });
+      await emit(cases, { ...config, mode: 'read-only', output: { ...config.output, dir }, hooks: { reset: { method: 'POST', path: '/__testing/reset' } } });
       const readOnly = await readFile(join(dir, 'pagination', 'products.spec.ts'), 'utf8');
       const rbac = await readFile(join(dir, 'rbac', 'todos.spec.ts'), 'utf8');
       const support = await readFile(join(dir, 'support', 'tathya.ts'), 'utf8');
@@ -500,7 +502,7 @@ describe('emitTs', () => {
         },
       ];
 
-      await emitJs(cases, { ...config, output: { ...config.output, dir, language: 'js' } });
+      await emit(cases, { ...config, output: { ...config.output, dir, language: 'js' } });
 
       const support = await readFile(join(dir, 'support', 'tathya.js'), 'utf8');
       const interactionsSpec = await readFile(join(dir, 'interactions', 'inventory-html.spec.js'), 'utf8');

@@ -1,7 +1,9 @@
 import { chdir, cwd } from 'node:process';
 import { access, mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
-import { controlPlaneOf, DEFAULT_CONTROL_PLANE, loadConfig, type ControlPlane, type TathyaConfig } from '../config.js';
+import { adapterFor } from '../adapters/registry.js';
+import type { Framework, RunJsonOptions, TestRunner } from '../adapters/types.js';
+import { controlPlaneOf, DEFAULT_CONTROL_PLANE, loadConfig, withFramework, type ControlPlane, type TathyaConfig } from '../config.js';
 import { runCrawl } from '../crawl/crawl.js';
 import { assertReachable, isReachable } from '../crawl/reachability.js';
 import type { ManifestEntry } from '../generate/manifest.js';
@@ -9,11 +11,9 @@ import { generateSuite, type GeneratedSuite } from '../pipeline.js';
 import { computeMetrics, type FaultRun, type MetricsInput, type MetricsReport, type SuiteRun, type SutCoverage } from './metrics/index.js';
 import { collectProvenance, type Provenance } from './provenance.js';
 import { faultsForClasses, loadFaultCatalogue, type FaultSpec } from './faults.js';
-import { runPlaywrightJson } from './playwright.js';
 import { renderReportJson, renderReportMarkdown, type StackReport } from './report.js';
-import { analyzeBaselineDir } from './baseline-static.js';
+import { analyzeBaselineDir, hasSpecs } from './baseline-static.js';
 import { log } from '../logger.js';
-import { escapeRegExp } from '../util/escape.js';
 import { DEFAULT_PATHS } from '../util/paths.js';
 
 type StackConfig = TathyaConfig['evaluation']['stacks'][number];
@@ -28,6 +28,8 @@ export type EvalOptions = {
   faults?: boolean;
   coverage?: boolean;
   baseline?: boolean;
+  /** `--framework`: overrides every stack's `output.framework`. */
+  framework?: Framework;
 };
 
 export async function runEvaluation(rootConfig: TathyaConfig, options: EvalOptions = {}): Promise<void> {
@@ -42,8 +44,9 @@ export async function runEvaluation(rootConfig: TathyaConfig, options: EvalOptio
       await assertReachable(stack.baseUrl);
     }
     log.info(`\n[eval] stack "${stack.name}" (${stack.baseUrl})`);
-    const evaluated = await runStack(stack, rootConfig, options);
-    reports.push({ name: stack.name, report: evaluated.report, provenance: evaluated.provenance });
+    const { framework, report, provenance } = await runStack(stack, rootConfig, options);
+    // Playwright rows keep their historical names; other frameworks are labelled `<stack>/<framework>`.
+    reports.push({ name: framework === 'playwright' ? stack.name : `${stack.name}/${framework}`, report, provenance });
   }
   if (reports.length === 0) throw new Error('[eval] no reachable stack to evaluate');
   await writeReports(rootConfig.evaluation.outDir, reports);
@@ -96,15 +99,17 @@ export async function detectCapabilities(
   return { coverage, faults };
 }
 
-async function runStack(stack: StackConfig, rootConfig: TathyaConfig, options: EvalOptions): Promise<{ report: MetricsReport; provenance: Provenance }> {
+async function runStack(stack: StackConfig, rootConfig: TathyaConfig, options: EvalOptions): Promise<{ framework: Framework; report: MetricsReport; provenance: Provenance }> {
   const originalCwd = cwd();
   const originalTathyaConfig = process.env.TATHYA_CONFIG;
   chdir(resolve(originalCwd, stack.dir));
-  // Point the spawned Playwright runs (root playwright.config.ts + global setup read this) at the
-  // stack's config so baseURL, roles, and storage states match the stack under evaluation.
+  // Point the spawned framework runs (the root playwright.config.ts / cypress.config.ts read this)
+  // at the stack's config so baseURL, roles, and storage states match the stack under evaluation.
   process.env.TATHYA_CONFIG = stack.config;
   try {
-    const config = await loadConfig(stack.config);
+    const config = withFramework(await loadConfig(stack.config), options.framework);
+    const { runner } = adapterFor(config.output.framework);
+    log.info(`[eval] framework: ${config.output.framework}`);
     const repeat = options.repeat ?? rootConfig.evaluation.repeat;
     const plane = controlPlaneOf(rootConfig);
     const catalogue = await loadFaultCatalogue(rootConfig.evaluation.faults.catalogue);
@@ -139,23 +144,23 @@ async function runStack(stack: StackConfig, rootConfig: TathyaConfig, options: E
       for (const which of order) {
         if (which === 'generated') {
           const start = Date.now();
-          runs.push(await runPlaywrightJson({ cwd: '.' }));
+          runs.push(await runner.runJson(config, { cwd: '.' }));
           executeMs.push(Date.now() - start);
           if (i === 0 && collectCoverage) sutCoverage = await fetchCoverage(stack.baseUrl, plane.coverage);
         } else if (runBaselineToo) {
-          baselineRuns.push(...(await runBaselineOnce(config)));
+          baselineRuns.push(...(await runBaselineOnce(runner, config)));
         }
       }
     }
-    const baselineStatic = await analyzeBaselineDir(config.evaluation.baselineDir);
+    const baselineStatic = await analyzeBaselineDir(config.evaluation.baselineDir, runner);
     // The generated suite goes through the same analyser; its shared helper module is skipped because
     // helper calls are already counted as assertions where the specs call them.
-    const generatedStatic = await analyzeBaselineDir(config.output.dir, { ignorePath: /[\\/]support[\\/]tathya\.(ts|js)$/ });
+    const generatedStatic = await analyzeBaselineDir(config.output.dir, runner, { ignorePath: /[\\/]support[\\/]tathya\.(ts|js)$/ });
     // Skip fault injection when the app has no fault endpoint (probed or `faults: false`) or when
     // disabled by flag/config.
     const runFaultsEnabled = capabilities.faults && options.faults !== false && rootConfig.evaluation.faults.enabled;
-    const faultRuns = runFaultsEnabled ? await runFaults(stack, rootConfig, config, manifest, plane, catalogue) : [];
-    const baselineFaultRuns = runFaultsEnabled ? await runBaselineFaults(stack, rootConfig, config, plane, catalogue) : [];
+    const faultRuns = runFaultsEnabled ? await runFaults(runner, stack, rootConfig, config, manifest, plane, catalogue) : [];
+    const baselineFaultRuns = runFaultsEnabled ? await runBaselineFaults(runner, stack, rootConfig, config, plane, catalogue) : [];
 
     if (collectCoverage) await control(stack.baseUrl, 'POST', plane.coverageReset);
 
@@ -176,7 +181,7 @@ async function runStack(stack: StackConfig, rootConfig: TathyaConfig, options: E
       baseline: runBaselineToo,
       serverMode: collectCoverage ? 'COVERAGE=1 (PCOV)' : 'plain',
     });
-    return { report: computeMetrics(input), provenance };
+    return { framework: config.output.framework, report: computeMetrics(input), provenance };
   } finally {
     if (originalTathyaConfig === undefined) delete process.env.TATHYA_CONFIG;
     else process.env.TATHYA_CONFIG = originalTathyaConfig;
@@ -185,18 +190,22 @@ async function runStack(stack: StackConfig, rootConfig: TathyaConfig, options: E
 }
 
 /** One execution of the manual or public baseline suite (empty when the baseline directory has no specs). */
-async function runBaselineOnce(config: TathyaConfig): Promise<SuiteRun[]> {
+async function runBaselineOnce(runner: TestRunner, config: TathyaConfig): Promise<SuiteRun[]> {
+  const options = await baselineRunOptions(runner, config);
+  return options ? [await runner.runJson(config, options)] : [];
+}
+
+/**
+ * How to run the manual baseline: null when `baselineDir` has no specs of this framework. If the
+ * baseline dir ships its own framework config, use it so the public suites run under their own
+ * setup (no role storageState, correct baseURL); otherwise run its specs under the root config.
+ */
+async function baselineRunOptions(runner: TestRunner, config: TathyaConfig): Promise<RunJsonOptions | null> {
   const dir = config.evaluation.baselineDir;
-  if (!(await hasSpecs(dir))) return [];
-  // If the baseline dir ships its own playwright.config.ts, use it so the
-  // public suites run under their own setup (no role storageState, correct baseURL).
-  const standaloneConfig = join(dir, 'playwright.config.ts');
+  if (!(await hasSpecs(dir, runner.specFile))) return null;
+  const standaloneConfig = join(dir, runner.configFileName);
   const hasConfig = await access(standaloneConfig).then(() => true).catch(() => false);
-  // The root config's testDir points at tests/generated; retarget it or the baseline
-  // path filter matches zero tests and the run is silently empty.
-  return [hasConfig
-    ? await runPlaywrightJson({ cwd: '.', config: standaloneConfig })
-    : await runPlaywrightJson({ cwd: '.', env: { TATHYA_TESTDIR: dir } })];
+  return hasConfig ? { cwd: '.', configFile: standaloneConfig } : { cwd: '.', testDir: dir };
 }
 
 /**
@@ -204,12 +213,10 @@ async function runBaselineOnce(config: TathyaConfig): Promise<SuiteRun[]> {
  * A fault is killed when any baseline test fails while the fault is active.
  * Localization accuracy is not computed (baseline titles don't map to the fault catalogue).
  */
-async function runBaselineFaults(stack: StackConfig, rootConfig: TathyaConfig, config: TathyaConfig, plane: ControlPlane, catalogue: FaultSpec[]): Promise<FaultRun[]> {
-  const dir = config.evaluation.baselineDir;
-  if (!(await hasSpecs(dir))) return [];
+async function runBaselineFaults(runner: TestRunner, stack: StackConfig, rootConfig: TathyaConfig, config: TathyaConfig, plane: ControlPlane, catalogue: FaultSpec[]): Promise<FaultRun[]> {
+  const options = await baselineRunOptions(runner, config);
+  if (!options) return [];
   const faults = faultsForClasses(rootConfig.evaluation.faults.classes, catalogue);
-  const standaloneConfig = join(dir, 'playwright.config.ts');
-  const hasConfig = await access(standaloneConfig).then(() => true).catch(() => false);
   const faultRuns: FaultRun[] = [];
   for (const fault of faults) {
     const set = await control(stack.baseUrl, 'POST', plane.fault, { id: fault.id });
@@ -217,36 +224,20 @@ async function runBaselineFaults(stack: StackConfig, rootConfig: TathyaConfig, c
       log.warn(`[eval] could not activate fault ${fault.id} for baseline; skipping`);
       continue;
     }
-    const suite = hasConfig
-      ? await runPlaywrightJson({ cwd: '.', config: standaloneConfig })
-      : await runPlaywrightJson({ cwd: '.', env: { TATHYA_TESTDIR: dir } });
+    const suite = await runner.runJson(config, options);
     faultRuns.push({ id: fault.id, faultClass: fault.faultClass, expected: fault.expected, outcomes: suite.outcomes });
   }
   await control(stack.baseUrl, 'POST', plane.faultClear);
   return faultRuns;
 }
 
-async function hasSpecs(dir: string): Promise<boolean> {
-  try {
-    await access(dir);
-    const entries = await readdir(dir, { recursive: true, withFileTypes: true });
-    return entries.some((entry) => entry.isFile() && /\.spec\.(t|j)s$/.test(entry.name));
-  } catch {
-    return false;
-  }
-}
-
-async function runFaults(stack: StackConfig, rootConfig: TathyaConfig, config: TathyaConfig, manifest: ManifestEntry[], plane: ControlPlane, catalogue: FaultSpec[]): Promise<FaultRun[]> {
+async function runFaults(runner: TestRunner, stack: StackConfig, rootConfig: TathyaConfig, config: TathyaConfig, manifest: ManifestEntry[], plane: ControlPlane, catalogue: FaultSpec[]): Promise<FaultRun[]> {
   const byTitle = new Map(manifest.map((entry) => [entry.title, entry] as const));
   const faults = faultsForClasses(rootConfig.evaluation.faults.classes, catalogue);
-  // faultProject names a browser (e.g. chromium); with per-role projects the real project names
-  // are `${role}-${browser}`, and every role must still run so role-dependent faults (authz) hit
-  // their relevant tests.
+  // faultProject names a browser (e.g. chromium); the runner maps it to its projects for every
+  // role, so role-dependent faults (authz) still hit their relevant tests.
   const faultProject = rootConfig.evaluation.faultProject;
-  const roleNames = config.auth.roles.map((role) => role.name);
-  const projects = faultProject
-    ? (roleNames.length > 0 ? roleNames.map((role) => `${role}-${faultProject}`) : [faultProject])
-    : undefined;
+  const browsers = faultProject ? [faultProject] : undefined;
   const faultRuns: FaultRun[] = [];
   for (const fault of faults) {
     // Only the tests the fault is relevant to count towards its mutation score, so restrict the
@@ -261,8 +252,7 @@ async function runFaults(stack: StackConfig, rootConfig: TathyaConfig, config: T
       log.warn(`[eval] could not activate fault ${fault.id}; skipping`);
       continue;
     }
-    const grep = relevantEntries.map((entry) => escapeRegExp(entry.title)).join('|');
-    const suite = await runPlaywrightJson({ cwd: '.', projects, grep });
+    const suite = await runner.runJson(config, { cwd: '.', browsers, titles: relevantEntries.map((entry) => entry.title) });
     const relevant = suite.outcomes.filter((outcome) => {
       const entry = byTitle.get(outcome.title);
       return entry ? fault.relevant(entry) : false;
@@ -272,7 +262,6 @@ async function runFaults(stack: StackConfig, rootConfig: TathyaConfig, config: T
   await control(stack.baseUrl, 'POST', plane.faultClear);
   return faultRuns;
 }
-
 
 async function fetchCoverage(baseUrl: string, path: string): Promise<SutCoverage | null> {
   try {
@@ -323,7 +312,8 @@ async function timed(action: () => Promise<unknown>): Promise<number> {
 async function writeReports(outDir: string, reports: StackReport[]): Promise<void> {
   await mkdir(outDir, { recursive: true });
   for (const stack of reports) {
-    const dir = join(outDir, stack.name);
+    // `<stack>/<framework>` stays one folder level, where `loadStackReports` looks for it.
+    const dir = join(outDir, stack.name.replaceAll('/', '-'));
     await mkdir(dir, { recursive: true });
     await writeFile(join(dir, 'report.json'), `${JSON.stringify(renderReportJson([stack]), null, 2)}\n`);
     await writeFile(join(dir, 'report.md'), renderReportMarkdown([stack]));

@@ -1,6 +1,6 @@
 # CLAUDE.md: TathyaTest (tt)
 
-Automated Playwright test-case generator for functional testing of web apps with a login form,
+Automated Playwright/Cypress test-case generator for functional testing of web apps with a login form,
 server-rendered or single-page. The generator is framework-agnostic; the Laravel Blade/Inertia apps
 under `case-study/` and SauceDemo are evaluation subjects, not the target.
 
@@ -19,7 +19,8 @@ tt init  →  tt crawl  →  tt generate  →  tt run  →  tt eval
 | `docs/vscode.md` | tasks, breakpoints, Xdebug, troubleshooting |
 | `AGENTS.md` | the invariants and contracts you must never break (crawl contract, RBAC, faults, locators, oracles, task boundaries) |
 | `CONTRIBUTING.md` | workflow, commit style, PR checklist, how to add a variant, oracle, or fault |
-| `docs/prd/` | planned work on framework adapters (Cypress first) |
+| `docs/adapters/` | `adding-rules.md` (add a rule once for every framework), `ir-migration-report.md` (where each rule lives) |
+| `docs/prd/` | requirements behind the framework adapters |
 | `docs/history/` | superseded plans, kept for context only |
 
 Do not restate those documents here. If a fact is wrong, fix it at its source.
@@ -27,7 +28,7 @@ Do not restate those documents here. If a fact is wrong, fix it at its source.
 ## Repository map
 
 ```
-generator/              TypeScript CLI (`tt`): src/{cli,crawl,auth,generate,emit,eval,util}, test/ mirrors src/
+generator/              TypeScript CLI (`tt`): src/{cli,crawl,auth,generate,ir,adapters,emit,eval,util}, test/ mirrors src/
 case-study/             Laravel Breeze test targets (todo-blade, todo-inertia-react) with the eval harness
 tests/manual/           hand-written baselines used by `tt eval`
 tests/baseline-public/  three public SauceDemo suites (git submodules)
@@ -44,6 +45,7 @@ make serve STACK=blade              # COVERAGE=1 php artisan serve (inside nix-s
 make verify                         # typecheck + lint + tests + tt smoke
 cd generator && npm run typecheck && npm run lint && npm test
 tt -c tathya.blade.config.yaml all  # -c goes BEFORE the sub-command
+tt generate --framework cypress     # --framework goes AFTER it (playwright | cypress)
 ```
 
 Always run PHP and `php artisan` inside `nix-shell`; PHP is not installed globally.
@@ -56,20 +58,23 @@ Seeded accounts: `admin@example.com` and `user@example.com`, password `password`
 - `src/crawl/model.ts` is the crawl contract. Keep `src/crawl/dom-extract.ts` (the producer) in sync;
   bump `CRAWL_SCHEMA_VERSION` (currently 2) when a field changes meaning or is removed, add a zod
   default for purely additive fields.
-- `generate/*`, `eval/metrics/*`, `eval/stats.ts` are pure: no I/O, no Playwright. They take loaded data
-  and return values. `eval/runner.ts` owns process spawning and file writes.
-- `generate/oracle.ts`, `generate/locator.ts`, `generate/faker.ts` return **source strings** for the
-  emitted specs; faker never runs at generation time.
+- `generate/*`, `ir/*`, `eval/metrics/*`, `eval/stats.ts` are pure: no I/O, no Playwright. They take loaded
+  data and return values. `eval/runner.ts` and `adapters/*/runner.ts` own process spawning and file writes.
+- Rules are decided above the IR (`generate/` for which tests exist, `ir/build.ts` for how each runs); the
+  emitters in `adapters/<framework>/emitter.ts` only render `TestPlan`s. Follow `docs/adapters/adding-rules.md`.
+- `generate/faker.ts` returns **expression strings** that the IR carries verbatim; faker never runs at generation time.
 - Nothing framework-specific in code paths. Emitted specs call no app endpoint except the optional
   `hooks.reset`; `tt eval` reaches the app through `evaluation.controlPlane` (default `/__testing/*`).
   Laravel knowledge belongs in `case-study/` and the example configs.
 - Emitters build strings with template literals; never `eval` or `Function()`. The generated support
-  module is a real file, `generator/src/emit/templates/support.ts`, so it is typechecked.
+  modules are real files (`generator/src/adapters/<framework>/templates/`), so they are typechecked
+  (the Cypress ones through `generator/tsconfig.cypress.json`).
 - Library code does not call `process.exit` or `console.*`; throw, or use `src/logger.ts`.
 - Use `@clack/prompts` for all prompts in `cli/init.ts`.
 - Tests live in `generator/test/<area>/` mirroring `src/`. `test/golden.test.ts` pins the whole
-  generation output on recorded crawls; regenerate with `UPDATE_GOLDEN=1` only for a deliberate change
-  and review the diff.
+  generation output on recorded crawls for each framework (`fixtures/golden/`, `fixtures/golden-cypress/`);
+  regenerate with `UPDATE_GOLDEN=1` only for a deliberate change and review the diff.
+- On Windows, keep LF line endings (`.gitattributes`); a CRLF checkout breaks the template loader and the golden test.
 
 ## PHP / Laravel conventions (`case-study/`)
 
@@ -100,7 +105,8 @@ The case studies are test targets, not production code; prefer clarity over eleg
 - [ ] the emitted specs typecheck (the golden fixtures are covered by `npm run typecheck`)
 - [ ] if the crawler changed: `tt crawl` produces valid JSON for each role
 - [ ] if emitters changed: `tt generate` writes `manifest.json`; a create spec imports `@faker-js/faker`,
-      declares `const f_<field> = faker.…` and asserts that variable
+      declares `const f_<field> = faker.…` and asserts that variable (check both `--framework` values)
+- [ ] if the IR or an adapter changed: `test/adapters/conformance.test.ts` passes for every framework
 - [ ] if oracles changed: a negative test fails when the matching server validation is disabled
 - [ ] if eval changed: `tt eval` writes `metrics/report.{json,md}`; activating a fault via
       `POST /__testing/fault` makes the matching tests fail

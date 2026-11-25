@@ -1,0 +1,606 @@
+// TEMPLATE for the generated Cypress `support/tathya.ts` (see ../support.ts). This is real TypeScript,
+// typechecked against the Cypress types (generator/tsconfig.cypress.json); `tt generate` swaps the
+// block between the two config markers for values pinned from the user's config and prepends a
+// generated-file header. It mirrors the Playwright support module helper for helper, so a rule's
+// meaning is the same in both frameworks. Edit the code here, never in tests/generated/.
+import { queryAllByLabelText, queryAllByPlaceholderText, queryAllByRole, type ByRoleMatcher } from '@testing-library/dom';
+
+// <tathya:config>
+const loginPath = '/login';
+const errorSelector = '[role=alert]';
+const resetHook: { method: 'POST' | 'GET' | 'DELETE'; path: string } | null = null;
+// </tathya:config>
+
+// Credentials never land in generated files: cypress.config.ts reads them from TATHYA_CONFIG into
+// the `env` secrets, read here with cy.env(). The current role comes from `--expose role=<name>`.
+type Credentials = Record<string, { username: string; password: string }>;
+
+// ---------------------------------------------------------------------------------------------
+// Locators: the priority chain, resolved like Playwright's getBy* (one implementation, retried)
+// ---------------------------------------------------------------------------------------------
+
+export type Loc = { strategy: 'testid' | 'role' | 'label' | 'placeholder' | 'id' | 'name' | 'css'; value: string };
+
+export const byTestId = (value: string): Loc => ({ strategy: 'testid', value });
+export const byRole = (role: string, name?: string): Loc => ({ strategy: 'role', value: name === undefined ? role : `${role}:${name}` });
+export const byLabel = (value: string): Loc => ({ strategy: 'label', value });
+export const byPlaceholder = (value: string): Loc => ({ strategy: 'placeholder', value });
+export const byId = (value: string): Loc => ({ strategy: 'id', value });
+export const byName = (value: string): Loc => ({ strategy: 'name', value });
+export const byCss = (value: string): Loc => ({ strategy: 'css', value });
+
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace Cypress {
+    interface Chainable {
+      /** Retrying query for a TathyaTest locator, rooted at the previous subject or the page body. */
+      tt(locator: Loc): Chainable<JQuery<HTMLElement>>;
+    }
+  }
+}
+
+/** Register the `tt` query. Called once by the generated `support/e2e.ts`. */
+export function registerTathyaCommands(): void {
+  Cypress.Commands.addQuery('tt', function (locator: Loc) {
+    return (subject: unknown) => {
+      const root = Cypress.dom.isJquery(subject) && subject.length > 0 ? subject[0] : cy.$$('body')[0];
+      return Cypress.$(resolveAll(root, locator));
+    };
+  });
+}
+
+const normalize = (text: string): string => text.replace(/\s+/g, ' ').trim().toLowerCase();
+
+/**
+ * Every element `locator` matches under `root`, in document order. Names match the way Playwright
+ * matches them by default: role names and placeholders case-insensitively as substrings, labels
+ * exactly. Role queries skip inaccessible elements, as getByRole does.
+ */
+export function resolveAll(root: Element, locator: Loc): HTMLElement[] {
+  const container = root as HTMLElement;
+  switch (locator.strategy) {
+    case 'testid':
+      return [...root.querySelectorAll<HTMLElement>(`[data-testid="${attrEscape(locator.value)}"]`)];
+    case 'role': {
+      const [role, ...nameParts] = locator.value.split(':');
+      const name = nameParts.join(':');
+      const wanted = normalize(name);
+      return queryAllByRole(container, role as ByRoleMatcher, name ? { name: (accessibleName: string) => normalize(accessibleName).includes(wanted) } : {});
+    }
+    case 'label':
+      return queryAllByLabelText(container, locator.value, { exact: true });
+    case 'placeholder':
+      return queryAllByPlaceholderText(container, locator.value, { exact: false });
+    case 'id':
+      return [...root.querySelectorAll<HTMLElement>(`#${CSS.escape(locator.value)}`)];
+    case 'name':
+      return [...root.querySelectorAll<HTMLElement>(`[name="${attrEscape(locator.value)}"]`)];
+    case 'css':
+      return [...root.querySelectorAll<HTMLElement>(locator.value)];
+  }
+}
+
+function attrEscape(value: string): string {
+  return value.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
+}
+
+function isVisible(element: HTMLElement | undefined): element is HTMLElement {
+  return element !== undefined && Cypress.dom.isVisible(element);
+}
+
+/** `test.step` equivalent: the step title goes to the command log, then its commands run. */
+export function step(title: string, body: () => void): void {
+  cy.log(`**[step]** ${title}`);
+  body();
+}
+
+/**
+ * Yield whether `find` locates a visible element, polling for up to SETTLE_MS: a Cypress callback
+ * runs the moment the load event fired, before a client-rendered page has drawn its controls (a
+ * Playwright probe's browser round-trip gives them that time).
+ */
+const SETTLE_MS = 2000;
+function settled(find: (body: HTMLElement) => HTMLElement | undefined, deadline: number = Date.now() + SETTLE_MS): Cypress.Chainable<boolean> {
+  return cy.get('body', { log: false }).then(($body) => {
+    if (isVisible(find($body[0]))) return cy.wrap(true, { log: false });
+    if (Date.now() >= deadline) return cy.wrap(false, { log: false });
+    return cy.wait(100, { log: false }).then(() => settled(find, deadline));
+  });
+}
+
+/** Skip the test when the target (the `ordinal`-th match) is absent or hidden. */
+export function skipUnlessVisible(ctx: Mocha.Context, locator: Loc, ordinal: number, reason: string): void {
+  settled((body) => resolveAll(body, locator)[ordinal]).then((visible) => {
+    if (!visible) {
+      cy.log(reason);
+      ctx.skip();
+    }
+  });
+}
+
+/** The `ordinal`-th match of a locator as a chainable (`.first()` for 0, `.eq(n)` otherwise). */
+export function nth(locator: Loc, ordinal: number): Cypress.Chainable<JQuery<HTMLElement>> {
+  return ordinal === 0 ? cy.tt(locator).first() : cy.tt(locator).eq(ordinal);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Session
+// ---------------------------------------------------------------------------------------------
+
+/** The role of the current run (`--expose role=<name>`), used to gate role-specific groups. */
+export function currentRole(): string {
+  return String(Cypress.expose('role') ?? '');
+}
+
+function withCredentials(role: string, body: (credentials: { username: string; password: string }) => void): void {
+  cy.env(['tathyaRoles']).then(({ tathyaRoles }) => {
+    const credentials = (tathyaRoles as Credentials | undefined)?.[role];
+    if (!credentials) throw new Error(`no credentials for role "${role}" (is TATHYA_CONFIG set for cypress.config.ts?)`);
+    body(credentials);
+  });
+}
+
+/** Call the app's reset hook, if one is configured. */
+export function resetAppData(): void {
+  if (!resetHook) return;
+  cy.request({ method: resetHook.method, url: resetHook.path, failOnStatusCode: false });
+}
+
+/** Reset app data (when the app has a reset hook), drop the session, and log in as `role`. */
+export function loginAs(role: string): void {
+  resetAppData();
+  cy.clearAllCookies();
+  withCredentials(role, ({ username, password }) => {
+    performLogin(username, password);
+    assertLoggedIn();
+  });
+}
+
+/**
+ * Read-only runs: reuse the role's cached session while it is still valid (the login page then
+ * sends an authenticated visitor elsewhere), else log in — never reset.
+ */
+export function ensureLoggedIn(role: string): void {
+  withCredentials(role, ({ username, password }) => {
+    cy.session(role, () => {
+      performLogin(username, password);
+      assertLoggedIn();
+    }, {
+      cacheAcrossSpecs: true,
+      validate() {
+        cy.visit(loginPath, { failOnStatusCode: false });
+        cy.location('pathname').should((pathname) => {
+          expect(pathname === loginPathname() && passwordFieldVisible(), 'the login form is showing').to.equal(false);
+        });
+      },
+    });
+  });
+}
+
+export function performLogin(username: string, password: string): void {
+  cy.visit(loginPath, { failOnStatusCode: false });
+  // Infer from the rendered form, not the empty shell a client-rendered login page starts as.
+  settled((body) => body.querySelector<HTMLInputElement>('input:not([type="hidden"])') ?? undefined);
+  cy.document().then((doc) => {
+    const controls = inferLoginControls(doc);
+    fillIn(controls.username, username);
+    fillIn(controls.password, password);
+    cy.tt(controls.submit).first().click();
+  });
+}
+
+const PASSWORD_FIELDS = 'input[type="password"], input[autocomplete="current-password"], input[name*="password"], input[id*="password"], input[placeholder*="Password"]';
+
+function loginPathname(): string {
+  return new URL(loginPath, 'http://tathyatest.local').pathname;
+}
+
+function passwordFieldVisible(selector: string = PASSWORD_FIELDS): boolean {
+  return isVisible(cy.$$(selector).get(0));
+}
+
+/** Logged in = we left the login page, or the password field is gone. */
+export function assertLoggedIn(): void {
+  // A slow browser may still be mid-redirect after the click; the assertion retries until it holds.
+  cy.location('pathname', { timeout: 15000 }).should((pathname) => {
+    expect(pathname !== loginPathname() || !passwordFieldVisible(), 'still on the login form').to.equal(true);
+  });
+}
+
+/**
+ * Logged out = a page that needed the session is no longer reachable: revisiting it lands on
+ * the login page, shows a login form, or redirects elsewhere. (Where the app sends you right
+ * after logging out — home, login, a goodbye page — is app-specific and not asserted.)
+ */
+export function assertLoggedOut(protectedPath: string): void {
+  cy.visit(protectedPath, { failOnStatusCode: false });
+  cy.location('pathname').should((landed) => {
+    if (landed === loginPathname()) return;
+    if (passwordFieldVisible('input[type="password"], input[autocomplete="current-password"], input[name*="password"]')) return;
+    expect(landed, 'a protected page is still reachable after logging out').not.to.equal(new URL(protectedPath, 'http://tathyatest.local').pathname);
+  });
+}
+
+/** A rejected login shows the app's error indicator. */
+export function assertLoginRejected(): void {
+  cy.get(errorSelector).first().should('be.visible');
+}
+
+/** End the session through the logout form; submit it directly when its control is hidden. */
+export function submitLogout(formSelector: string, locator: Loc): void {
+  settled((body) => submitControlOf(body, formSelector, locator));
+  cy.get('body').then(($body) => {
+    const form = $body[0].querySelector<HTMLFormElement>(formSelector);
+    const control = resolveAll(form ?? $body[0], locator)[0];
+    if (isVisible(control)) cy.wrap(control).click();
+    else if (form) form.requestSubmit();
+    else cy.tt(locator).first().click({ force: true });
+  });
+}
+
+// ---------------------------------------------------------------------------------------------
+// Navigation and forms
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * Open `url`; with `alias`, keep the document's final HTTP status for later oracles (Cypress's
+ * visit yields no response). The probe is a GET of the same page, so it changes nothing.
+ */
+export function openPage(url: string, alias?: string): void {
+  if (alias) cy.request({ url, failOnStatusCode: false }).its('status').as(alias, { type: 'static' });
+  cy.visit(url, { failOnStatusCode: false });
+}
+
+/** Type a value into a field, replacing what it holds (an empty value only clears it). */
+export function fillIn(locator: Loc, value: string): void {
+  cy.tt(locator).first().clear();
+  if (value !== '') cy.tt(locator).first().type(value, { delay: 0, parseSpecialCharSequences: false });
+}
+
+// The app's elements live in its own iframe window: `instanceof HTMLInputElement` (the spec's
+// window) is always false for them, so controls are recognised by tag and events built in their window.
+function isTag<K extends keyof HTMLElementTagNameMap>(element: Element | undefined, tag: K): element is HTMLElementTagNameMap[K] {
+  return element !== undefined && element.tagName.toLowerCase() === tag;
+}
+
+function dispatchInputEvents(element: HTMLElement): void {
+  const EventInWindow = element.ownerDocument.defaultView?.Event ?? Event;
+  element.dispatchEvent(new EventInWindow('input', { bubbles: true }));
+  element.dispatchEvent(new EventInWindow('change', { bubbles: true }));
+}
+
+/** Set the value directly, bypassing `maxlength` (and typing cost for very long values). */
+export function forceValue(locator: Loc, value: string): void {
+  cy.tt(locator).first().then(($el) => {
+    const element = $el[0];
+    if (isTag(element, 'input') || isTag(element, 'textarea')) {
+      element.value = value;
+      dispatchInputEvents(element);
+    }
+  });
+}
+
+/** Select a value that is not an option, by adding a temporary `<option>`. */
+export function forceOption(locator: Loc, value: string): void {
+  cy.tt(locator).first().then(($el) => {
+    const element = $el[0];
+    if (isTag(element, 'select')) {
+      const option = element.ownerDocument.createElement('option');
+      option.value = value;
+      option.textContent = value;
+      element.appendChild(option);
+      element.value = value;
+      dispatchInputEvents(element);
+    }
+  });
+}
+
+/** Leave a select with nothing selected. */
+export function clearSelect(locator: Loc): void {
+  cy.tt(locator).first().then(($el) => {
+    const element = $el[0];
+    if (isTag(element, 'select')) {
+      element.selectedIndex = -1;
+      dispatchInputEvents(element);
+    }
+  });
+}
+
+/** Uncheck every radio of the group `name`. */
+export function uncheckRadios(name: string): void {
+  cy.get(`[name="${name}"]`).each(($el) => {
+    const element = $el[0];
+    if (isTag(element, 'input') && element.type === 'radio') {
+      element.checked = false;
+      dispatchInputEvents(element);
+    }
+  });
+}
+
+/** Drop a file input's selection (selectFile cannot select nothing). */
+export function clearFile(locator: Loc): void {
+  cy.tt(locator).first().then(($el) => {
+    const element = $el[0];
+    if (isTag(element, 'input')) {
+      element.value = '';
+      dispatchInputEvents(element);
+    }
+  });
+}
+
+/** A small in-memory file of the given MIME type for `selectFile` (no fixture files on disk). */
+export function uploadFixture(mimeType: string): { contents: ReturnType<typeof Cypress.Buffer.from>; fileName: string; mimeType: string } {
+  const extension = ({ 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'application/pdf': 'pdf', 'text/plain': 'txt', 'text/csv': 'csv', 'application/json': 'json' } as Record<string, string>)[mimeType] ?? 'bin';
+  const contents = mimeType === 'image/png'
+    ? Cypress.Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64')
+    : mimeType === 'application/pdf'
+      ? Cypress.Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n')
+      : Cypress.Buffer.from('TathyaTest upload fixture\n');
+  return { contents, fileName: 'tathyatest-upload.' + extension, mimeType };
+}
+
+function submitControlOf(body: HTMLElement, formSelector: string, locator: Loc): HTMLElement | undefined {
+  return resolveAll(body.querySelector(formSelector) ?? body, locator)[0];
+}
+
+/**
+ * Click the form's submit control, scoped to the owning form when its action identifies one
+ * (pages with one form per table row repeat the same button name). A control hidden behind a
+ * collapsed menu skips the test instead of failing it.
+ */
+export function submitForm(ctx: Mocha.Context, formSelector: string, locator: Loc): void {
+  settled((body) => submitControlOf(body, formSelector, locator)).then((visible) => {
+    if (!visible) ctx.skip();
+    else cy.get('body').then(($body) => cy.wrap(submitControlOf($body[0], formSelector, locator)).click());
+  });
+}
+
+/** Remember the submit control's text before submitting (as alias `@<name>`). */
+export function captureSubmitText(formSelector: string, locator: Loc, name: string): void {
+  settled((body) => submitControlOf(body, formSelector, locator));
+  cy.get('body').then(($body) => cy.wrap(submitControlOf($body[0], formSelector, locator)?.textContent ?? null)).as(name, { type: 'static' });
+}
+
+// ---------------------------------------------------------------------------------------------
+// Oracles — state, never message text
+// ---------------------------------------------------------------------------------------------
+
+/** Server-side validation: an error indicator is visible and the URL is back on the form page. */
+export function expectServerError(selector: string, urlPattern: string): void {
+  cy.get(selector).first().should('be.visible');
+  cy.url().should('match', new RegExp(urlPattern));
+}
+
+/** HTML5 constraint validation blocked the submit. */
+export function expectInvalid(locator: Loc): void {
+  cy.tt(locator).first().should(($el) => {
+    expect(($el[0] as HTMLInputElement).validity.valid, 'validity.valid').to.equal(false);
+  });
+}
+
+export function expectGraceful(): void {
+  cy.get('body').invoke('text').should('not.match', /500|server error|exception/i);
+}
+
+export function expectGone(selector: string): void {
+  cy.get(selector).should('not.exist');
+}
+
+export function expectAbsent(locator: Loc): void {
+  cy.tt(locator).should('not.exist');
+}
+
+export function expectTextVisible(text: string): void {
+  cy.contains(text, { matchCase: false }).should('be.visible');
+}
+
+export function expectLanded(path: string, withSearch: boolean): void {
+  cy.location().should((location) => {
+    expect(withSearch ? location.pathname + location.search : location.pathname).to.equal(path);
+  });
+}
+
+/**
+ * A GET (search/filter) form round-trips its fields into the URL: every submitted value must
+ * come back in the query string (an empty value may be omitted by the app).
+ */
+export function expectQueryEcho(params: Record<string, string>): void {
+  cy.location('search').should((search) => {
+    const query = new URLSearchParams(search);
+    for (const [key, value] of Object.entries(params)) {
+      const actual = query.get(key);
+      if (value === '') expect(actual === null || actual === '').to.equal(true);
+      else expect(actual, 'query parameter ' + key).to.equal(value);
+    }
+  });
+  expectNoServerError();
+}
+
+/**
+ * A fieldless state-change form proves it worked by its own submit control reading differently
+ * afterwards; a control that disappeared (the row moved to another list) is accepted too.
+ */
+export function expectStateFlipped(formSelector: string, beforeAlias: `@${string}`): void {
+  cy.get<string | null>(beforeAlias).then((before) => {
+    if (before) {
+      cy.get('body').should(($body) => {
+        const form = $body.find(formSelector).first();
+        if (form.length > 0) expect(form.text()).not.to.contain(before);
+      });
+    }
+    expectNoServerError();
+  });
+}
+
+/**
+ * The page settled and is not a server-error page. The status (when captured) is the primary
+ * signal; the text check only looks at error-page shapes (the title, or an explicit "server error"
+ * phrase), so a healthy page that merely mentions "500" or "exception" does not fail.
+ */
+export function expectNoServerError(statusAlias?: `@${string}`): void {
+  if (statusAlias) cy.get<number>(statusAlias).should((status) => expect(status, 'server answered ' + status).to.be.lessThan(500));
+  cy.title().should('not.match', /^\s*5\d\d\b|server error|\b[A-Z]\w*Exception\b/);
+  cy.get('body').invoke('text').should('not.match', /(internal )?server error|whoops, looks like something went wrong/i);
+}
+
+/**
+ * Allowed = a healthy (< 400) document response, OR — because SPA hosts serve deep links with an
+ * error status while the client router still renders the page — staying on the route with
+ * interactive content rendered. A genuine error page fails both arms.
+ */
+export function expectRouteAllowed(statusAlias: `@${string}`, routePath: string): void {
+  cy.get<number>(statusAlias).then((status) => {
+    if (status >= 400) {
+      cy.location('pathname').should('equal', routePath);
+      cy.get('a, button, form, select, input').should('have.length.greaterThan', 0);
+    }
+    expectNoServerError(statusAlias);
+  });
+}
+
+/**
+ * A route inferred from REST conventions (`/todos/7/edit` ⇒ `/todos/7`): a 404/405 with no app
+ * content behind it means the convention does not hold for this app — skip. A 5xx fails.
+ */
+export function expectInferredRouteOpens(ctx: Mocha.Context, statusAlias: `@${string}`, routePath: string): void {
+  cy.get<number>(statusAlias).then((status) => {
+    if (status === 404 || status === 405) {
+      cy.get('body').then(($body) => {
+        const anchors = [...$body[0].querySelectorAll<HTMLAnchorElement>('a[href]')];
+        const sameOriginLinks = anchors.filter((anchor) => anchor.origin === anchor.ownerDocument.location.origin).length;
+        if (sameOriginLinks + $body[0].querySelectorAll('form, select').length === 0) ctx.skip();
+      });
+    }
+    expectRouteAllowed(statusAlias, routePath);
+  });
+}
+
+/** Blocked = a direct denial status, or a healthy response on a DIFFERENT path (a redirect). */
+export function expectRouteBlocked(statusAlias: `@${string}`, blockedPath: string): void {
+  cy.get<number>(statusAlias).then((status) => {
+    if (status < 400) cy.location('pathname').should('not.equal', blockedPath);
+    else expect([401, 403, 404]).to.include(status);
+    expectNoServerError(statusAlias);
+  });
+}
+
+// ---------------------------------------------------------------------------------------------
+// Login-control inference (same scoring as the crawler and the Playwright support module)
+// ---------------------------------------------------------------------------------------------
+
+type LoginControls = { username: Loc; password: Loc; submit: Loc };
+
+/** Score the login page's inputs/buttons the same way the crawler does (see generator/src/auth/login.ts). */
+export function inferLoginControls(doc: Document): LoginControls {
+  type Candidate = {
+    tag: 'input' | 'button';
+    type: string;
+    name: string;
+    id: string;
+    placeholder: string;
+    autocomplete: string;
+    ariaLabel: string;
+    dataAttr: string;
+    dataValue: string;
+    text: string;
+    value: string;
+  };
+  const view = doc.defaultView;
+  const attr = (el: Element, name: string): string => el.getAttribute(name) ?? '';
+  const text = (el: Element): string => (el.textContent ?? '').replace(/\s+/g, ' ').trim();
+  const candidateText = (candidate: Candidate): string => [
+    candidate.type,
+    candidate.name,
+    candidate.id,
+    candidate.placeholder,
+    candidate.autocomplete,
+    candidate.ariaLabel,
+    candidate.dataValue,
+    candidate.text,
+    candidate.value,
+  ].join(' ').toLowerCase();
+  const stableId = (value: string): boolean => value.length > 0 && !/[0-9a-f]{8,}|:/.test(value);
+  const isButtonElement = (el: Element): el is HTMLButtonElement => el.tagName.toLowerCase() === 'button';
+  const inputCandidate = (input: HTMLInputElement): Candidate => ({
+    tag: 'input',
+    type: (input.type || 'text').toLowerCase(),
+    name: input.name,
+    id: input.id,
+    placeholder: input.placeholder,
+    autocomplete: input.autocomplete,
+    ariaLabel: attr(input, 'aria-label'),
+    dataAttr: attr(input, 'data-test') ? 'data-test' : attr(input, 'data-testid') ? 'data-testid' : '',
+    dataValue: attr(input, 'data-test') || attr(input, 'data-testid'),
+    text: '',
+    value: input.value,
+  });
+  const buttonCandidate = (button: HTMLButtonElement | HTMLInputElement): Candidate => ({
+    tag: isButtonElement(button) ? 'button' : 'input',
+    type: (attr(button, 'type') || (isButtonElement(button) ? 'submit' : 'text')).toLowerCase(),
+    name: attr(button, 'name'),
+    id: attr(button, 'id'),
+    placeholder: attr(button, 'placeholder'),
+    autocomplete: attr(button, 'autocomplete'),
+    ariaLabel: attr(button, 'aria-label'),
+    dataAttr: attr(button, 'data-test') ? 'data-test' : attr(button, 'data-testid') ? 'data-testid' : '',
+    dataValue: attr(button, 'data-test') || attr(button, 'data-testid'),
+    text: isButtonElement(button) ? text(button) : '',
+    value: isButtonElement(button) ? attr(button, 'value') : button.value,
+  });
+  const locatorFor = (candidate: Candidate | undefined, kind: 'username' | 'password' | 'submit'): Loc => {
+    if (!candidate) {
+      if (kind === 'submit') return { strategy: 'css', value: 'button[type="submit"], input[type="submit"], button:not([type])' };
+      return { strategy: 'css', value: kind === 'username' ? 'input:not([type="hidden"]):not([type="password"])' : 'input[type="password"]' };
+    }
+    if (candidate.dataAttr && candidate.dataValue) return { strategy: 'css', value: '[' + candidate.dataAttr + '="' + (view?.CSS.escape(candidate.dataValue) ?? candidate.dataValue) + '"]' };
+    if (candidate.placeholder) return { strategy: 'placeholder', value: candidate.placeholder };
+    if (stableId(candidate.id)) return { strategy: 'id', value: candidate.id };
+    if (candidate.name) return { strategy: 'name', value: candidate.name };
+    const buttonText = candidate.text || candidate.value;
+    if (candidate.tag === 'button' && buttonText) return { strategy: 'role', value: 'button:' + buttonText };
+    return { strategy: 'css', value: candidate.tag === 'button' ? 'button' : 'input' };
+  };
+  const inputs = Array.from(doc.querySelectorAll<HTMLInputElement>('input'))
+    .map(inputCandidate)
+    .filter((input) => !['hidden', 'submit', 'button', 'reset', 'image', 'file'].includes(input.type));
+  const buttons = [
+    ...Array.from(doc.querySelectorAll<HTMLButtonElement>('button')).map(buttonCandidate),
+    ...Array.from(doc.querySelectorAll<HTMLInputElement>('input[type="submit"], input[type="button"]')).map(buttonCandidate),
+  ];
+  const username = inputs
+    .map((input) => {
+      const haystack = candidateText(input);
+      let score = 0;
+      if (input.type === 'email') score += 100;
+      if (input.autocomplete.toLowerCase() === 'username') score += 90;
+      if (input.autocomplete.toLowerCase() === 'email') score += 80;
+      if (/(email|username|user|account|identifier|handle)/.test(haystack)) score += 50;
+      return { input, score };
+    })
+    .sort((a, b) => b.score - a.score)[0]?.input ?? inputs[0];
+  const password = inputs
+    .map((input) => {
+      const haystack = candidateText(input);
+      let score = 0;
+      if (input.type === 'password') score += 100;
+      if (/(password|passcode|pin)/.test(haystack)) score += 50;
+      return { input, score };
+    })
+    .sort((a, b) => b.score - a.score)[0]?.input ?? inputs.find((input) => input !== username) ?? inputs[1] ?? inputs[0];
+  const submit = buttons
+    .map((button) => {
+      const haystack = candidateText(button);
+      let score = 0;
+      if (button.dataValue) score += 100;
+      if (button.tag === 'button') score += 20;
+      if (/(log in|login|sign in|sign-in)/.test(haystack)) score += 50;
+      if (button.type === 'submit') score += 10;
+      return { button, score };
+    })
+    .sort((a, b) => b.score - a.score)[0]?.button ?? buttons[0];
+  return {
+    username: locatorFor(username, 'username'),
+    password: locatorFor(password, 'password'),
+    submit: locatorFor(submit, 'submit'),
+  };
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { locatorSource } from '../../src/generate/locator.js';
+import { locatorSource } from '../../../src/adapters/playwright/locator.js';
 
 describe('locatorSource', () => {
   it('renders stable css selectors and role locators', () => {

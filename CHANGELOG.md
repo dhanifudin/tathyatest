@@ -6,6 +6,14 @@ All notable changes to this project are recorded here, newest first. The format 
 ## Unreleased
 
 ### Added
+- Cypress output: `tt generate|run|all|report|eval --framework playwright|cypress` and `output.framework` in the
+  config; a `cypress.browsers` list; root `cypress.config.ts`; hand-written Cypress baselines
+  (`tests/manual/*/baseline.cy.ts`); `tt init` asks for the framework.
+- Intermediate Representation (`generator/src/ir/`): every scenario rule decides once into a framework-neutral
+  `TestPlan`; adapters (`generator/src/adapters/{playwright,cypress}`) only render and run it. Guides:
+  `docs/adapters/adding-rules.md`, `docs/adapters/ir-migration-report.md`.
+- Conformance tests across adapters, a Cypress golden suite (typechecked), IR builder tests.
+- `.gitattributes` keeps LF line endings so the template loader and golden test work on Windows checkouts.
 - Framework-neutral generator: configurable reset hook and evaluation control plane, keyword-based CRUD
   classification, `mode: read-only` (`tt generate|all --read-only`, `tt run --read-only|--write-only`).
 - Readable generated suites: one spec per category and route shape, a typechecked support module,
@@ -16,6 +24,8 @@ All notable changes to this project are recorded here, newest first. The format 
 - `make setup`, `make case-study-setup`, `make serve`, `make clean-outputs`.
 
 ### Changed
+- Playwright output is byte-identical; its code moved from `emit/ts.ts`, `emit/support.ts`, `generate/locator.ts`,
+  `generate/oracle.ts` and `eval/playwright.ts` into `ir/` (rules) and `adapters/playwright/` (syntax, runner).
 - `generator/src` regrouped into `cli`, `crawl`, `auth`, `generate`, `emit`, `eval`, `util`; `mapper.ts`,
   `metrics.ts` and `extract/rendered.ts` split into focused modules; one generate stage shared by
   `tt generate`, `tt all` and `tt eval`.

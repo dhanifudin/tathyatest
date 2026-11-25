@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build": "tsc && node scripts/copy-templates.mjs",
-    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json && tsc -p tsconfig.cypress.json",
     "test": "vitest run",
     "lint": "eslint .",
     "format": "prettier --write src test",

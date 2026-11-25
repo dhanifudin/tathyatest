@@ -23,7 +23,7 @@ VS Code users: see [docs/vscode.md](docs/vscode.md) for tasks and debug configur
 
 | Path | What it is |
 |------|------------|
-| `generator/src/{cli,crawl,auth,generate,emit,eval,util}` | the `tt` implementation, one folder per pipeline stage |
+| `generator/src/{cli,crawl,auth,generate,ir,adapters,emit,eval,util}` | the `tt` implementation, one folder per pipeline stage; `ir/` holds the framework-neutral test plans, `adapters/` the Playwright and Cypress renderers and runners |
 | `generator/test/` | Vitest tests mirroring `src/`; `golden.test.ts` pins whole-generation output |
 | `case-study/` | Laravel test targets with the evaluation harness (`FaultRegistry`, `CoverageCollector`) |
 | `tests/manual/`, `tests/baseline-public/` | baselines compared against generated suites |
@@ -62,10 +62,13 @@ must never be edited by hand. `make clean-outputs` removes them.
 **Add a field-variant rule.** Edit `generator/src/generate/fieldgen.ts` (pure), add cases to
 `test/generate/fieldgen.test.ts`, then add a row to the variant table in [docs/how-it-works.md](docs/how-it-works.md).
 If the browser would block the value before the server sees it, add the variant name to
-`NATIVELY_UNFALSIFIABLE_VARIANTS` in `generate/mapper.ts`.
+`NATIVELY_UNFALSIFIABLE_VARIANTS` in `generate/mapper.ts`. Both frameworks pick the variant up through the IR;
+the golden diff shows it in `test/fixtures/golden/` and `test/fixtures/golden-cypress/`.
 
-**Add an oracle.** Oracles return source strings: `generate/oracle.ts` for assertions built from a form,
-the shared helpers in `emit/templates/support.ts` for runtime logic. Never assert exact error text.
+**Add an oracle, fill, or step.** Declare it in `generator/src/ir/types.ts`, decide when it applies in
+`ir/build.ts`, then render it in every adapter (`adapters/playwright/emitter.ts`, `adapters/cypress/emitter.ts`,
+plus their `templates/` for runtime logic); `tsc` fails until each adapter handles it. Never assert exact error
+text. The full walk-through is [docs/adapters/adding-rules.md](docs/adapters/adding-rules.md).
 
 **Add a seeded fault.** Add the entry to `FAULT_CATALOGUE` in `generator/src/eval/faults.ts` (id, class,
 `relevant` matcher), add a `FaultRegistry::is('<id>')` toggle in both case studies, and note whether it is
