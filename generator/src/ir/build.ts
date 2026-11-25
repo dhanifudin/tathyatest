@@ -1,7 +1,7 @@
 import type { TathyaConfig } from '../config.js';
-import type { Field, Form } from '../crawl/model.js';
+import type { Field, Form, Locator } from '../crawl/model.js';
 import type { TestCase } from '../generate/test-case.js';
-import { escapeRegExp } from '../util/escape.js';
+import { escapeAttrValue, escapeRegExp } from '../util/escape.js';
 import { canonicalPath } from '../util/paths.js';
 import { describeTitle, formDescribeTitle, linkLandingPath, specStemFor, tagsAndAnnotations } from './layout.js';
 import type { Fill, Oracle, Step, SubmitTarget, TestPlan, ValueRef } from './types.js';
@@ -137,22 +137,47 @@ export function fieldVar(name: string): string {
   return `f_${name.replace(/[^a-zA-Z0-9_]/g, '_')}`;
 }
 
+/**
+ * One runtime variable per field name: repeated names (`items[]`) share it, and names that differ
+ * only in punctuation (`user.name`, `user_name`) get distinct ones.
+ */
+function variableNames(form: Form): Map<string, string> {
+  const names = new Map<string, string>();
+  const taken = new Set<string>();
+  for (const field of form.fields) {
+    if (names.has(field.name)) continue;
+    const base = fieldVar(field.name);
+    let candidate = base;
+    for (let next = 2; taken.has(candidate); next += 1) candidate = `${base}_${next}`;
+    taken.add(candidate);
+    names.set(field.name, candidate);
+  }
+  return names;
+}
+
+function variableOf(form: Form, name: string): ValueRef {
+  return { kind: 'var', name: variableNames(form).get(name) ?? fieldVar(name) };
+}
+
 function fillPlan(testCase: FormCase): { decls: Step[]; fills: Fill[] } {
   const { form, values } = testCase;
 
   // Resolve runtime/ref fields to a variable (or a referenced literal) and collect their decls.
   const decls: Step[] = [];
   const runtimeFill = new Map<string, ValueRef>();
+  const names = variableNames(form);
   for (const field of form.fields) {
     const fieldValue = values[field.name];
-    if (fieldValue === undefined) continue;
+    if (fieldValue === undefined || runtimeFill.has(field.name)) continue;
     if (fieldValue.kind === 'runtime') {
-      const variable = fieldVar(field.name);
+      // A radio is picked, never typed into, so it needs no value of its own.
+      if (field.type === 'radio') continue;
+      const variable = names.get(field.name) ?? fieldVar(field.name);
       decls.push({ kind: 'declare', name: variable, expr: fieldValue.expr });
       runtimeFill.set(field.name, { kind: 'var', name: variable });
     } else if (fieldValue.kind === 'ref') {
       const source = values[fieldValue.name];
-      if (source?.kind === 'runtime') runtimeFill.set(field.name, { kind: 'var', name: fieldVar(fieldValue.name) });
+      if (source?.kind === 'runtime') runtimeFill.set(field.name, variableOf(form, fieldValue.name));
       else if (source?.kind === 'literal') runtimeFill.set(field.name, { kind: 'literal', value: source.value });
     }
   }
@@ -161,14 +186,19 @@ function fillPlan(testCase: FormCase): { decls: Step[]; fills: Fill[] } {
     const fieldValue = values[field.name];
     if (fieldValue === undefined) return [];
     const target = field.locator;
+    const isBlankTarget = testCase.targetField?.name === field.name && testCase.variant.name === 'required-empty';
+    if (field.type === 'radio') {
+      if (isBlankTarget) return [{ kind: 'uncheck-radios', name: field.name }];
+      const value = fieldValue.kind === 'literal' ? fieldValue.value : '';
+      if (shouldForceInvalidOption(testCase, field)) return [{ kind: 'force-radio', name: field.name, value }];
+      return [{ kind: 'check', target: field.options?.length ? radioOption(field.name, value) : target }];
+    }
     const runtimeValue = runtimeFill.get(field.name);
     if (runtimeValue !== undefined && fieldValue.kind !== 'literal') return [{ kind: 'type', target, value: runtimeValue }];
     const value = fieldValue.kind === 'literal' ? fieldValue.value : '';
-    const isBlankTarget = testCase.targetField?.name === field.name && testCase.variant.name === 'required-empty';
     // File pickers cannot be typed into: the literal is a MIME type → upload a fixture of it, or
     // clear the selection for the required-empty negative.
     if (field.type === 'file') return [value === '' ? { kind: 'clear-file', target } : { kind: 'upload', target, mimeType: value }];
-    if (field.type === 'radio') return [isBlankTarget ? { kind: 'uncheck-radios', name: field.name } : { kind: 'check', target }];
     if (shouldForceInvalidOption(testCase, field)) return [{ kind: 'force-option', target, value }];
     if (field.options?.length && isBlankTarget) return [{ kind: 'clear-select', target }];
     if (shouldForceValue(testCase, field)) return [{ kind: 'force-value', target, value }];
@@ -178,6 +208,11 @@ function fillPlan(testCase: FormCase): { decls: Step[]; fills: Fill[] } {
   });
 
   return { decls, fills };
+}
+
+/** The radio of group `name` that carries `value`. */
+function radioOption(name: string, value: string): Locator {
+  return { strategy: 'css', value: `input[type="radio"][name="${escapeAttrValue(name)}"][value="${escapeAttrValue(value)}"]` };
 }
 
 /** Values past `maxlength` (or very long ones) bypass the browser's input limit. */
@@ -236,12 +271,15 @@ export function errorOracle(form: Form, field: Field, errorSelector: string, exp
 
 /**
  * Whether the violated constraint exists natively on the field, so constraint validation
- * (validity.valid) can observe it. A `required-empty` variant forced via `data.requiredFields`
- * on a field without the `required` attribute is only observable through the app's own error
- * display (JS validation or a server round-trip) — e.g. SauceDemo's checkout fields.
+ * (validity.valid) can observe it. Otherwise only the app's own error display can show it:
+ * a `required-empty` forced via `data.requiredFields` on a field without `required` (SauceDemo's
+ * checkout fields), a value already taken, a mismatching confirmation, and a malformed phone
+ * number on a field with no `pattern` (browsers do not check `type=tel`).
  */
 function nativelyObservable(field: Field, variantName?: string): boolean {
   if (variantName === 'required-empty') return field.required;
+  if (variantName === 'duplicate' || variantName === 'confirmation-mismatch') return false;
+  if (variantName === 'tel-format') return field.constraints.pattern !== null;
   return true;
 }
 
@@ -251,11 +289,12 @@ function submittedParams(testCase: FormCase): { name: string; value: ValueRef }[
   for (const field of testCase.form.fields) {
     const fieldValue = testCase.values[field.name];
     if (fieldValue === undefined || ['file', 'checkbox', 'radio'].includes(field.type)) continue;
-    if (fieldValue.kind === 'runtime') entries.push({ name: field.name, value: { kind: 'var', name: fieldVar(field.name) } });
+    if (entries.some((entry) => entry.name === field.name)) continue;
+    if (fieldValue.kind === 'runtime') entries.push({ name: field.name, value: variableOf(testCase.form, field.name) });
     else if (fieldValue.kind === 'literal') entries.push({ name: field.name, value: { kind: 'literal', value: fieldValue.value } });
     else {
       const source = testCase.values[fieldValue.name];
-      if (source?.kind === 'runtime') entries.push({ name: field.name, value: { kind: 'var', name: fieldVar(fieldValue.name) } });
+      if (source?.kind === 'runtime') entries.push({ name: field.name, value: variableOf(testCase.form, fieldValue.name) });
       else if (source?.kind === 'literal') entries.push({ name: field.name, value: { kind: 'literal', value: source.value } });
     }
   }
@@ -270,7 +309,7 @@ function submittedParams(testCase: FormCase): { name: string; value: ValueRef }[
 function representativeTextValue(testCase: FormCase): ValueRef | null {
   for (const field of testCase.form.fields) {
     const fieldValue = testCase.values[field.name];
-    if (fieldValue?.kind === 'runtime' && ['text', 'search'].includes(field.type)) return { kind: 'var', name: fieldVar(field.name) };
+    if (fieldValue?.kind === 'runtime' && ['text', 'search'].includes(field.type)) return variableOf(testCase.form, field.name);
   }
   for (const field of testCase.form.fields) {
     const fieldValue = testCase.values[field.name];

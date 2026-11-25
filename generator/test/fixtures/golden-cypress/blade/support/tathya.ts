@@ -311,6 +311,18 @@ export function uncheckRadios(name: string): void {
   });
 }
 
+/** Check the first radio of the group `name` with a value none of its options has. */
+export function forceRadio(name: string, value: string): void {
+  cy.get(`input[type="radio"][name="${name}"]`).first().then(($el) => {
+    const element = $el[0];
+    if (isTag(element, 'input')) {
+      element.value = value;
+      element.checked = true;
+      dispatchInputEvents(element);
+    }
+  });
+}
+
 /** Drop a file input's selection (selectFile cannot select nothing). */
 export function clearFile(locator: Loc): void {
   cy.tt(locator).first().then(($el) => {

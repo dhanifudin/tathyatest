@@ -140,7 +140,7 @@ describe('variantsForField', () => {
 
   it('breaks a pattern with a value that actually fails it, or skips the variant', () => {
     expect(patternBreaker('[a-z_]+')).toBe('!');
-    expect(patternBreaker('[A-Za-z0-9 _!@ü]+')).toBe('');
+    expect(patternBreaker('[A-Za-z0-9 _!@ü]+')).toBeNull(); // only the empty string would break it
     expect(patternBreaker('\\d{4}')).toBe('!');
     expect(patternBreaker('.*')).toBeNull();
     expect(patternBreaker('[')).toBeNull();

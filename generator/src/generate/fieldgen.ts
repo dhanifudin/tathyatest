@@ -69,7 +69,8 @@ export function variantsForField(field: Field, hints: FieldgenHints): FieldVaria
       const breaker = patternBreaker(field.constraints.pattern);
       if (breaker !== null) variants.push({ kind: 'negative', name: 'pattern-fail', value: breaker, outcome: 'error' });
     }
-    if (field.constraints.minlength !== null && field.constraints.minlength > 0) {
+    // One short of a minimum of 1 is empty, which browsers do not count as too short.
+    if (field.constraints.minlength !== null && field.constraints.minlength >= 2) {
       variants.push({ kind: 'negative', name: 'minlength-minus-one', value: 'x'.repeat(field.constraints.minlength - 1), outcome: 'error' });
     }
     if (field.constraints.maxlength !== null) {
@@ -244,7 +245,8 @@ function stepMisalignedValue(field: Field): string | null {
 // Patterns and uploads
 // ---------------------------------------------------------------------------------------------
 
-const PATTERN_CANDIDATES = ['!', '1', 'a b', 'ü', '_', 'a', 'A', '@', '', 'x'.repeat(40), '0123456789', 'pattern_mismatch'];
+// No empty string: browsers never check an empty value against `pattern`.
+const PATTERN_CANDIDATES = ['!', '1', 'a b', 'ü', '_', 'a', 'A', '@', 'x'.repeat(40), '0123456789', 'pattern_mismatch'];
 
 /**
  * A value that does NOT satisfy the HTML `pattern` (anchored like the browser does). `null` when

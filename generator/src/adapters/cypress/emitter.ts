@@ -26,7 +26,7 @@ export const cypressEmitter: SpecEmitter = {
 const HELPERS = [
   'currentRole', 'step', 'byTestId', 'byRole', 'byLabel', 'byPlaceholder', 'byId', 'byName', 'byCss', 'nth', 'skipUnlessVisible',
   'loginAs', 'ensureLoggedIn', 'performLogin', 'openPage', 'submitLogout', 'submitForm', 'captureSubmitText',
-  'fillIn', 'forceValue', 'forceOption', 'clearSelect', 'uncheckRadios', 'clearFile', 'uploadFixture',
+  'fillIn', 'forceValue', 'forceOption', 'clearSelect', 'uncheckRadios', 'forceRadio', 'clearFile', 'uploadFixture',
   'assertLoggedIn', 'assertLoginRejected', 'assertLoggedOut', 'expectServerError', 'expectInvalid', 'expectGraceful',
   'expectGone', 'expectAbsent', 'expectTextVisible', 'expectLanded', 'expectQueryEcho', 'expectStateFlipped',
   'expectNoServerError', 'expectRouteAllowed', 'expectInferredRouteOpens', 'expectRouteBlocked',
@@ -141,6 +141,8 @@ function fillSource(fill: Fill): string {
       return `cy.tt(${locatorSource(fill.target)}).${fill.checked ? 'check' : 'uncheck'}();`;
     case 'select-option':
       return `cy.tt(${locatorSource(fill.target)}).select(${q(fill.value)});`;
+    case 'force-radio':
+      return `forceRadio(${q(fill.name)}, ${q(fill.value)});`;
     case 'uncheck-radios':
       return `uncheckRadios(${q(fill.name)});`;
     case 'force-option':

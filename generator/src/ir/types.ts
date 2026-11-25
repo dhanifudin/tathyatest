@@ -68,6 +68,8 @@ export type Fill =
   | { kind: 'select-option'; target: Locator; value: string }
   /** Uncheck every radio of the group `name` (required-empty on a radio group). */
   | { kind: 'uncheck-radios'; name: string }
+  /** Check the first radio of the group `name` after giving it a value no option has (invalid-option). */
+  | { kind: 'force-radio'; name: string; value: string }
   /** Select a value that is not an option, by adding a temporary `<option>` (invalid-option). */
   | { kind: 'force-option'; target: Locator; value: string }
   /** Leave a select with nothing selected (required-empty on a select). */

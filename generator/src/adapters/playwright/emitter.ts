@@ -1,5 +1,6 @@
 import type { TathyaConfig } from '../../config.js';
 import { groupBy } from '../../ir/layout.js';
+import { escapeAttrValue } from '../../util/escape.js';
 import { assertNever, type Fill, type Oracle, type Step, type SubmitTarget, type TestPlan, type ValueRef } from '../../ir/types.js';
 import type { SpecEmitter } from '../types.js';
 import { locatorSource } from './locator.js';
@@ -187,8 +188,17 @@ function fillSource(fill: Fill): string {
       return `await ${locatorSource(fill.target)}.setChecked(${JSON.stringify(fill.checked)});`;
     case 'select-option':
       return `await ${locatorSource(fill.target)}.selectOption(${q(fill.value)});`;
+    case 'force-radio':
+      return `await page.locator(${q(`input[type="radio"][name="${escapeAttrValue(fill.name)}"]`)}).first().evaluate((element, value) => {
+  if (element instanceof HTMLInputElement) {
+    element.value = value;
+    element.checked = true;
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+    element.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+}, ${q(fill.value)});`;
     case 'uncheck-radios':
-      return `await page.locator(${q(`[name="${fill.name}"]`)}).evaluateAll((elements) => {
+      return `await page.locator(${q(`[name="${escapeAttrValue(fill.name)}"]`)}).evaluateAll((elements) => {
   for (const element of elements) {
     if (element instanceof HTMLInputElement && element.type === 'radio') {
       element.checked = false;

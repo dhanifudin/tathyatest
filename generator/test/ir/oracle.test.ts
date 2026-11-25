@@ -48,4 +48,13 @@ describe('errorOracle', () => {
     // A natively-required field keeps the constraint-validation oracle.
     expect(errorOracle(form, field, '.error', '/checkout-step-one.html', 'required-empty').type).toBe('native-invalid');
   });
+
+  it('reads the app error display for violations a browser cannot see', () => {
+    for (const variant of ['duplicate', 'confirmation-mismatch', 'tel-format']) {
+      expect(errorOracle(form, field, '.error', '/login', variant).type, variant).toBe('server-error');
+    }
+    const patterned = { ...field, constraints: { ...field.constraints, pattern: '\\d+' } };
+    expect(errorOracle(form, patterned, '.error', '/login', 'tel-format').type).toBe('native-invalid');
+  });
 });
+

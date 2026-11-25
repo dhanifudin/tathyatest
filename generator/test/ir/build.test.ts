@@ -92,3 +92,33 @@ describe('planFor (scenario rules, no framework)', () => {
     ]);
   });
 });
+
+describe('fill planning for radios and repeated names', () => {
+  const radio = { ...title, name: 'size', type: 'radio', options: [{ value: 's', label: 'Small' }, { value: 'l', label: 'Large' }], locator: { strategy: 'name' as const, value: 'size' } };
+  const dotted = { ...title, name: 'user.name', locator: { strategy: 'label' as const, value: 'Name' } };
+  const scored = { ...title, name: 'user_name', locator: { strategy: 'label' as const, value: 'Login' } };
+  const repeated = { ...title, name: 'tag' };
+  const form = { ...createForm, fields: [dotted, scored, repeated, repeated, radio] };
+  const values = {
+    'user.name': { kind: 'runtime' as const, expr: 'faker.lorem.word()' },
+    user_name: { kind: 'runtime' as const, expr: 'faker.internet.username()' },
+    tag: { kind: 'runtime' as const, expr: 'faker.lorem.word()' },
+    size: { kind: 'literal' as const, value: 's' },
+  };
+
+  it('declares every variable once, under a distinct name', () => {
+    const { steps } = planFor(formCase({ form, values }), config);
+    expect(steps.filter((step) => step.kind === 'declare').map((step) => step.name)).toEqual(['f_user_name', 'f_user_name_2', 'f_tag']);
+  });
+
+  it('checks the radio that carries the value, and forces an unknown one', () => {
+    const fills = (testCase: TestCase) => planFor(testCase, config).steps.flatMap((step) => (step.kind === 'fill' ? step.fills : []));
+    expect(fills(formCase({ form, values })).at(-1)).toEqual({ kind: 'check', target: { strategy: 'css', value: 'input[type="radio"][name="size"][value="s"]' } });
+    const invalid = formCase({
+      form, targetField: radio, variant: { kind: 'negative', name: 'invalid-option', value: '__x__', outcome: 'error', forceInvalidOption: true },
+      values: { ...values, size: { kind: 'literal', value: '__x__' } },
+    });
+    expect(fills(invalid).at(-1)).toEqual({ kind: 'force-radio', name: 'size', value: '__x__' });
+  });
+});
+
