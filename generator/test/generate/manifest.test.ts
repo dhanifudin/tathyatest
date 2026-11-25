@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { buildManifest } from '../../src/generate/manifest.js';
+import { manifestFor } from '../../src/emit/index.js';
 import type { TestCase } from '../../src/generate/test-case.js';
+import { makeConfig } from '../helpers/fixtures.js';
 
 const field = {
   name: 'title',
@@ -31,7 +32,9 @@ describe('buildManifest', () => {
       { kind: 'rbac', tier: 'negative', title: 'user blocked', role: 'user', route: '/admin/users', expectAllowed: false },
     ];
 
-    const manifest = buildManifest(cases);
+    const manifest = manifestFor(cases, makeConfig());
+    // A server-validated error is two calls (indicator visible, still on the form URL).
+    expect(manifest.map((entry) => entry.assertionCount)).toEqual([1, 1, 2, 1]);
     expect(manifest).toHaveLength(4);
     expect(manifest.map((entry) => entry.category)).toEqual(['auth', 'crud', 'crud', 'rbac']);
     expect(manifest.map((entry) => entry.faultClass)).toEqual(['auth', 'crud', 'validation', 'authz']);

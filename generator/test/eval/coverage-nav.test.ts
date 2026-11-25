@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { crawlOutputSchema } from '../../src/crawl/model.js';
-import { buildManifest } from '../../src/generate/manifest.js';
+import { manifestFor } from '../../src/emit/index.js';
 import { mapTestCases } from '../../src/generate/mapper.js';
 import { buildAccessMatrix } from '../../src/generate/rbac.js';
 import { coverageMetrics } from '../../src/eval/metrics/coverage.js';
@@ -22,7 +22,7 @@ describe('navigation coverage on the recorded Blade crawl', () => {
       auth: { loginPath: '/login', roles: [{ name: 'admin', username: 'a', password: 'b' }, { name: 'user', username: 'c', password: 'd' }] },
     });
     const cases = mapTestCases(crawls, buildAccessMatrix(crawls), config);
-    const manifest = buildManifest(cases);
+    const manifest = manifestFor(cases, config);
     const metrics = coverageMetrics({ config, manifest, crawls, matrix: buildAccessMatrix(crawls) } as never);
 
     expect(metrics.nav.total).toBeGreaterThan(0);
@@ -33,7 +33,7 @@ describe('navigation coverage on the recorded Blade crawl', () => {
   it('does not let a surplus test hide a missing scenario', async () => {
     const crawls = await Promise.all(['blade-admin.json'].map(async (file) => crawlOutputSchema.parse(JSON.parse(await readFile(join(fixtures, file), 'utf8')))));
     const config = makeConfig();
-    const manifest = buildManifest(mapTestCases(crawls, buildAccessMatrix(crawls), config));
+    const manifest = manifestFor(mapTestCases(crawls, buildAccessMatrix(crawls), config), config);
     const withoutOneNav = manifest.filter((entry, index) => !(entry.category === 'nav' && index === manifest.findIndex((e) => e.category === 'nav')));
     const surplus = [...withoutOneNav, { ...manifest.find((entry) => entry.category === 'nav')!, id: 'tx', title: 'surplus', scenarioKey: 'link:/not-a-real-scenario' }];
     const metrics = coverageMetrics({ config, manifest: surplus, crawls, matrix: buildAccessMatrix(crawls) } as never);
@@ -48,7 +48,7 @@ describe('probed fields, exercised CRUD and declared routes on the recorded Blad
       auth: { loginPath: '/login', roles: [{ name: 'admin', username: 'a', password: 'b' }, { name: 'user', username: 'c', password: 'd' }] },
       evaluation: { expectedRoutes: ['/', '/login', '/dashboard', '/admin/users', '/todos', '/todos/create', '/todos/:id/edit', '/never-routed'] },
     });
-    const manifest = buildManifest(mapTestCases(crawls, buildAccessMatrix(crawls), config));
+    const manifest = manifestFor(mapTestCases(crawls, buildAccessMatrix(crawls), config), config);
     const metrics = coverageMetrics({ config, manifest, crawls, matrix: buildAccessMatrix(crawls) } as never);
 
     expect(metrics.fieldsProbed.total).toBe(metrics.fields.total);

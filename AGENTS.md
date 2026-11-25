@@ -112,8 +112,8 @@ Full schema reference:
 
 Rules are decided once, above the IR: generation rules in `generate/`, scenario rules in `ir/build.ts`. An
 adapter (`adapters/<framework>/`) only renders `TestPlan`s and runs the result. It never decides what a test does.
-For the same crawl and config, every adapter MUST emit the same test titles, tags, step titles and assertion counts
-as the manifest (`test/adapters/conformance.test.ts`). Every IR union is rendered with an exhaustive `switch` +
+For the same crawl and config, every adapter MUST emit the same test titles, tags and step titles as the manifest
+(`test/adapters/conformance.test.ts`); the manifest's assertion counts come from the plans (`ir/count.ts`). Every IR union is rendered with an exhaustive `switch` +
 `assertNever`, so a new `Step`, `Fill` or `Oracle` must be rendered by all adapters before `tsc` passes. With
 `framework: playwright`, output stays byte-identical to `test/fixtures/golden/`. How to add a rule:
 `docs/adapters/adding-rules.md`.

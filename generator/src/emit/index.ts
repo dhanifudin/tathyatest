@@ -5,6 +5,8 @@ import type { TathyaConfig } from '../config.js';
 import type { TestCase } from '../generate/test-case.js';
 import { buildManifest, type ManifestEntry } from '../generate/manifest.js';
 import { planFor } from '../ir/build.js';
+import { assertionCountOf } from '../ir/count.js';
+import type { TestPlan } from '../ir/types.js';
 import { transpileFiles } from './js.js';
 
 /**
@@ -23,11 +25,20 @@ export async function emit(cases: TestCase[], config: TathyaConfig): Promise<Man
     await mkdir(dirname(target), { recursive: true });
     await writeFile(target, source);
   }
-  return writeManifest(cases, config);
+  return writeManifest(cases, plans, config);
 }
 
-async function writeManifest(cases: TestCase[], config: TathyaConfig): Promise<ManifestEntry[]> {
-  const manifest = buildManifest(cases);
+/** The manifest of `cases` without writing anything: the same rows `emit` records. */
+export function manifestFor(cases: TestCase[], config: TathyaConfig): ManifestEntry[] {
+  return manifestOf(cases, cases.map((testCase) => planFor(testCase, config)));
+}
+
+function manifestOf(cases: TestCase[], plans: TestPlan[]): ManifestEntry[] {
+  return buildManifest(cases, plans.map(assertionCountOf));
+}
+
+async function writeManifest(cases: TestCase[], plans: TestPlan[], config: TathyaConfig): Promise<ManifestEntry[]> {
+  const manifest = manifestOf(cases, plans);
   await writeFile(join(config.output.dir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
   return manifest;
 }

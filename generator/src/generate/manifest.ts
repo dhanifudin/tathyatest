@@ -30,12 +30,13 @@ export type ManifestEntry = {
   scenarioKey?: string | null;
 };
 
-export function buildManifest(cases: TestCase[]): ManifestEntry[] {
-  return cases.map((testCase, index) => entryFor(testCase, index));
+/** `assertionCounts[i]` is what case `i` asserts once planned (`ir/count.ts`). */
+export function buildManifest(cases: TestCase[], assertionCounts: readonly number[]): ManifestEntry[] {
+  return cases.map((testCase, index) => entryFor(testCase, index, assertionCounts[index] ?? 0));
 }
 
 /** The classification of one case — shared by the manifest and by the emitter's tags/annotations. */
-export type CaseMeta = Omit<ManifestEntry, 'id' | 'title'>;
+export type CaseMeta = Omit<ManifestEntry, 'id' | 'title' | 'assertionCount'>;
 
 export function caseMeta(testCase: TestCase): CaseMeta {
   return { ...classify(testCase), mutating: isMutating(testCase) };
@@ -49,7 +50,7 @@ function classify(testCase: TestCase): Omit<CaseMeta, 'mutating'> {
         route: testCase.logout ? canonicalPath(testCase.logout.page.url) : null,
         targetForm: testCase.logout ? `${testCase.logout.form.method}:${canonicalPath(testCase.logout.form.action)}` : null,
         targetField: null, constraintKind: null,
-        assertionCount: 1, locatorStrategy: testCase.logout?.form.submit.locator.strategy ?? null, faultClass: 'auth',
+        locatorStrategy: testCase.logout?.form.submit.locator.strategy ?? null, faultClass: 'auth',
         scenarioKey: null,
       };
     case 'form': {
@@ -60,7 +61,6 @@ function classify(testCase: TestCase): Omit<CaseMeta, 'mutating'> {
         targetForm: `${testCase.form.method}:${canonicalPath(testCase.form.action)}`,
         targetField: testCase.targetField?.name ?? null,
         constraintKind: constraintKindFor(testCase.variant.name),
-        assertionCount: formAssertionCount(testCase),
         locatorStrategy: (testCase.targetField ?? testCase.form.fields[0])?.locator.strategy ?? testCase.form.submit.locator.strategy,
         faultClass: negative ? 'validation' : 'crud',
         scenarioKey: null,
@@ -70,14 +70,14 @@ function classify(testCase: TestCase): Omit<CaseMeta, 'mutating'> {
       return {
         category: 'nav', tier: 'positive', role: testCase.role,
         route: canonicalPath(testCase.page.url), targetForm: null, targetField: null,
-        constraintKind: null, assertionCount: hasLandingAssertion(testCase) ? 2 : 1, locatorStrategy: testCase.interaction.locator.strategy,
+        constraintKind: null, locatorStrategy: testCase.interaction.locator.strategy,
         faultClass: null, scenarioKey: testCase.scenarioKey ?? null,
       };
     case 'pagination':
       return {
         category: 'nav', tier: 'positive', role: testCase.role,
         route: canonicalPath(testCase.page.url), targetForm: null, targetField: null,
-        constraintKind: null, assertionCount: testCase.pagination.href ? 2 : 1,
+        constraintKind: null,
         locatorStrategy: testCase.pagination.locator.strategy, faultClass: 'pagination',
         scenarioKey: testCase.scenarioKey ?? null,
       };
@@ -85,35 +85,16 @@ function classify(testCase: TestCase): Omit<CaseMeta, 'mutating'> {
       return {
         category: 'rbac', tier: testCase.tier, role: testCase.role,
         route: canonicalPath(testCase.route), targetForm: null, targetField: null,
-        constraintKind: null, assertionCount: 1, locatorStrategy: testCase.affordance?.locator.strategy ?? null, faultClass: 'authz',
+        constraintKind: null, locatorStrategy: testCase.affordance?.locator.strategy ?? null, faultClass: 'authz',
         scenarioKey: null,
       };
   }
 }
 
-function entryFor(testCase: TestCase, index: number): ManifestEntry {
-  return { id: `t${String(index + 1).padStart(4, '0')}`, title: testCase.title, ...caseMeta(testCase) };
-}
-
-/**
- * Mirrors ir/build.ts formOracles: delete → gone + graceful; fieldless update with a labelled
- * submit → state flip + graceful; valid GET form → query echo + graceful; everything else one
- * assertion.
- */
-function formAssertionCount(testCase: Extract<TestCase, { kind: 'form' }>): number {
-  const { form, variant } = testCase;
-  if (form.crudOp === 'delete' && variant.name === 'delete') return 2;
-  if (variant.name !== 'valid') return 1;
-  if (form.fields.length === 0 && form.crudOp === 'update' && form.submit.text) return 2;
-  if (form.method === 'GET' && form.fields.some((field) => !['file', 'checkbox', 'radio'].includes(field.type) && testCase.values[field.name] !== undefined)) return 2;
-  return 1;
-}
-
-/** Mirrors ir/layout.ts linkLandingPath without needing the base URL: a navigable same-origin-looking href. */
-function hasLandingAssertion(testCase: Extract<TestCase, { kind: 'interaction' }>): boolean {
-  const href = testCase.interaction.href?.trim() ?? '';
-  if (testCase.interaction.type !== 'link' || href === '' || href.startsWith('#') || /^(javascript|mailto|tel|https?):/i.test(href)) return false;
-  return !/(^|\/)(logout|log-out|signout|sign-out)(\/|\?|#|$)/i.test(href.split(/[?#]/, 1)[0] ?? '');
+function entryFor(testCase: TestCase, index: number, assertionCount: number): ManifestEntry {
+  const { locatorStrategy, faultClass, scenarioKey, mutating, ...head } = caseMeta(testCase);
+  // Spelled out so the written manifest keeps its field order.
+  return { id: `t${String(index + 1).padStart(4, '0')}`, title: testCase.title, ...head, assertionCount, locatorStrategy, faultClass, scenarioKey, mutating };
 }
 
 function constraintKindFor(variantName: string): string | null {

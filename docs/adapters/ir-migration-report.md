@@ -152,6 +152,8 @@ IR (`Step.title`) and are therefore identical in both frameworks.
    crawl, the number of IR oracles equals the `assertionCount` the manifest records (the manifest is still built from
    `TestCase[]` by the old `manifest.ts`). It also checks that every manifest title appears exactly once, with its
    manifest tags, in both the Playwright and the Cypress output, and that neither asserts on message text.
+   (Since the migration the counts are derived from the IR by `ir/count.ts` instead of being mirrored in
+   `manifest.ts`, and the conformance test compares them with the static analysis of the emitted specs.)
 4. **Same results on a live app.** The same SauceDemo crawl, generated and run with both frameworks:
 
    | Framework | Browser | Passed | Failed | Skipped |

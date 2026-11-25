@@ -7,12 +7,13 @@ import { adapterFor } from '../../src/adapters/registry.js';
 import { FRAMEWORKS } from '../../src/adapters/types.js';
 import { parseConfig, type TathyaConfig } from '../../src/config.js';
 import { loadCrawls } from '../../src/crawl/crawl.js';
-import { buildManifest, type ManifestEntry } from '../../src/generate/manifest.js';
+import { analyzeSpecSource } from '../../src/adapters/playwright/analyze.js';
+import { playwrightEmitter } from '../../src/adapters/playwright/emitter.js';
+import { manifestFor } from '../../src/emit/index.js';
 import { mapTestCases } from '../../src/generate/mapper.js';
 import { buildAccessMatrix } from '../../src/generate/rbac.js';
 import { planFor } from '../../src/ir/build.js';
 import { tagsAndAnnotations } from '../../src/ir/layout.js';
-import type { Oracle, TestPlan } from '../../src/ir/types.js';
 import type { TestCase } from '../../src/generate/test-case.js';
 
 /**
@@ -45,23 +46,13 @@ afterAll(async () => {
   await rm(work, { recursive: true, force: true });
 });
 
-/**
- * How many manifest assertions an oracle stands for: the query-echo and state-flip helpers also
- * check for a server error (manifest.ts counts 2 for those).
- */
-function weight(oracle: Oracle): number {
-  return oracle.type === 'query-echo' || oracle.type === 'state-flipped' ? 2 : 1;
-}
-
-function assertionCount(plan: TestPlan): number {
-  return plan.steps.reduce((sum, step) => sum + (step.kind === 'assert' ? step.oracles.reduce((total, oracle) => total + weight(oracle), 0) : 0), 0);
-}
-
 describe('IR ↔ manifest', () => {
-  it('each plan asserts as often as the manifest records', () => {
-    const manifest = buildManifest(cases);
-    const counts = cases.map((testCase) => assertionCount(planFor(testCase, config)));
-    expect(counts).toEqual(manifest.map((entry: ManifestEntry) => entry.assertionCount));
+  it('records as many assertions as the static analyser counts in the emitted Playwright specs', () => {
+    const manifest = manifestFor(cases, config);
+    const files = playwrightEmitter.files(cases.map((testCase) => planFor(testCase, config)), config);
+    const emitted = [...files].filter(([path]) => !path.startsWith('support/')).reduce((sum, [, source]) => sum + analyzeSpecSource(source).assertions, 0);
+    expect(manifest.reduce((sum, entry) => sum + entry.assertionCount, 0)).toBe(emitted);
+    expect(manifest.every((entry) => entry.assertionCount > 0)).toBe(true);
   });
 });
 

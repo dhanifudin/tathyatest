@@ -88,9 +88,7 @@ error. Suppose it should also prove the value was saved, by finding the echoed t
 
    `text-visible` already exists in the IR, so this is a pure decision change.
 
-2. Keep the manifest in step. If the number of assertions of a test changes, update `formAssertionCount` in
-   `generate/manifest.ts`. `test/adapters/conformance.test.ts` fails until IR assertion counts and manifest counts
-   agree again.
+2. The manifest follows by itself: `assertionCount` is derived from the plan's oracles (`ir/count.ts`).
 3. Add or adjust a case in `test/ir/build.test.ts`. That test runs without any framework installed.
 4. Regenerate the golden files and review both directories.
 
@@ -164,9 +162,8 @@ TypeScript and are typechecked (`npm run typecheck` covers `tsconfig.cypress.jso
 ### Step 4: keep the invariants
 
 - **No message text.** An oracle checks state (visibility, validity, URL, focus), never the wording of an error.
-- **Assertion count.** A new oracle adds an assertion to some tests. Update `generate/manifest.ts`
-  (`formAssertionCount` or `hasLandingAssertion`), and if one oracle stands for several manifest assertions, its
-  weight in `test/adapters/conformance.test.ts`.
+- **Assertion count.** Give a new oracle its weight in `ir/count.ts`: the number of assertion calls the
+  Playwright emitter writes for it. `test/adapters/conformance.test.ts` compares the total with the static analyser.
 - **Locator chain.** Use the crawled `Locator` from the IR; never build positional selectors.
 - **Same step titles.** Titles live in the IR (`Step.title`); an emitter must not invent its own.
 
