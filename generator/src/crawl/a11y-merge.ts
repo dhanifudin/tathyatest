@@ -1,94 +1,96 @@
-import type { Page } from '@playwright/test';
+import type { Locator as PlaywrightLocator, Page } from '@playwright/test';
 import type { Locator } from './model.js';
 import type { DomPageModel } from './dom-extract.js';
 
-export async function enrichAccessibility(page: Page, model: DomPageModel): Promise<DomPageModel> {
-  const pageNodes = parseAriaSnapshot(await page.ariaSnapshot({ mode: 'default' }).catch(() => ''));
+/**
+ * A locator as the DOM pass leaves it. `probe` is the `data-tt-probe` value of its element,
+ * `fallback` the CSS locator to use if a role name turns out wrong, and `unique` whether a CSS
+ * value matches only this element. None of the three is part of the crawl contract.
+ */
+export type RawLocator = Locator & { probe?: number; fallback?: RawLocator; unique?: boolean };
 
-  const buttons = collectRoleNodes(pageNodes, ['button']);
-  const links = collectRoleNodes(pageNodes, ['link']);
-
-  const formCount = await page.locator('form').count();
-  for (let formIndex = 0; formIndex < Math.min(formCount, model.forms.length); formIndex += 1) {
-    const formSnapshot = await page.locator('form').nth(formIndex).ariaSnapshot({ mode: 'default' }).catch(() => '');
-    const formNodes = collectRoleNodes(parseAriaSnapshot(formSnapshot), ['textbox', 'combobox', 'checkbox', 'radio', 'spinbutton', 'button']);
-    const form = model.forms[formIndex];
-    for (let fieldIndex = 0; fieldIndex < Math.min(form.fields.length, formNodes.length); fieldIndex += 1) {
-      const node = formNodes[fieldIndex];
-      form.fields[fieldIndex] = mergeAccessibleField(form.fields[fieldIndex], node);
-    }
-    const submitNode = formNodes.find((node) => node.role === 'button') ?? null;
-    if (submitNode) {
-      form.submit = mergeAccessibleSubmit(form.submit, submitNode);
-    }
-  }
-
-  model.buttons = model.buttons.map((button, index) => mergeAccessibleButton(button, buttons[index]));
-  model.links = model.links.map((link, index) => mergeAccessibleLink(link, links[index]));
-  return model;
-}
-
-type AccessibleNode = { role: string; name: string };
-
-function parseAriaSnapshot(snapshot: string): AccessibleNode[] {
-  if (snapshot.trim() === '') return [];
-  const out: AccessibleNode[] = [];
-  for (const line of snapshot.split('\n')) {
-    const match = line.trim().match(/^-\s+([a-z][a-z0-9_-]*)(?:\s+"([^"]+)")?:\s*$/i);
-    if (!match) continue;
-    const role = match[1].toLowerCase();
-    const name = match[2]?.trim() ?? '';
-    if (name === '') continue;
-    out.push({ role, name });
-  }
-  return out;
-}
-
-function collectRoleNodes(nodes: AccessibleNode[], roles: string[]): AccessibleNode[] {
-  return nodes.filter((node) => roles.includes(node.role));
-}
-
-/** Locator strategies that already satisfy the priority chain; the accessibility pass never replaces them. */
-const PRESERVED_STRATEGIES = new Set<Locator['strategy']>(['testid', 'label', 'placeholder']);
+/** Roles an element may be located by once Playwright reports an accessible name for it. */
+const NAMED_ROLES = new Set(['button', 'link', 'textbox', 'searchbox', 'combobox', 'listbox', 'checkbox', 'radio', 'switch', 'spinbutton', 'slider', 'menuitem', 'tab']);
 
 /**
- * Upgrade a weak (`css` or `name`) locator to `role:name` using the accessibility snapshot node.
- * Returns null when the element must stay untouched (it already has a strong locator, or the node's
- * role is unusable); an `id` locator is kept as is.
+ * Check every probed locator against Playwright's own accessibility tree, element by element: a
+ * role name read from the DOM must really be the element's accessible name, and a weak (`css` or
+ * `name`) locator is upgraded to `role:name` when the element has one. Buttons and links left
+ * with a CSS selector matching several elements are dropped — a test could not address them.
  */
-function accessibleLocator(locator: Locator, node: AccessibleNode, fallbackRole: string): Locator | null {
-  if (PRESERVED_STRATEGIES.has(locator.strategy)) return null;
-  const role = normalizeAccessibleRole(node.role, fallbackRole);
-  if (!role) return null;
-  return locator.strategy === 'css' || locator.strategy === 'name' ? { strategy: 'role', value: `${role}:${node.name}` } : locator;
-}
-
-type DomForm = DomPageModel['forms'][number];
-
-function mergeAccessibleField(field: DomForm['fields'][number], node?: AccessibleNode): DomForm['fields'][number] {
-  const locator = node && accessibleLocator(field.locator, node, field.type);
-  return node && locator ? { ...field, label: field.label ?? node.name, locator } : field;
-}
-
-function mergeAccessibleSubmit(submit: DomForm['submit'], node?: AccessibleNode): DomForm['submit'] {
-  const locator = node && accessibleLocator(submit.locator, node, 'button');
-  return node && locator ? { ...submit, text: submit.text ?? node.name, locator } : submit;
-}
-
-function mergeAccessibleButton(button: DomPageModel['buttons'][number], node?: AccessibleNode): DomPageModel['buttons'][number] {
-  const locator = node && accessibleLocator(button.locator, node, 'button');
-  return locator ? { ...button, locator } : button;
-}
-
-function mergeAccessibleLink(link: DomPageModel['links'][number], node?: AccessibleNode): DomPageModel['links'][number] {
-  const locator = node && accessibleLocator(link.locator, node, 'link');
-  return locator ? { ...link, locator } : link;
-}
-
-function normalizeAccessibleRole(role: string, fallback: string): string {
-  if (role === 'searchbox') return 'textbox';
-  if (role === 'textbox' || role === 'button' || role === 'link' || role === 'checkbox' || role === 'radio' || role === 'combobox' || role === 'spinbutton') {
-    return role;
+export async function enrichAccessibility(page: Page, model: DomPageModel): Promise<DomPageModel> {
+  const refine = (locator: Locator) => refineLocator(page, locator as RawLocator);
+  const forms: DomPageModel['forms'] = [];
+  for (const form of model.forms) {
+    const fields: DomPageModel['forms'][number]['fields'] = [];
+    for (const field of form.fields) {
+      const { locator, name } = await refine(field.locator);
+      fields.push({ ...field, label: field.label ?? name, locator: strip(locator) });
+    }
+    const submit = await refine(form.submit.locator);
+    forms.push({ ...form, fields, submit: { text: form.submit.text ?? submit.name, locator: strip(submit.locator) } });
   }
-  return fallback;
+  const addressable = async <T extends { locator: Locator }>(items: T[]): Promise<T[]> => {
+    const kept: T[] = [];
+    for (const item of items) {
+      const { locator } = await refine(item.locator);
+      if (!(locator.strategy === 'css' && locator.unique === false)) kept.push({ ...item, locator: strip(locator) });
+    }
+    return kept;
+  };
+  const buttons = await addressable(model.buttons);
+  const links = await addressable(model.links);
+  const controls: NonNullable<DomPageModel['controls']> = [];
+  for (const control of model.controls ?? []) controls.push({ ...control, locator: strip((await refine(control.locator)).locator) });
+  await page.evaluate(() => document.querySelectorAll('[data-tt-probe]').forEach((el) => el.removeAttribute('data-tt-probe')));
+  return { ...model, forms, buttons, links, controls };
+}
+
+type Refined = { locator: RawLocator; name: string | null };
+
+async function refineLocator(page: Page, locator: RawLocator): Promise<Refined> {
+  if (locator.probe === undefined) return { locator, name: null };
+  const element = page.locator(`[data-tt-probe="${locator.probe}"]`);
+  if (locator.strategy === 'role') {
+    const [role, ...nameParts] = locator.value.split(':');
+    if (await hasRoleName(page, element, role ?? '', nameParts.join(':'))) return { locator, name: null };
+  }
+  const node = await accessibleNode(element);
+  if (node && await hasRoleName(page, element, node.role, node.name)) {
+    return { locator: { strategy: 'role', value: `${node.role}:${node.name}` }, name: node.name };
+  }
+  // A wrong role name is worse than a plain selector. A hidden element exposes no snapshot, so its
+  // name cannot be corrected: it falls back too.
+  return { locator: locator.strategy === 'role' ? locator.fallback ?? locator : locator, name: null };
+}
+
+async function hasRoleName(page: Page, element: PlaywrightLocator, role: string, name: string): Promise<boolean> {
+  // The name a test will see: hidden descendants count only when the element itself is hidden
+  // (a closed menu), where nothing but a hidden-inclusive query can reach it.
+  const includeHidden = !(await element.isVisible().catch(() => false));
+  const byRole = page.getByRole(role as Parameters<Page['getByRole']>[0], { name, exact: true, includeHidden });
+  return (await byRole.and(element).count().catch(() => 0)) === 1;
+}
+
+/** The element's own role and accessible name: the first line of its accessibility snapshot. */
+async function accessibleNode(element: PlaywrightLocator): Promise<{ role: string; name: string } | null> {
+  const snapshot = await element.ariaSnapshot({ timeout: 2000 }).catch(() => '');
+  return parseAriaNode(snapshot.split('\n')[0] ?? '');
+}
+
+/** `- button "Save"`, `- checkbox "Done" [checked]`, `- textbox "Title": value`, `- link "Home":`. */
+export function parseAriaNode(line: string): { role: string; name: string } | null {
+  const match = /^\s*-\s+'?([a-z][\w-]*)\s+"((?:[^"\\]|\\.)*)"/i.exec(line);
+  if (!match) return null;
+  const role = (match[1] ?? '').toLowerCase();
+  const name = unquote(match[2] ?? '').trim();
+  return NAMED_ROLES.has(role) && name !== '' ? { role, name } : null;
+}
+
+function unquote(value: string): string {
+  return value.replace(/\\(["\\])/g, '$1');
+}
+
+function strip(locator: RawLocator): Locator {
+  return { strategy: locator.strategy, value: locator.value };
 }

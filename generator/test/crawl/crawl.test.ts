@@ -1,10 +1,10 @@
-import { mkdtemp, mkdir, rm, writeFile, utimes } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-import YAML from 'yaml';
 import { ensureCrawls, loadCrawls, shouldRefreshCrawls } from '../../src/crawl/crawl.js';
-import { crawlOutputSchema } from '../../src/crawl/model.js';
+import { crawlFingerprint } from '../../src/crawl/fingerprint.js';
+import { CRAWL_SCHEMA_VERSION, crawlOutputSchema } from '../../src/crawl/model.js';
 import type { TathyaConfig } from '../../src/config.js';
 import { makeConfig } from '../helpers/fixtures.js';
 
@@ -101,109 +101,75 @@ describe('loadCrawls role filtering', () => {
 });
 
 describe('crawl bootstrap', () => {
-  it('refreshes when crawl outputs are missing', async () => {
+  const current = {
+    baseUrl: config.baseUrl, schemaVersion: CRAWL_SCHEMA_VERSION, role: 'admin', crawledAt: '2026-11-25T00:00:00.000Z',
+    configFingerprint: crawlFingerprint(config), pages: [],
+  };
+
+  async function refreshes(files: Record<string, unknown>, target: TathyaConfig = config): Promise<boolean> {
     const dir = await mkdtemp(join(tmpdir(), 'tt-crawl-bootstrap-'));
     try {
-      const configPath = join(dir, 'tathya.config.yaml');
-      const crawlDir = join(dir, 'crawl');
-      await writeFile(configPath, YAML.stringify(config));
-
-      const crawlRunner = vi.fn(async () => undefined);
-      await ensureCrawls(config, { crawlDir, configPath, crawlRunner });
-
-      expect(crawlRunner).toHaveBeenCalledTimes(1);
+      for (const [name, content] of Object.entries(files)) await writeFile(join(dir, name), JSON.stringify(content));
+      return await shouldRefreshCrawls(target, dir);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
+  }
+
+  it('keeps a crawl that matches the config', async () => {
+    await expect(refreshes({ 'admin.json': current })).resolves.toBe(false);
   });
 
-  it('refreshes when a configured role crawl file is missing', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'tt-crawl-bootstrap-'));
-    try {
-      const localConfig: TathyaConfig = {
-        ...config,
-        auth: {
-          ...config.auth,
-          roles: [
-            { name: 'admin', username: 'admin@example.com', password: 'password' },
-            { name: 'user', username: 'user@example.com', password: 'password' },
-          ],
-        },
-      };
-      const configPath = join(dir, 'tathya.config.yaml');
-      const crawlDir = join(dir, 'crawl');
-      await mkdir(crawlDir, { recursive: true });
-      await writeFile(configPath, YAML.stringify(localConfig));
-      await writeFile(join(crawlDir, 'admin.json'), '{}');
-
-      const crawlRunner = vi.fn(async () => undefined);
-      await ensureCrawls(localConfig, { crawlDir, configPath, crawlRunner });
-
-      expect(crawlRunner).toHaveBeenCalledTimes(1);
-    } finally {
-      await rm(dir, { recursive: true, force: true });
-    }
+  it('crawls when a role file is missing or unreadable', async () => {
+    const two: TathyaConfig = { ...config, auth: { ...config.auth, roles: [...config.auth.roles, { name: 'user', username: 'u', password: 'p' }] } };
+    await expect(refreshes({})).resolves.toBe(true);
+    await expect(refreshes({ 'admin.json': {} })).resolves.toBe(true);
+    await expect(refreshes({ 'admin.json': current }, two)).resolves.toBe(true);
   });
 
-  it('skips refresh when crawl outputs are newer than config', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'tt-crawl-bootstrap-'));
-    try {
-      const configPath = join(dir, 'tathya.config.yaml');
-      const crawlDir = join(dir, 'crawl');
-      await mkdir(crawlDir, { recursive: true });
-      await writeFile(configPath, YAML.stringify(config));
-      await writeFile(join(crawlDir, 'admin.json'), '{}');
-      await utimes(configPath, new Date('2024-01-01T00:00:00Z'), new Date('2024-01-01T00:00:00Z'));
-      await utimes(join(crawlDir, 'admin.json'), new Date('2024-01-02T00:00:00Z'), new Date('2024-01-02T00:00:00Z'));
+  it('crawls again for an older contract, another app, or changed crawl settings', async () => {
+    await expect(refreshes({ 'admin.json': { ...current, schemaVersion: CRAWL_SCHEMA_VERSION - 1 } })).resolves.toBe(true);
+    await expect(refreshes({ 'admin.json': { ...current, baseUrl: 'http://127.0.0.1:8001' } })).resolves.toBe(true);
+    await expect(refreshes({ 'admin.json': current }, makeConfig({ crawl: { include: ['/reports'] } }))).resolves.toBe(true);
+    await expect(refreshes({ 'admin.json': { ...current, configFingerprint: undefined } })).resolves.toBe(true);
+  });
 
-      const crawlRunner = vi.fn(async () => undefined);
-      await ensureCrawls(config, { crawlDir, configPath, crawlRunner });
-
-      expect(crawlRunner).not.toHaveBeenCalled();
-      await expect(shouldRefreshCrawls(config, crawlDir, configPath)).resolves.toBe(false);
-    } finally {
-      await rm(dir, { recursive: true, force: true });
-    }
+  it('keeps passwords out of the fingerprint and ignores settings that do not shape a crawl', () => {
+    const changed = makeConfig({ auth: { loginPath: '/login', roles: [{ name: 'admin', username: 'admin@example.com', password: 'other' }] }, data: { fields: { title: 'x' } } });
+    expect(crawlFingerprint(changed)).toBe(crawlFingerprint(config));
   });
 
   it('crawls again with force even when the cached crawl is current', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'tt-crawl-bootstrap-'));
     try {
-      const configPath = join(dir, 'tathya.config.yaml');
-      const crawlDir = join(dir, 'crawl');
-      await mkdir(crawlDir, { recursive: true });
-      await writeFile(configPath, YAML.stringify(config));
-      await writeFile(join(crawlDir, 'admin.json'), '{}');
-      await utimes(configPath, new Date('2024-01-01T00:00:00Z'), new Date('2024-01-01T00:00:00Z'));
-      await utimes(join(crawlDir, 'admin.json'), new Date('2024-01-02T00:00:00Z'), new Date('2024-01-02T00:00:00Z'));
-
+      await writeFile(join(dir, 'admin.json'), JSON.stringify(current));
       const crawlRunner = vi.fn(async () => undefined);
-      await ensureCrawls(config, { crawlDir, configPath, crawlRunner, force: true });
-
+      await ensureCrawls(config, { crawlDir: dir, crawlRunner });
+      expect(crawlRunner).not.toHaveBeenCalled();
+      await ensureCrawls(config, { crawlDir: dir, crawlRunner, force: true });
       expect(crawlRunner).toHaveBeenCalledTimes(1);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
   });
+});
 
-  it('refreshes when crawl outputs are older than config', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'tt-crawl-bootstrap-'));
-    try {
-      const configPath = join(dir, 'tathya.config.yaml');
-      const crawlDir = join(dir, 'crawl');
-      await mkdir(crawlDir, { recursive: true });
-      await writeFile(configPath, YAML.stringify(config));
-      await writeFile(join(crawlDir, 'admin.json'), '{}');
-      await utimes(configPath, new Date('2024-01-02T00:00:00Z'), new Date('2024-01-02T00:00:00Z'));
-      await utimes(join(crawlDir, 'admin.json'), new Date('2024-01-01T00:00:00Z'), new Date('2024-01-01T00:00:00Z'));
-
-      const crawlRunner = vi.fn(async () => undefined);
-      await ensureCrawls(config, { crawlDir, configPath, crawlRunner });
-
-      expect(crawlRunner).toHaveBeenCalledTimes(1);
-      await expect(shouldRefreshCrawls(config, crawlDir, configPath)).resolves.toBe(true);
-    } finally {
-      await rm(dir, { recursive: true, force: true });
-    }
+describe('older crawl files', () => {
+  it('load with the new fields defaulted', () => {
+    const parsed = crawlOutputSchema.parse({
+      baseUrl: 'http://127.0.0.1:8000', schemaVersion: 2, role: 'admin', crawledAt: '2026-06-27T00:00:00.000Z',
+      pages: [{
+        url: '/todos', title: 'Todos', buttons: [], tables: [],
+        links: [{ href: '/todos', text: 'Todos', locator: { strategy: 'role', value: 'link:Todos' } }],
+        forms: [{
+          action: '/todos', method: 'POST', crudOp: 'create', noValidate: false, submit: { text: 'Create', locator: { strategy: 'css', value: 'button' } },
+          fields: [{ name: 't', type: 'text', label: null, required: false, constraints: { minlength: null, maxlength: null, min: null, max: null, step: null, pattern: null, inputmode: null, accept: null }, options: null, nameHints: [], locator: { strategy: 'name', value: 't' } }],
+        }],
+      }],
+    });
+    expect(parsed).toMatchObject({ landingPath: null, configFingerprint: null });
+    expect(parsed.pages[0].links[0]).toMatchObject({ inPage: false, method: null });
+    expect(parsed.pages[0].forms[0]).toMatchObject({ declaresTarget: true, hasActionAttribute: true });
+    expect(parsed.pages[0].forms[0].fields[0].prefilled).toBe(false);
   });
 });

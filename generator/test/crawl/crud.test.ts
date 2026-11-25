@@ -69,3 +69,14 @@ describe('classifyCrudOp', () => {
     expect(classifyCrudOp(post({ action: '/settings', submitText: 'Log out of all devices' }))).toBe('create');
   });
 });
+
+describe('script-handled forms', () => {
+  const signals = { method: 'GET' as const, declaresTarget: false, spoofedMethod: null, turboMethod: null, hxMethod: null, action: '/todos/create' };
+  it('are classified by their submit text only', () => {
+    expect(classifyCrudOp({ ...signals, submitText: 'Delete' })).toBe('delete');
+    expect(classifyCrudOp({ ...signals, submitText: 'Save changes' })).toBe('update');
+    expect(classifyCrudOp({ ...signals, submitText: 'Search' })).toBe('unknown');
+    expect(classifyCrudOp({ ...signals, declaresTarget: true, submitText: 'Delete' })).toBe('unknown');
+  });
+});
+

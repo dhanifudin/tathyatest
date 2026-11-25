@@ -56,7 +56,7 @@ Seeded accounts: `admin@example.com` and `user@example.com`, password `password`
 - Strict TypeScript: no `any`, no `@ts-ignore`, no `!` non-null assertions in `src` (lint enforces it).
 - `src/config.ts` (zod) is the authoritative config validator: change it first, then consumers.
 - `src/crawl/model.ts` is the crawl contract. Keep `src/crawl/dom-extract.ts` (the producer) in sync;
-  bump `CRAWL_SCHEMA_VERSION` (currently 2) when a field changes meaning or is removed, add a zod
+  bump `CRAWL_SCHEMA_VERSION` (currently 3) when a field changes meaning or is removed, add a zod
   default for purely additive fields.
 - `generate/*`, `ir/*`, `eval/metrics/*`, `eval/stats.ts` are pure: no I/O, no Playwright. They take loaded
   data and return values. `eval/runner.ts` and `adapters/*/runner.ts` own process spawning and file writes.

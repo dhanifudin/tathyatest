@@ -26,7 +26,7 @@ generated specs are then executed cross-browser to produce a Pass/Fail report. T
 | `generator/src/cli/` | `tt` commands (`cli.ts`), entry (`main.ts`), `init.ts` wizard | Business logic beyond dispatch |
 | `generator/src/config.ts` | zod config schema and loader (authoritative) | Anything but parsing and defaults |
 | `generator/src/crawl/` | crawl contract (`model.ts`), crawl orchestration (`crawl.ts`), Playwright crawler (`session.ts`, `dom-extract.ts`, `a11y-merge.ts`), `crud.ts` classifier, `reachability.ts` | Run tests, generate specs |
-| `generator/src/auth/` | login-control inference from HTML (`login.ts`) and its Playwright runtime (`login-runtime.ts`) | Crawl, generate |
+| `generator/src/auth/` | login-control inference in the page (`login-dom.ts`, copied into both support modules), its Playwright runtime (`login-runtime.ts`), `baseUrl` normalisation (`login.ts`) | Crawl, generate |
 | `generator/src/generate/` | pure generation rules (which tests exist): `mapper.ts` (+ `test-case.ts`, `titles.ts`, `pagination-labels.ts`), `fieldgen.ts`, `faker.ts` (expression strings), `rbac.ts`, `manifest.ts` | I/O, framework syntax, running anything |
 | `generator/src/ir/` | the Intermediate Representation (`types.ts`) and the scenario rules that build it from a `TestCase` (`build.ts` `planFor`, `layout.ts`): steps, fill strategy, oracle choice, skip conditions, titles, tags, file layout | Framework syntax, I/O |
 | `generator/src/adapters/` | `types.ts` (`SpecEmitter`, `TestRunner`, `FRAMEWORKS`), `registry.ts`, and one directory per framework (`playwright/`, `cypress/`): emitter (IR → spec text), locator rendering, support-module templates, runner (run, tag filters, result parsing, baseline static analysis) | Decisions about what a test does (those belong in `ir/build.ts`) |
@@ -67,17 +67,21 @@ Full schema reference:
 ```jsonc
 {
   "baseUrl": "string",
-  "schemaVersion": 2,            // contract version; v1 files carried "engine" instead (dropped on load)
+  "schemaVersion": 3,            // contract version; older files load with defaults but are crawled again
   "role": "string",              // role name from config.auth.roles[].name
   "crawledAt": "ISO8601 string",
+  "landingPath": "string | null",        // where the login landed
+  "configFingerprint": "string | null",  // crawl/fingerprint.ts; a mismatch crawls again
   "pages": [{
     "url": "string",             // path only, e.g. "/todos"
     "title": "string",
     "forms": [{
       "action": "string",
-      "method": "GET | POST",    // HTTP method of the form element
+      "method": "GET | POST",    // what a submission sends (script verbs count as POST)
       "crudOp": "create | update | delete | logout | unknown",  // see src/crawl/crud.ts classifyCrudOp
       "noValidate": "boolean",   // form[novalidate] attribute
+      "declaresTarget": "boolean",    // false: neither method nor action (script-handled)
+      "hasActionAttribute": "boolean",
       "fields": [{
         "name": "string",
         "type": "string",        // input[type]
@@ -93,15 +97,20 @@ Full schema reference:
           "inputmode": "string | null",
           "accept": "string | null"
         },
-        "options": "[{ value, label }] | null",  // select/radio/checkbox
+        "options": "[{ value, label }] | null",  // select, or the radios of a group (one field per name)
+        "prefilled": "boolean",    // a text-like field that already held a value
         "nameHints": "string[]",   // e.g. ["confirmation"] from *_confirmation suffix
         "locator": { "strategy": "testid|role|label|placeholder|id|name|css", "value": "string" }
       }],
       "submit": { "text": "string | null", "locator": { "strategy": "...", "value": "..." } }
     }],
-    "links": [{ "href": "string", "text": "string", "locator": {...} }],
-    "buttons": [{ "text": "string", "locator": {...} }],
-    "tables": [{ "headers": "string[]", "rowCount": "number" }]
+    "links": [{ "href": "string", "text": "string", "locator": {...}, "visible": "boolean",
+                "inPage": "boolean",       // fragment or javascript: href
+                "method": "string | null"  // non-GET verb script sends for the link
+             }],
+    "buttons": [{ "text": "string", "locator": {...}, "visible": "boolean" }],
+    "tables": [{ "headers": "string[]", "rowCount": "number" }],
+    "controls": [{ "kind": "select", "text": "string | null", "options": "[{ value, label }] | null", "locator": {...} }]
   }]
 }
 ```

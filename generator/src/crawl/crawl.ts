@@ -1,9 +1,10 @@
-import { mkdir, readdir, readFile, rm, stat } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { renderedCrawl } from './session.js';
 import { assertReachable } from './reachability.js';
 import type { TathyaConfig } from '../config.js';
-import { crawlOutputSchema, type CrawlOutput } from './model.js';
+import { CRAWL_SCHEMA_VERSION, crawlOutputSchema, type CrawlOutput } from './model.js';
+import { crawlFingerprint } from './fingerprint.js';
 import { DEFAULT_PATHS } from '../util/paths.js';
 
 /**
@@ -36,31 +37,32 @@ export async function runCrawl(config: TathyaConfig): Promise<void> {
 
 export type EnsureCrawlsOptions = {
   crawlDir?: string;
-  configPath?: string;
   crawlRunner?: (config: TathyaConfig) => Promise<void>;
-  /** Crawl again even when the cached per-role files are newer than the config (`--fresh`). */
+  /** Crawl again even when the cached per-role files are current (`--fresh`). */
   force?: boolean;
 };
 
 export async function ensureCrawls(config: TathyaConfig, options: EnsureCrawlsOptions = {}): Promise<void> {
   const crawlDir = options.crawlDir ?? DEFAULT_PATHS.crawlDir;
-  const configPath = options.configPath ?? DEFAULT_PATHS.configFile;
   const crawlRunner = options.crawlRunner ?? runCrawl;
-  if (options.force || await shouldRefreshCrawls(config, crawlDir, configPath)) {
+  if (options.force || await shouldRefreshCrawls(config, crawlDir)) {
     await crawlRunner(config);
   }
 }
 
-export async function shouldRefreshCrawls(config: TathyaConfig, crawlDir: string = DEFAULT_PATHS.crawlDir, configPath: string = DEFAULT_PATHS.configFile): Promise<boolean> {
-  try {
-    const configStat = await stat(configPath);
-    for (const role of config.auth.roles) {
-      const path = join(crawlDir, `${role.name}.json`);
-      const crawlStat = await stat(path);
-      if (crawlStat.mtimeMs < configStat.mtimeMs) return true;
+/**
+ * Whether any role lacks a crawl that matches this config: missing or unreadable, written by an
+ * older contract, taken from another app, or shaped by different crawl or login settings.
+ */
+export async function shouldRefreshCrawls(config: TathyaConfig, crawlDir: string = DEFAULT_PATHS.crawlDir): Promise<boolean> {
+  const fingerprint = crawlFingerprint(config);
+  for (const role of config.auth.roles) {
+    try {
+      const crawl = crawlOutputSchema.parse(JSON.parse(await readFile(join(crawlDir, `${role.name}.json`), 'utf8')));
+      if (crawl.schemaVersion < CRAWL_SCHEMA_VERSION || crawl.baseUrl !== config.baseUrl || crawl.configFingerprint !== fingerprint) return true;
+    } catch {
+      return true;
     }
-    return false;
-  } catch {
-    return true;
   }
+  return false;
 }

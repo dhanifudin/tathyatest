@@ -1,14 +1,15 @@
 import type { Page } from '@playwright/test';
-import type { FieldConstraints, Form, Locator, PageModel } from './model.js';
+import type { FieldConstraints, Form, PageModel } from './model.js';
 import { classifyCrudOp, type CrudSignals } from './crud.js';
-import { enrichAccessibility } from './a11y-merge.js';
+import { enrichAccessibility, type RawLocator } from './a11y-merge.js';
 
 /** One page as read from the live DOM: the crawl-contract page model without its URL. */
 export type DomPageModel = Omit<PageModel, 'url'>;
 
-/** Read forms, fields, links, buttons, tables and controls from the rendered page, then upgrade weak locators. */
+/** Read forms, fields, links, buttons, tables and controls from the rendered page, then verify and upgrade locators. */
 export async function extractPage(page: Page): Promise<DomPageModel> {
   const model = await page.evaluate(() => {
+    type RawField = Omit<Form['fields'][number], 'locator'> & { locator: RawLocator };
     const text = (node: Element | null): string => (node?.textContent ?? '').replace(/\s+/g, ' ').trim();
     const attr = (el: Element, name: string): string | null => el.getAttribute(name);
     const stableId = (value: string | null): string | null => value && !/[0-9a-f]{8,}|:/.test(value) ? value : null;
@@ -60,29 +61,51 @@ export async function extractPage(page: Page): Promise<DomPageModel> {
       }
       return tag;
     };
-    const locatorFor = (el: Element, fallbackRole?: string): Locator => {
+    // Elements whose locator the accessibility pass has to look at again are tagged for the
+    // duration of the extraction (a11y-merge.ts removes the attribute).
+    let probes = 0;
+    const probeOf = (el: Element): number => {
+      const known = el.getAttribute('data-tt-probe');
+      if (known !== null) return Number(known);
+      el.setAttribute('data-tt-probe', String(probes));
+      probes += 1;
+      return probes - 1;
+    };
+    const cssLocator = (el: Element): RawLocator => {
+      const value = cssFallback(el);
+      return { strategy: 'css', value, unique: document.querySelectorAll(value).length === 1 };
+    };
+    const labelOf = (el: Element): Element | null => {
+      const id = attr(el, 'id');
+      return (id ? document.querySelector(`label[for="${cssEscape(id)}"]`) : null) ?? el.closest('label');
+    };
+    /** The label's own wording, without the text of controls nested inside it. */
+    const labelText = (label: Element | null): string => {
+      if (!label) return '';
+      const copy = label.cloneNode(true) as Element;
+      copy.querySelectorAll('select, option, textarea, button, input').forEach((node) => node.remove());
+      return text(copy);
+    };
+    const locatorFor = (el: Element, fallbackRole?: string): RawLocator => {
       const testid = attr(el, 'data-testid');
       if (testid) return { strategy: 'testid', value: testid };
       const name = attr(el, 'aria-label') ?? text(el);
       const role = fallbackRole ?? inferredRole(el);
       if (role && name) {
         const explicitRole = role === 'button' || role === 'link' || attr(el, 'aria-label') !== null;
-        if (explicitRole) return { strategy: 'role', value: `${role}:${name}` };
+        if (explicitRole) return { strategy: 'role', value: `${role}:${name}`, probe: probeOf(el), fallback: cssLocator(el) };
       }
-      const id = attr(el, 'id');
-      if (id) {
-        const label = document.querySelector(`label[for="${cssEscape(id)}"]`);
-        if (label && text(label)) return { strategy: 'label', value: text(label) };
-      }
-      const wrappingLabel = el.closest('label');
-      if (wrappingLabel && text(wrappingLabel)) return { strategy: 'label', value: text(wrappingLabel) };
+      // `getByLabel` matches the label's whole text content, so a label that also contains the
+      // control's own text (options, a textarea's value) cannot be used as a locator.
+      const label = labelOf(el);
+      if (label && text(label) && text(label) === labelText(label)) return { strategy: 'label', value: text(label) };
       const placeholder = attr(el, 'placeholder');
       if (placeholder) return { strategy: 'placeholder', value: placeholder };
-      const sid = stableId(id);
+      const sid = stableId(attr(el, 'id'));
       if (sid) return { strategy: 'id', value: sid };
       const nameAttr = attr(el, 'name');
-      if (nameAttr) return { strategy: 'name', value: nameAttr };
-      return { strategy: 'css', value: cssFallback(el) };
+      if (nameAttr) return { strategy: 'name', value: nameAttr, probe: probeOf(el) };
+      return { ...cssLocator(el), probe: probeOf(el) };
     };
     const constraintsFor = (el: Element): FieldConstraints => ({
       minlength: el.getAttribute('minlength') === null ? null : Number(el.getAttribute('minlength')),
@@ -107,8 +130,15 @@ export async function extractPage(page: Page): Promise<DomPageModel> {
       }
       return null;
     };
-    const crudSignalsFor = (form: HTMLFormElement, submit: Element | null, action: string, submitText: string | null) => ({
-      method: ((form.method || 'GET').toUpperCase() === 'GET' ? 'GET' : 'POST') as 'GET' | 'POST',
+    /** A non-GET verb that script (Turbo, rails-ujs, HTMX) sends instead of the native one. */
+    const scriptVerb = (el: Element | null): string | null => {
+      if (!el) return null;
+      const verb = (attr(el, 'data-method') ?? attr(el, 'data-turbo-method') ?? hxVerb(el))?.trim().toUpperCase();
+      return verb && verb !== 'GET' ? verb : null;
+    };
+    const crudSignalsFor = (form: HTMLFormElement, submit: Element | null, action: string, submitText: string | null, method: 'GET' | 'POST', declaresTarget: boolean) => ({
+      method,
+      declaresTarget,
       spoofedMethod: form.querySelector<HTMLInputElement>('input[name="_method"]')?.value ?? null,
       turboMethod: attr(form, 'data-turbo-method') ?? (submit ? attr(submit, 'data-turbo-method') : null),
       hxMethod: hxVerb(form) ?? hxVerb(submit),
@@ -127,24 +157,45 @@ export async function extractPage(page: Page): Promise<DomPageModel> {
     return {
       title: document.title,
       forms: Array.from(document.querySelectorAll('form')).map((form) => {
-        const fields = Array.from(form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input, select, textarea'))
-          .filter((field) => field.name && field.type !== 'hidden' && field.type !== 'submit' && field.type !== 'button')
-          .map((field) => {
-            const options = field instanceof HTMLSelectElement
-              ? Array.from(field.options).map((option) => ({ value: option.value, label: text(option) }))
-              : null;
-            const nameHints = field.name.endsWith('_confirmation') ? ['confirmation'] : [];
-            return {
-              name: field.name,
-              type: field instanceof HTMLTextAreaElement ? 'textarea' : field instanceof HTMLSelectElement ? 'select' : field.type || 'text',
-              label: locatorFor(field).strategy === 'label' ? locatorFor(field).value : null,
-              required: field.required,
-              constraints: constraintsFor(field),
-              options,
-              nameHints,
-              locator: locatorFor(field),
-            };
+        const controls = Array.from(form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input, select, textarea'))
+          .filter((field) => field.name && !['hidden', 'submit', 'button', 'reset', 'image'].includes(field.type))
+          // A test cannot put a value into a disabled or read-only control.
+          .filter((field) => !field.matches(':disabled') && !('readOnly' in field && field.readOnly));
+        const fields: RawField[] = [];
+        const radioGroups = new Map<string, RawField>();
+        for (const field of controls) {
+          const type = field instanceof HTMLTextAreaElement ? 'textarea' : field instanceof HTMLSelectElement ? 'select' : field.type || 'text';
+          const nameHints = field.name.endsWith('_confirmation') ? ['confirmation'] : [];
+          if (type === 'radio') {
+            // One field per group: its radios are the options.
+            const option = { value: field.value, label: labelText(labelOf(field)) || field.value };
+            const group = radioGroups.get(field.name);
+            if (group) {
+              group.options?.push(option);
+              group.required = group.required || field.required;
+            } else {
+              const first: RawField = { name: field.name, type, label: null, required: field.required, constraints: constraintsFor(field), options: [option], nameHints, locator: { strategy: 'name', value: field.name }, prefilled: false };
+              radioGroups.set(field.name, first);
+              fields.push(first);
+            }
+            continue;
+          }
+          const options = field instanceof HTMLSelectElement
+            ? Array.from(field.options).map((option) => ({ value: option.value, label: text(option) }))
+            : null;
+          const locator = locatorFor(field);
+          fields.push({
+            name: field.name,
+            type,
+            label: locator.strategy === 'label' ? locator.value : labelText(labelOf(field)) || null,
+            required: field.required,
+            constraints: constraintsFor(field),
+            options,
+            nameHints,
+            locator,
+            prefilled: !['checkbox', 'file', 'select', 'password'].includes(type) && field.value !== '',
           });
+        }
         // Prefer explicitly-typed submit controls; a typeless <button> is implicitly a submit but
         // is often a cancel/back control (e.g. SauceDemo checkout), so it is only a fallback.
         const submit = form.querySelector<HTMLButtonElement | HTMLInputElement>('button[type="submit"], input[type="submit"]')
@@ -152,21 +203,37 @@ export async function extractPage(page: Page): Promise<DomPageModel> {
         const action = new URL(form.action || location.href, location.href);
         const actionPath = `${action.pathname}${action.search}`;
         const submitText = submit ? (submit instanceof HTMLInputElement ? submit.value : text(submit)) || null : null;
+        // The verb a submission really sends: script verbs win over the native GET default.
+        const method: 'GET' | 'POST' = (scriptVerb(form) ?? scriptVerb(submit)) === null && (form.getAttribute('method') ?? 'get').toLowerCase() === 'get' ? 'GET' : 'POST';
+        const declaresTarget = form.hasAttribute('method') || form.hasAttribute('action');
         return {
           action: actionPath,
-          method: ((form.method || 'GET').toUpperCase() === 'GET' ? 'GET' : 'POST') as 'GET' | 'POST',
-          crudSignals: crudSignalsFor(form, submit, actionPath, submitText),
+          method,
+          crudSignals: crudSignalsFor(form, submit, actionPath, submitText, method, declaresTarget),
           noValidate: form.noValidate,
-          declaresTarget: form.hasAttribute('method') || form.hasAttribute('action'),
+          declaresTarget,
+          hasActionAttribute: form.hasAttribute('action'),
           fields,
           submit: {
             text: submitText,
-            locator: submit ? locatorFor(submit, 'button') : { strategy: 'css', value: 'button[type="submit"]' },
+            locator: submit ? locatorFor(submit, 'button') : { strategy: 'css' as const, value: 'button[type="submit"]' },
           },
         };
       }),
       links: Array.from(document.querySelectorAll<HTMLAnchorElement>('a[href]'))
-        .map((link) => ({ href: normalizeHref(link.href), text: text(link), locator: locatorFor(link, 'link'), visible: visibleOf(link) }))
+        .map((link) => {
+          const raw = (link.getAttribute('href') ?? '').trim();
+          const scripted = /^javascript:/i.test(raw);
+          return {
+            // A `javascript:` URL has no path of its own: it acts on the page it is on.
+            href: scripted ? `${location.pathname}${location.search}` : normalizeHref(link.href),
+            text: text(link),
+            locator: locatorFor(link, 'link'),
+            visible: visibleOf(link),
+            inPage: scripted || raw.startsWith('#'),
+            method: scriptVerb(link),
+          };
+        })
         .filter((link) => link.href),
       // Capture all button-like controls: <button>, <input type=button|submit|reset|image>,
       // and elements with role=button|menuitem|tab that aren't already a button/input/a.
@@ -174,7 +241,7 @@ export async function extractPage(page: Page): Promise<DomPageModel> {
       // locators via formSubmitLocators so these are harmless duplicates that get filtered out.
       buttons: (() => {
         const seen = new Set<Element>();
-        const result: { text: string; locator: { strategy: string; value: string }; visible: boolean }[] = [];
+        const result: { text: string; locator: RawLocator; visible: boolean }[] = [];
         for (const el of Array.from(document.querySelectorAll<HTMLButtonElement>('button'))) {
           seen.add(el);
           result.push({ text: text(el), locator: locatorFor(el, 'button'), visible: visibleOf(el) });

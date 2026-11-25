@@ -49,7 +49,7 @@ export function buildProgram(): Command {
     .option('--read-only', 'generate only non-mutating checks (safe against staging/production); same as mode: read-only')
     .action(async (options: FrameworkOption & { fresh?: boolean; readOnly?: boolean }) => {
       const config = withMode(await loadCliConfig(options.framework), options.readOnly);
-      await ensureCrawls(config, { configPath: configPath(), force: options.fresh });
+      await ensureCrawls(config, { force: options.fresh });
       await generateSuite(config);
     });
 
@@ -81,7 +81,7 @@ export function buildProgram(): Command {
     .option('--read-only', 'generate and run only non-mutating checks (safe against staging/production)')
     .action(async (options: FrameworkOption & { fresh?: boolean; readOnly?: boolean }) => {
       const config = withMode(await loadCliConfig(options.framework), options.readOnly);
-      await ensureCrawls(config, { configPath: configPath(), crawlRunner: runCrawl, force: options.fresh });
+      await ensureCrawls(config, { crawlRunner: runCrawl, force: options.fresh });
       await generateSuite(config);
       await adapterFor(config.output.framework).runner.run({ configPath: configPath(), config, args: [] });
     });

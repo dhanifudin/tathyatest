@@ -1,5 +1,5 @@
 // The crawl contract: the element model every crawl produces and every generator stage reads.
-// Keep this file and src/crawl/rendered.ts (the producer) in sync; bump CRAWL_SCHEMA_VERSION when a
+// Keep this file and src/crawl/dom-extract.ts (the producer) in sync; bump CRAWL_SCHEMA_VERSION when a
 // field changes meaning or is removed.
 import { z } from 'zod';
 
@@ -9,10 +9,11 @@ export type CrudOp = 'create' | 'update' | 'delete' | 'logout' | 'unknown';
 
 /**
  * Version of the crawl contract written by the crawler. Bump when a field changes meaning or is
- * removed; purely additive fields keep the number. Version 1 files (which carried an `engine`
- * field instead) still load — the obsolete key is dropped on parse.
+ * removed; purely additive fields keep the number. Older files still load (obsolete keys are
+ * dropped, new fields take their defaults), but `tt generate` crawls again.
+ * 3: `form.method` is the verb a submission really sends; a radio group is one field with options.
  */
-export const CRAWL_SCHEMA_VERSION = 2;
+export const CRAWL_SCHEMA_VERSION = 3;
 
 export type Locator = { strategy: LocatorStrategy; value: string };
 export type FieldConstraints = {
@@ -35,9 +36,12 @@ export type Field = {
   options: FieldOption[] | null;
   nameHints: string[];
   locator: Locator;
+  /** A text-like field that already held a value (an edit form). Absent means false. */
+  prefilled?: boolean;
 };
 export type Form = {
   action: string;
+  /** What a submission sends: `POST` also when script (Turbo, HTMX) replaces the native GET. */
   method: 'GET' | 'POST';
   crudOp: CrudOp;
   noValidate: boolean;
@@ -47,6 +51,8 @@ export type Form = {
    * expected to echo values into the URL.
    */
   declaresTarget: boolean;
+  /** Whether the `<form>` has an `action` attribute (`action` is the page URL otherwise). Absent means true. */
+  hasActionAttribute?: boolean;
   fields: Field[];
   submit: { text: string | null; locator: Locator };
 };
@@ -62,6 +68,16 @@ export type Control = {
   options: FieldOption[] | null;
   locator: Locator;
 };
+export type Link = {
+  href: string;
+  text: string;
+  locator: Locator;
+  visible?: boolean;
+  /** The `href` attribute is a fragment or `javascript:`: clicking runs script on this page. */
+  inPage?: boolean;
+  /** Non-GET verb script sends for this link (`data-method`, `data-turbo-method`, `hx-*`). */
+  method?: string | null;
+};
 export type PageModel = {
   url: string;
   title: string;
@@ -69,7 +85,7 @@ export type PageModel = {
   /** `visible` reflects CSS visibility at crawl viewport (responsive duplicates: a mobile
    * paginator link is present but hidden on desktop). Optional for back-compat; absent
    * means unknown and is treated as visible. */
-  links: { href: string; text: string; locator: Locator; visible?: boolean }[];
+  links: Link[];
   /** Button-like controls: <button>, <input type=button|submit|reset|image>, [role=button|menuitem|tab]. */
   buttons: { text: string; locator: Locator; visible?: boolean }[];
   tables: { headers: string[]; rowCount: number }[];
@@ -82,6 +98,10 @@ export type CrawlOutput = {
   schemaVersion: number;
   role: string;
   crawledAt: string;
+  /** Where the login landed: a page that needs the session. */
+  landingPath?: string | null;
+  /** Hash of the config that shaped this crawl (`crawl/fingerprint.ts`); a change crawls again. */
+  configFingerprint?: string | null;
   pages: PageModel[];
 };
 
@@ -107,6 +127,8 @@ export const crawlOutputSchema: z.ZodType<CrawlOutput, z.ZodTypeDef, unknown> = 
   schemaVersion: z.number().int().positive().default(1),
   role: z.string(),
   crawledAt: z.string(),
+  landingPath: z.string().nullable().default(null),
+  configFingerprint: z.string().nullable().default(null),
   pages: z.array(z.object({
     url: z.string(),
     title: z.string(),
@@ -116,6 +138,7 @@ export const crawlOutputSchema: z.ZodType<CrawlOutput, z.ZodTypeDef, unknown> = 
       crudOp: z.enum(['create', 'update', 'delete', 'logout', 'unknown']),
       noValidate: z.boolean(),
       declaresTarget: z.boolean().default(true),
+      hasActionAttribute: z.boolean().default(true),
       fields: z.array(z.object({
         name: z.string(),
         type: z.string(),
@@ -125,10 +148,18 @@ export const crawlOutputSchema: z.ZodType<CrawlOutput, z.ZodTypeDef, unknown> = 
         options: z.array(z.object({ value: z.string(), label: z.string() })).nullable(),
         nameHints: z.array(z.string()),
         locator: locatorSchema,
+        prefilled: z.boolean().default(false),
       })),
       submit: z.object({ text: z.string().nullable(), locator: locatorSchema }),
     })),
-    links: z.array(z.object({ href: z.string(), text: z.string(), locator: locatorSchema, visible: z.boolean().optional() })),
+    links: z.array(z.object({
+      href: z.string(),
+      text: z.string(),
+      locator: locatorSchema,
+      visible: z.boolean().optional(),
+      inPage: z.boolean().default(false),
+      method: z.string().nullable().default(null),
+    })),
     buttons: z.array(z.object({ text: z.string(), locator: locatorSchema, visible: z.boolean().optional() })),
     tables: z.array(z.object({ headers: z.array(z.string()), rowCount: z.number() })),
     controls: z.array(z.object({

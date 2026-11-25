@@ -8,6 +8,7 @@ import { log } from '../logger.js';
 import { canonicalPath, DEFAULT_PATHS } from '../util/paths.js';
 import { isLogoutPath } from './crud.js';
 import { extractPage, type DomPageModel } from './dom-extract.js';
+import { crawlFingerprint } from './fingerprint.js';
 
 /**
  * Crawl every configured role and write one `<role>.json` each. The files are written only when
@@ -81,6 +82,8 @@ export async function crawlRole(context: BrowserContext, config: TathyaConfig, r
     schemaVersion: CRAWL_SCHEMA_VERSION,
     role: role.name,
     crawledAt: new Date().toISOString(),
+    landingPath,
+    configFingerprint: crawlFingerprint(config),
     pages,
   };
 }
@@ -152,7 +155,8 @@ export function shouldExtractCrawlPage(status: number | null, requestedPath: str
  */
 export function isMeaningfulErrorPage(status: number | null, model: Pick<DomPageModel, 'forms' | 'links'> & { controls?: unknown[] }): boolean {
   if (status === null || status < 400) return false;
-  const navigable = model.forms.length + model.links.length + (model.controls?.length ?? 0);
+  // Debug pages decorate themselves with `#` anchors; those lead nowhere.
+  const navigable = model.forms.length + model.links.filter((link) => !link.inPage).length + (model.controls?.length ?? 0);
   return navigable === 0;
 }
 

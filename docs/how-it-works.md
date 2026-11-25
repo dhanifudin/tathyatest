@@ -13,30 +13,31 @@ logs in once, then follows same-origin links/forms discovered live from the rend
 
 ![Crawl loop per role: login phase, then dequeue/goto/extract/enrich/discover loop until the queue is empty](diagrams/crawl-pipeline.svg)
 
-**Login.** Login controls are inferred by scoring candidate inputs in the rendered HTML
-(`generator/src/auth/login.ts`): username (`type="email"` +100, `autocomplete="username"` +90,
-`autocomplete="email"` +80, name/id/label matching `email|username|user|account|identifier|handle`
-+50), password (`type="password"` +100, matching `password|passcode|pin` +50), submit
-(`data-test`/`data-testid` present +100, is a `<button>` +20, text matching
-`log in|login|sign in|sign-in` +50, `type="submit"` +10). The submit click is raced against
-`page.waitForURL` (5s timeout) for a path change, then the crawler waits for
-`domcontentloaded` and `networkidle` so client-rendered apps finish hydrating. If the
-landing path is still the login path or `/`, it checks whether a password-like control
-is still visible (`input[type="password"]`, `[autocomplete="current-password"]`,
-`[name*="password"]`, `[id*="password"]`, `[placeholder*="Password"]`) and fails loudly
-if so, rather than silently crawling a login page.
+**Login.** One function, `generator/src/auth/login-dom.ts` (copied into both support modules), reads
+the rendered login page and picks the controls among the *visible* ones: password
+(`type="password"` +100, name/id/label matching `password|passcode|pin` +50), username (`type="email"`
++100, `autocomplete="username"` +90, `autocomplete="email"` +80, matching
+`email|username|user|account|identifier|handle` +50, else the first other text field — never a hidden
+input), submit (`data-test`/`data-testid` present +100, is a `<button>` +20, text matching
+`log in|login|sign in|sign-in` +50, submits the form +10; a `<button>` without a `type` submits). The
+click is raced against a path change (5s), then the crawler waits for the password field to disappear
+and for the network to settle (bounded at 5s). If the landing path is still the login path or `/` and
+a password field is visible, the crawl fails loudly rather than crawling a login page.
 
 **Per-page extraction.** Everything below runs inside one `page.evaluate()` call per
 visited page, reading the live DOM:
 
-- **Forms** (`form`): resolved `action` (path + query), normalized `method`
-  (`GET`/`POST`), `noValidate`, and a CRUD classification (see below). Fields come from
-  `input, select, textarea`, excluding unnamed, hidden, submit, and button inputs; each
-  field captures its `type`, `label`, `required` flag, constraint attributes
-  (`minlength`, `maxlength`, `min`, `max`, `step`, `pattern`, `inputmode`, `accept`), and
-  `<option>` values for selects. The submit control is
-  `button[type="submit"], input[type="submit"]`, falling back to a typeless `<button>`.
-- **Links** (`a[href]`), kept only when same-origin.
+- **Forms** (`form`): resolved `action` (path + query) and whether the attribute exists; `method` — the
+  verb a submission really sends (`POST` also when `data-method`, `data-turbo-method` or an `hx-*`
+  attribute replaces the native `GET`); `noValidate`; and a CRUD classification (see below). Fields come
+  from `input, select, textarea`, excluding unnamed, hidden, button, **disabled and read-only** controls;
+  each field captures its `type`, `label`, `required` flag, constraint attributes (`minlength`,
+  `maxlength`, `min`, `max`, `step`, `pattern`, `inputmode`, `accept`), `<option>` values for selects, and
+  whether it already holds a value. A **radio group** is one field whose options are its radios. The
+  submit control is `button[type="submit"], input[type="submit"]`, falling back to a typeless `<button>`.
+- **Links** (`a[href]`), kept only when same-origin. A fragment or `javascript:` link is marked
+  `inPage` (clicking it runs script instead of navigating), and a link that script turns into a write
+  carries its `method`.
 - **Buttons**, collected from three selector passes so no interactive control is missed:
   `button`; `input[type=button|submit|reset|image]`; and
   `[role=button|menuitem|tab]` elements that aren't already `<a>`/`<button>`/`<input>`.
@@ -47,21 +48,31 @@ visited page, reading the live DOM:
   bounding-rect + `visibility` check), so hidden duplicates (e.g. responsive nav clones)
   can be deduplicated later in `mapper.ts`.
 
-**Accessibility enrichment.** After the raw extraction, the crawler takes a
-`page.ariaSnapshot()` of the whole page and of each `<form>`, parses it, and upgrades any
-element that only got a weak `css` or `name` locator up to a `role` locator — but it never
-overrides a `testid`, `label`, or `placeholder` locator, since those already satisfy the
-priority chain below.
+**Accessibility check.** After the raw extraction, the crawler verifies locators against Playwright's
+accessibility tree, element by element: a `role` name read from the DOM is replaced when it is not the
+element's accessible name, and an element with only a weak `css` or `name` locator is upgraded to
+`role:name` when it has one. `testid`, `label`, `placeholder` and stable `id` locators are left alone. A
+button or link that is left with a CSS selector matching several elements is dropped: no test could
+address it.
 
 **Discovering more URLs.** Same-origin URLs are harvested from `a[href]`; `form[action]`
 only when the form's method is `GET` (a `page.goto` to a POST-only action would 405);
 `formaction` on buttons/inputs, same GET-only rule; and an exact list of custom
 attributes: `data-href`, `data-url`, `data-route`, `data-to`. New URLs are queued subject
-to `crawl.maxPages`, `crawl.maxDepth` (counted by path segments), and `crawl.exclude`
-prefix matches; `crawl.include` seeds extra paths the crawler should always visit. A
-response that isn't ok and renders zero forms/links/controls is treated as an error page
-and dropped rather than explored further.
+to `crawl.maxPages`, `crawl.maxDepth` (path segments; deeper links are skipped), and `crawl.exclude`
+prefix matches; logout paths are never followed. `crawl.include` seeds extra paths the crawler should
+always visit.
 
+**Which pages are recorded.** Only pages the role can use: a 401, 403 or 5xx response is never
+recorded, however much layout it renders; a 404 is kept only when it stayed on the requested path and
+renders links, forms or controls (single-page apps serve deep links that way). A redirect target is
+recorded once. A page that shows the login form triggers one re-login and a retry; the login page itself
+is never recorded. A page that cannot be loaded or read (a download, a timeout) is skipped with a
+warning. Role files are written only when every role succeeded.
+
+**Cached crawls.** `tt generate` reuses `crawl/<role>.json` only while it matches the config: same
+contract version, same `baseUrl`, and the same hash of the login path, role usernames and `crawl`
+settings. `--fresh` always crawls again.
 
 ## From rules to specs: the IR
 
@@ -96,9 +107,9 @@ A "stable" id rejects anything matching `/[0-9a-f]{8,}|:/` (hashed or framework-
 ids such as React's `:r3:`). Accessible roles are inferred from the tag/type:
 `button`→button, `textarea`→textbox, `select`→combobox, `a[href]`→link, and `<input>` by
 `type`: `button|submit|reset|image`→button, `checkbox`→checkbox, `radio`→radio,
-`number`→spinbutton, everything else→textbox. The aria-snapshot enrichment pass later
-normalizes `searchbox` to `textbox` and only accepts
-`textbox|button|link|checkbox|radio|combobox|spinbutton` as valid roles.
+`number`→spinbutton, everything else→textbox. A label is used only when its whole text is its own
+wording: a label wrapping a select or textarea contains that control's text too, so such a field is
+located by its accessible role instead.
 
 ### 2. HTML constraint → test-variant rules
 
@@ -157,7 +168,8 @@ Node (pure, unit-tested), framework-neutrally, in this precedence:
                         "Log out"/"Sign out"  -> logout (an auth scenario: "<role> logs out")
 1. explicit verb        hidden _method (Laravel/Rails/Symfony/Spring), data-turbo-method (Rails
                         Turbo), hx-put|hx-patch|hx-delete (HTMX):  PUT|PATCH -> update, DELETE -> delete
-2. form method = GET    -> unknown (search / filter form; never mutates)
+2. form method = GET    -> unknown (search / filter form). A form with neither `method` nor `action`
+                        is handled by script: only its submit text (rule 4) classifies it
 3. action-path segment  delete|destroy|remove -> delete;  update|edit -> update;
                         create|store|new|add -> create
 4. submit-button text   delete|remove|destroy -> delete;  update|save changes|edit -> update;
