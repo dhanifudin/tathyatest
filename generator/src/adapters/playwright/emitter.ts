@@ -125,12 +125,15 @@ function stepSource(step: Step, plan: TestPlan): string {
         `await test.step(${q(step.title)}, () => ${action});`,
       ].join('\n');
     }
-    case 'assert':
-      // A form's outcome (its last step) is a block of assertions; every other check is one call.
-      if (plan.kind === 'form' && step === plan.steps.at(-1)) {
-        return [`await test.step(${q(step.title)}, async () => {`, ...step.oracles.map((oracle) => indent(oracleSource(oracle), 2)), '});'].join('\n');
+    case 'assert': {
+      const calls = step.oracles.flatMap(oracleCalls);
+      // A form's outcome (its last step) is a block of assertions, as is anything needing several
+      // calls; a single check elsewhere is written as one line.
+      if (calls.length !== 1 || (plan.kind === 'form' && step === plan.steps.at(-1))) {
+        return [`await test.step(${q(step.title)}, async () => {`, ...calls.map((call) => `  await ${call};`), '});'].join('\n');
       }
-      return `await test.step(${assertTitle(step.title, step.oracles[0])}, () => ${oracleSource(step.oracles[0]).replace(/^await /, '').replace(/;$/, '')});`;
+      return `await test.step(${assertTitle(step.title, step.oracles[0])}, () => ${calls[0]});`;
+    }
     default:
       return assertNever(step);
   }
@@ -227,45 +230,46 @@ function fillSource(fill: Fill): string {
   }
 }
 
-function oracleSource(oracle: Oracle): string {
+/** The awaitable expressions that make up one oracle, one per assertion call site. */
+function oracleCalls(oracle: Oracle): string[] {
   switch (oracle.type) {
     case 'server-error':
       return [
-        `await expect(page.locator(${q(oracle.errorSelector)}).first()).toBeVisible();`,
-        `await expect(page).toHaveURL(new RegExp(${q(oracle.urlPattern)}));`,
-      ].join('\n');
+        `expect(page.locator(${q(oracle.errorSelector)}).first()).toBeVisible()`,
+        `expect(page).toHaveURL(new RegExp(${q(oracle.urlPattern)}))`,
+      ];
     case 'native-invalid':
-      return `await expect(${locatorSource(oracle.target)}).toHaveJSProperty('validity.valid', false);`;
+      return [`expect(${locatorSource(oracle.target)}).toHaveJSProperty('validity.valid', false)`];
     case 'body-graceful':
-      return `await expect(page.locator('body')).not.toContainText(/500|server error|exception/i);`;
+      return [`expect(page.locator('body')).not.toContainText(/500|server error|exception/i)`];
     case 'record-gone':
-      return `await expect(page.locator(${q(oracle.formSelector)})).toHaveCount(0);`;
+      return [`expect(page.locator(${q(oracle.formSelector)})).toHaveCount(0)`];
     case 'state-flipped':
-      return `await expectStateFlipped(page, ${q(oracle.formSelector)}, before);`;
+      return [`expectStateFlipped(page, ${q(oracle.formSelector)}, before)`];
     case 'query-echo':
-      return `await expectQueryEcho(page, { ${oracle.params.map((param) => `${q(param.name)}: ${valueSource(param.value)}`).join(', ')} });`;
+      return [`expectQueryEcho(page, { ${oracle.params.map((param) => `${q(param.name)}: ${valueSource(param.value)}`).join(', ')} })`];
     case 'text-visible':
-      return `await expect(page.getByText(${valueSource(oracle.value)}).first()).toBeVisible();`;
+      return [`expect(page.getByText(${valueSource(oracle.value)}).first()).toBeVisible()`];
     case 'landed':
-      return oracle.withSearch
-        ? `await expect(page).toHaveURL((url) => url.pathname + url.search === ${q(oracle.path)});`
-        : `await expect(page).toHaveURL((url) => url.pathname === ${q(oracle.path)});`;
+      return [oracle.withSearch
+        ? `expect(page).toHaveURL((url) => url.pathname + url.search === ${q(oracle.path)})`
+        : `expect(page).toHaveURL((url) => url.pathname === ${q(oracle.path)})`];
     case 'no-server-error':
-      return 'await expectNoServerError(page);';
+      return ['expectNoServerError(page)'];
     case 'route-allowed':
-      return `await expectRouteAllowed(page, ${oracle.capture}, ${q(oracle.path)});`;
+      return [`expectRouteAllowed(page, ${oracle.capture}, ${q(oracle.path)})`];
     case 'route-blocked':
-      return `await expectRouteBlocked(page, ${oracle.capture}, ${q(oracle.path)});`;
+      return [`expectRouteBlocked(page, ${oracle.capture}, ${q(oracle.path)})`];
     case 'route-inferred':
-      return `await expectInferredRouteOpens(page, ${oracle.capture}, ${q(oracle.path)});`;
+      return [`expectInferredRouteOpens(page, ${oracle.capture}, ${q(oracle.path)})`];
     case 'absent':
-      return `await expect(${locatorSource(oracle.target)}).toHaveCount(0);`;
+      return [`expect(${locatorSource(oracle.target)}).toHaveCount(0)`];
     case 'logged-in':
-      return 'await assertLoggedIn(page);';
+      return ['assertLoggedIn(page)'];
     case 'login-rejected':
-      return 'await assertLoginRejected(page);';
+      return ['assertLoginRejected(page)'];
     case 'logged-out':
-      return `await assertLoggedOut(page, ${q(oracle.path)});`;
+      return [`assertLoggedOut(page, ${q(oracle.path)})`];
     default:
       return assertNever(oracle);
   }

@@ -6,6 +6,7 @@ import { emit } from '../../../src/emit/index.js';
 import { playwrightEmitter } from '../../../src/adapters/playwright/emitter.js';
 import { planFor } from '../../../src/ir/build.js';
 import { specStemFor } from '../../../src/ir/layout.js';
+import type { TestPlan } from '../../../src/ir/types.js';
 import type { TathyaConfig } from '../../../src/config.js';
 import type { TestCase } from '../../../src/generate/test-case.js';
 import { emptyPage, makeConfig, noConstraints } from '../../helpers/fixtures.js';
@@ -520,3 +521,21 @@ describe('emitTs', () => {
     }
   });
 });
+
+describe('assert steps', () => {
+  it('renders every oracle of a step that is not the last one', () => {
+    const plan: TestPlan = {
+      kind: 'interaction', file: 'interactions/x', role: 'admin', describe: 'admin · /x', title: 't', tags: [], annotations: [],
+      steps: [
+        { kind: 'assert', title: 'Two checks', oracles: [{ type: 'server-error', errorSelector: '.err', urlPattern: '/x$' }, { type: 'no-server-error' }] },
+        { kind: 'assert', title: 'Expect no server error', oracles: [{ type: 'no-server-error' }] },
+      ],
+    };
+    const spec = playwrightEmitter.files([plan], config).get('interactions/x.spec.ts') ?? '';
+    expect(spec).toContain('await expect(page.locator(".err").first()).toBeVisible();');
+    expect(spec).toContain('await expect(page).toHaveURL(new RegExp("/x$"));');
+    expect(spec).toContain("await test.step(\"Two checks\", async () => {");
+    expect(spec).toContain("await test.step('Expect no server error', () => expectNoServerError(page));");
+  });
+});
+
