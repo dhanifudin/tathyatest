@@ -122,6 +122,10 @@ export function nth(locator: Loc, ordinal: number): Cypress.Chainable<JQuery<HTM
 // ---------------------------------------------------------------------------------------------
 
 /** The role of the current run (`--expose role=<name>`), used to gate role-specific groups. */
+export function seedOffset(name: string): number {
+  return Array.from(name).reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) % 100000, 0);
+}
+
 export function currentRole(): string {
   return String(Cypress.expose('role') ?? '');
 }

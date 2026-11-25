@@ -60,3 +60,39 @@ describe('fakerExprForField', () => {
     expect(expr).toContain('max: 9');
   });
 });
+
+describe('name words and constraints', () => {
+  const none = { minlength: null, maxlength: null, min: null, max: null, step: null, pattern: null, inputmode: null, accept: null };
+  const expr = (name: string, type = 'text', constraints: Partial<Field['constraints']> = {}) =>
+    fakerExprForField(field({ name, type, constraints: { ...none, ...constraints } }), emptyHints);
+
+  it('matches short keywords as whole words', () => {
+    expect(expr('country')).toContain('faker.location.country');
+    expect(expr('account')).not.toContain('faker.number');
+    expect(expr('message')).toContain('faker.lorem.paragraph');
+    expect(expr('page')).not.toContain('faker.number');
+    expect(expr('hotel')).not.toContain('faker.phone');
+    expect(expr('capacity')).not.toContain('faker.location.city');
+    expect(expr('update_reason')).not.toContain('faker.date');
+    expect(expr('startDate')).toContain('faker.date');
+    expect(expr('user[firstName]')).toContain('faker.person.firstName');
+  });
+
+  it('keeps numbers inside the range and on the step grid', () => {
+    expect(expr('qty', 'number', { min: '0.5', step: '0.5', max: '2' })).toBe('(0.5 + faker.number.int({ min: 0, max: 3 }) * 0.5).toFixed(1)');
+    expect(expr('offset', 'number', { max: '-5' })).toBe('String(faker.number.int({ min: -105, max: -5 }))');
+    expect(expr('price', 'number')).toContain('faker.number.int');
+  });
+
+  it('honours one-sided and time bounds', () => {
+    expect(expr('when', 'date', { max: '2020-01-31' })).toContain('faker.date.recent({ refDate: "2020-01-31" })');
+    expect(expr('at', 'time', { min: '09:00', max: '17:00' })).toContain('min: 540, max: 1020');
+    expect(expr('period', 'month', { max: '2026-03' })).toContain('max: 24314');
+  });
+
+  it('respects minlength and a short email maxlength', () => {
+    expect(expr('nickname', 'text', { minlength: 30 })).toContain(".padEnd(30, 'x')");
+    expect(expr('email', 'email', { maxlength: 20 })).toBe("faker.string.alphanumeric(8).toLowerCase() + '@ex.com'");
+  });
+});
+

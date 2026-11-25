@@ -52,11 +52,12 @@ function specSource(group: TestPlan[], config: TathyaConfig): string {
 
 function helperImports(kind: TestPlan['kind'], config: TathyaConfig): string[] {
   const readOnlyExtra = config.mode === 'read-only' ? ['expectRouteAllowed'] : [];
+  const seeded = config.data.faker.seed !== null && config.data.faker.seed !== undefined ? ['seedOffset'] : [];
   switch (kind) {
     case 'auth':
       return ['test', 'performLogin', 'assertLoggedIn', 'assertLoginRejected', 'assertLoggedOut'];
     case 'form':
-      return ['test', 'expect', 'uploadFixture', 'expectQueryEcho', 'expectStateFlipped', ...readOnlyExtra];
+      return ['test', 'expect', 'uploadFixture', 'expectQueryEcho', 'expectStateFlipped', ...seeded, ...readOnlyExtra];
     case 'interaction':
     case 'pagination':
       return ['test', 'expect', 'expectNoServerError', ...readOnlyExtra];
@@ -70,7 +71,8 @@ function fakerPreamble(config: TathyaConfig): string {
   const importLine = locale && locale !== 'en'
     ? `import { allFakers } from '@faker-js/faker';\nconst faker = allFakers[${JSON.stringify(locale)}] ?? allFakers['en'];\n`
     : `import { faker } from '@faker-js/faker';\n`;
-  const seedLine = seed !== null && seed !== undefined ? `test.beforeAll(() => { faker.seed(${seed}); });\n` : '';
+  // Seeded per project: repeatable, but two browsers sharing one app do not submit the same values.
+  const seedLine = seed !== null && seed !== undefined ? `test.beforeAll(({}, testInfo) => { faker.seed(${seed} + seedOffset(testInfo.project.name)); });\n` : '';
   return `${importLine}${seedLine}`;
 }
 

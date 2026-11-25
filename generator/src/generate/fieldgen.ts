@@ -114,7 +114,8 @@ export function variantsForField(field: Field, hints: FieldgenHints): FieldVaria
  * Confirmation pairing is resolved by the mapper, which has form context.
  */
 export function validFieldValue(field: Field, hints: FieldgenHints): FieldValue {
-  if (field.options?.length) return { kind: 'literal', value: field.options[0].value };
+  const option = representativeOption(field);
+  if (option !== null) return { kind: 'literal', value: option };
   if (field.type === 'checkbox') return { kind: 'literal', value: 'on' };
   if (field.type === 'file') return { kind: 'literal', value: acceptedMime(field.constraints.accept) };
   if (hints.unique.includes(field.name)) return { kind: 'runtime', expr: fakerExprForField(field, hints) };
@@ -122,9 +123,16 @@ export function validFieldValue(field: Field, hints: FieldgenHints): FieldValue 
   return { kind: 'runtime', expr: fakerExprForField(field, hints) };
 }
 
+/** The option a valid submit picks: the first with a value, so a "Choose…" placeholder is skipped. */
+function representativeOption(field: Field): string | null {
+  const options = field.options ?? [];
+  return (options.find((option) => option.value !== '') ?? options[0])?.value ?? null;
+}
+
 function validValueForField(field: Field, hints: FieldgenHints): string {
   if (hints.dataFields[field.name] !== undefined) return hints.dataFields[field.name];
-  if (field.options?.[0]) return field.options[0].value;
+  const option = representativeOption(field);
+  if (option !== null) return option;
   if (hints.defaults[field.type] !== undefined) return hints.defaults[field.type];
   switch (field.type) {
     case 'email':

@@ -118,6 +118,11 @@ export async function assertLoginRejected(page: Page): Promise<void> {
   await expect(page.locator(errorSelector).first()).toBeVisible();
 }
 
+/** A stable number per name, added to the faker seed so every project draws its own values. */
+export function seedOffset(name: string): number {
+  return Array.from(name).reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) % 100000, 0);
+}
+
 /** A small in-memory file of the given MIME type for `setInputFiles` (no fixture files on disk). */
 export function uploadFixture(mimeType: string): { name: string; mimeType: string; buffer: Buffer } {
   const extension = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'application/pdf': 'pdf', 'text/plain': 'txt', 'text/csv': 'csv', 'application/json': 'json' }[mimeType] ?? 'bin';

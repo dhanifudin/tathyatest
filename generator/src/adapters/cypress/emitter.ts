@@ -24,7 +24,7 @@ export const cypressEmitter: SpecEmitter = {
 
 /** Helpers a spec may import from the support module, in import order. */
 const HELPERS = [
-  'currentRole', 'step', 'byTestId', 'byRole', 'byLabel', 'byPlaceholder', 'byId', 'byName', 'byCss', 'nth', 'skipUnlessVisible',
+  'currentRole', 'seedOffset', 'step', 'byTestId', 'byRole', 'byLabel', 'byPlaceholder', 'byId', 'byName', 'byCss', 'nth', 'skipUnlessVisible',
   'loginAs', 'ensureLoggedIn', 'performLogin', 'openPage', 'submitLogout', 'submitForm', 'captureSubmitText',
   'fillIn', 'forceValue', 'forceOption', 'clearSelect', 'uncheckRadios', 'forceRadio', 'clearFile', 'uploadFixture',
   'assertLoggedIn', 'assertLoginRejected', 'assertLoggedOut', 'expectServerError', 'expectInvalid', 'expectGraceful',
@@ -55,9 +55,9 @@ function specSource(group: TestPlan[], config: TathyaConfig): string {
     body.push('});\n');
   }
   const source = body.join('');
-  const helpers = HELPERS.filter((name) => new RegExp(`\\b${name}\\(`).test(source));
-  const header = [GENERATED_HEADER, `import { ${helpers.join(', ')} } from '${SUPPORT_IMPORT}';\n`];
-  if (kind === 'form') header.push(fakerPreamble(config));
+  const preamble = kind === 'form' ? fakerPreamble(config) : '';
+  const helpers = HELPERS.filter((name) => new RegExp(`\\b${name}\\(`).test(preamble + source));
+  const header = [GENERATED_HEADER, `import { ${helpers.join(', ')} } from '${SUPPORT_IMPORT}';\n`, preamble];
   return header.join('') + source;
 }
 
@@ -66,7 +66,8 @@ function fakerPreamble(config: TathyaConfig): string {
   const importLine = locale && locale !== 'en'
     ? `import { allFakers } from '@faker-js/faker';\nconst faker = allFakers[${JSON.stringify(locale)}] ?? allFakers['en'];\n`
     : `import { faker } from '@faker-js/faker';\n`;
-  const seedLine = seed !== null && seed !== undefined ? `before(() => { faker.seed(${seed}); });\n` : '';
+  // Seeded per run: repeatable, but two browsers sharing one app do not submit the same values.
+  const seedLine = seed !== null && seed !== undefined ? `before(() => { faker.seed(${seed} + seedOffset(currentRole() + '-' + Cypress.browser.name)); });\n` : '';
   return `${importLine}${seedLine}`;
 }
 

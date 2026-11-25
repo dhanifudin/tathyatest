@@ -184,3 +184,11 @@ describe('variantsForField', () => {
     expect(mismatchingMime('text/plain')).toBe('image/png');
   });
 });
+
+describe('placeholder options', () => {
+  it('are skipped by the valid value', () => {
+    const select = { name: 'status', type: 'select', label: null, required: true, constraints: { minlength: null, maxlength: null, min: null, max: null, step: null, pattern: null, inputmode: null, accept: null }, options: [{ value: '', label: 'Choose' }, { value: 'open', label: 'Open' }], nameHints: [], locator: { strategy: 'name' as const, value: 'status' } };
+    expect(validFieldValue(select, { dataFields: {}, defaults: {}, unique: [], duplicates: {}, requiredFields: [], confirmFields: [] })).toEqual({ kind: 'literal', value: 'open' });
+  });
+});
+

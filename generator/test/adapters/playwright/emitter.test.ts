@@ -137,7 +137,7 @@ describe('emitTs', () => {
       const formsSpec = await readFile(join(dir, 'forms', 'todos-create.spec.ts'), 'utf8');
 
       expect(formsSpec).toContain("import { faker } from '@faker-js/faker';");
-      expect(formsSpec).toContain('test.beforeAll(() => { faker.seed(99); });');
+      expect(formsSpec).toContain('test.beforeAll(({}, testInfo) => { faker.seed(99 + seedOffset(testInfo.project.name)); });');
       expect(formsSpec).toContain('test.describe("admin · /todos/create", () => {');
       expect(formsSpec).toContain('test.describe("\\"Create\\" form → POST /todos", () => {');
       expect(formsSpec).toContain('const f_title = faker.lorem.words({ min: 2, max: 4 });');
