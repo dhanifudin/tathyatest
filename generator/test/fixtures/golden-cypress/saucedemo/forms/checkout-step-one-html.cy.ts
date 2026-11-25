@@ -6,7 +6,7 @@ describe("standard_user · /checkout-step-one.html", function () {
   before(function () { if (currentRole() !== "standard_user") this.skip(); });
 
   describe("\"Continue\" form → GET /checkout-step-one.html", function () {
-    it("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · submits valid data successfully", { tags: ["@positive","@crud","@role:standard_user","@read"] }, function () {
+    it("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · submits valid data successfully", { tags: ["@positive","@crud","@role:standard_user","@write"] }, function () {
       // tier: positive · category: crud · route: /checkout-step-one.html
       step("Log in as standard_user", () => loginAs("standard_user"));
       step("Open /checkout-step-one.html", () => openPage("/checkout-step-one.html"));
@@ -20,7 +20,7 @@ describe("standard_user · /checkout-step-one.html", function () {
       });
       step("Expect the submission to succeed", () => expectGraceful());
     });
-    it("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · firstName rejects an empty value", { tags: ["@negative","@crud","@role:standard_user","@read"] }, function () {
+    it("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · firstName rejects an empty value", { tags: ["@negative","@crud","@role:standard_user","@write"] }, function () {
       // tier: negative · category: crud · route: /checkout-step-one.html · targetField: firstName · constraintKind: required
       step("Log in as standard_user", () => loginAs("standard_user"));
       step("Open /checkout-step-one.html", () => openPage("/checkout-step-one.html"));
@@ -34,7 +34,7 @@ describe("standard_user · /checkout-step-one.html", function () {
       });
       step("Expect a validation error", () => expectServerError("[data-test=\"error\"]", "/checkout-step-one\\.html(?:[?#].*)?$"));
     });
-    it("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · firstName survives a very long value", { tags: ["@edge","@crud","@role:standard_user","@read"] }, function () {
+    it("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · firstName survives a very long value", { tags: ["@edge","@crud","@role:standard_user","@write"] }, function () {
       // tier: edge · category: crud · route: /checkout-step-one.html · targetField: firstName · constraintKind: robustness
       step("Log in as standard_user", () => loginAs("standard_user"));
       step("Open /checkout-step-one.html", () => openPage("/checkout-step-one.html"));
@@ -48,7 +48,7 @@ describe("standard_user · /checkout-step-one.html", function () {
       });
       step("Expect no server error", () => expectGraceful());
     });
-    it("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · firstName survives unicode input", { tags: ["@edge","@crud","@role:standard_user","@read"] }, function () {
+    it("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · firstName survives unicode input", { tags: ["@edge","@crud","@role:standard_user","@write"] }, function () {
       // tier: edge · category: crud · route: /checkout-step-one.html · targetField: firstName · constraintKind: robustness
       step("Log in as standard_user", () => loginAs("standard_user"));
       step("Open /checkout-step-one.html", () => openPage("/checkout-step-one.html"));
@@ -62,7 +62,7 @@ describe("standard_user · /checkout-step-one.html", function () {
       });
       step("Expect no server error", () => expectGraceful());
     });
-    it("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · firstName survives surrounding whitespace", { tags: ["@edge","@crud","@role:standard_user","@read"] }, function () {
+    it("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · firstName survives surrounding whitespace", { tags: ["@edge","@crud","@role:standard_user","@write"] }, function () {
       // tier: edge · category: crud · route: /checkout-step-one.html · targetField: firstName · constraintKind: robustness
       step("Log in as standard_user", () => loginAs("standard_user"));
       step("Open /checkout-step-one.html", () => openPage("/checkout-step-one.html"));
@@ -76,7 +76,7 @@ describe("standard_user · /checkout-step-one.html", function () {
       });
       step("Expect no server error", () => expectGraceful());
     });
-    it("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · lastName rejects an empty value", { tags: ["@negative","@crud","@role:standard_user","@read"] }, function () {
+    it("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · lastName rejects an empty value", { tags: ["@negative","@crud","@role:standard_user","@write"] }, function () {
       // tier: negative · category: crud · route: /checkout-step-one.html · targetField: lastName · constraintKind: required
       step("Log in as standard_user", () => loginAs("standard_user"));
       step("Open /checkout-step-one.html", () => openPage("/checkout-step-one.html"));
@@ -90,7 +90,7 @@ describe("standard_user · /checkout-step-one.html", function () {
       });
       step("Expect a validation error", () => expectServerError("[data-test=\"error\"]", "/checkout-step-one\\.html(?:[?#].*)?$"));
     });
-    it("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · lastName survives a very long value", { tags: ["@edge","@crud","@role:standard_user","@read"] }, function () {
+    it("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · lastName survives a very long value", { tags: ["@edge","@crud","@role:standard_user","@write"] }, function () {
       // tier: edge · category: crud · route: /checkout-step-one.html · targetField: lastName · constraintKind: robustness
       step("Log in as standard_user", () => loginAs("standard_user"));
       step("Open /checkout-step-one.html", () => openPage("/checkout-step-one.html"));
@@ -104,7 +104,7 @@ describe("standard_user · /checkout-step-one.html", function () {
       });
       step("Expect no server error", () => expectGraceful());
     });
-    it("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · lastName survives unicode input", { tags: ["@edge","@crud","@role:standard_user","@read"] }, function () {
+    it("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · lastName survives unicode input", { tags: ["@edge","@crud","@role:standard_user","@write"] }, function () {
       // tier: edge · category: crud · route: /checkout-step-one.html · targetField: lastName · constraintKind: robustness
       step("Log in as standard_user", () => loginAs("standard_user"));
       step("Open /checkout-step-one.html", () => openPage("/checkout-step-one.html"));
@@ -118,7 +118,7 @@ describe("standard_user · /checkout-step-one.html", function () {
       });
       step("Expect no server error", () => expectGraceful());
     });
-    it("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · lastName survives surrounding whitespace", { tags: ["@edge","@crud","@role:standard_user","@read"] }, function () {
+    it("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · lastName survives surrounding whitespace", { tags: ["@edge","@crud","@role:standard_user","@write"] }, function () {
       // tier: edge · category: crud · route: /checkout-step-one.html · targetField: lastName · constraintKind: robustness
       step("Log in as standard_user", () => loginAs("standard_user"));
       step("Open /checkout-step-one.html", () => openPage("/checkout-step-one.html"));
@@ -132,7 +132,7 @@ describe("standard_user · /checkout-step-one.html", function () {
       });
       step("Expect no server error", () => expectGraceful());
     });
-    it("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · postalCode rejects an empty value", { tags: ["@negative","@crud","@role:standard_user","@read"] }, function () {
+    it("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · postalCode rejects an empty value", { tags: ["@negative","@crud","@role:standard_user","@write"] }, function () {
       // tier: negative · category: crud · route: /checkout-step-one.html · targetField: postalCode · constraintKind: required
       step("Log in as standard_user", () => loginAs("standard_user"));
       step("Open /checkout-step-one.html", () => openPage("/checkout-step-one.html"));
@@ -146,7 +146,7 @@ describe("standard_user · /checkout-step-one.html", function () {
       });
       step("Expect a validation error", () => expectServerError("[data-test=\"error\"]", "/checkout-step-one\\.html(?:[?#].*)?$"));
     });
-    it("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · postalCode survives a very long value", { tags: ["@edge","@crud","@role:standard_user","@read"] }, function () {
+    it("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · postalCode survives a very long value", { tags: ["@edge","@crud","@role:standard_user","@write"] }, function () {
       // tier: edge · category: crud · route: /checkout-step-one.html · targetField: postalCode · constraintKind: robustness
       step("Log in as standard_user", () => loginAs("standard_user"));
       step("Open /checkout-step-one.html", () => openPage("/checkout-step-one.html"));
@@ -160,7 +160,7 @@ describe("standard_user · /checkout-step-one.html", function () {
       });
       step("Expect no server error", () => expectGraceful());
     });
-    it("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · postalCode survives unicode input", { tags: ["@edge","@crud","@role:standard_user","@read"] }, function () {
+    it("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · postalCode survives unicode input", { tags: ["@edge","@crud","@role:standard_user","@write"] }, function () {
       // tier: edge · category: crud · route: /checkout-step-one.html · targetField: postalCode · constraintKind: robustness
       step("Log in as standard_user", () => loginAs("standard_user"));
       step("Open /checkout-step-one.html", () => openPage("/checkout-step-one.html"));
@@ -174,7 +174,7 @@ describe("standard_user · /checkout-step-one.html", function () {
       });
       step("Expect no server error", () => expectGraceful());
     });
-    it("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · postalCode survives surrounding whitespace", { tags: ["@edge","@crud","@role:standard_user","@read"] }, function () {
+    it("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · postalCode survives surrounding whitespace", { tags: ["@edge","@crud","@role:standard_user","@write"] }, function () {
       // tier: edge · category: crud · route: /checkout-step-one.html · targetField: postalCode · constraintKind: robustness
       step("Log in as standard_user", () => loginAs("standard_user"));
       step("Open /checkout-step-one.html", () => openPage("/checkout-step-one.html"));

@@ -273,7 +273,8 @@ function affordanceCases(crawls: CrawlOutput[]): TestCase[] {
       const links = new Map<string, PageModel['links'][number]>();
       for (const link of page.links) {
         const target = resolveHrefPathAndSearch(link.href, crawl.baseUrl);
-        if (isPaginationCandidate(link.text, link.locator.value, link.href, page.url, crawl.baseUrl) || isLogoutPath(target)) continue;
+        // An in-page link leads nowhere, so there is no route its absence could protect.
+        if (link.inPage || isPaginationCandidate(link.text, link.locator.value, link.href, page.url, crawl.baseUrl) || isLogoutPath(target)) continue;
         links.set(targetShapeKey(link.href, crawl.baseUrl), link);
       }
       roles.set(crawl.role, { page, links });
@@ -328,9 +329,10 @@ export function navScenarioKeysForPage(page: PageModel, baseUrl: string): string
   // interactionCasesForPage), so it must not appear in the navigation denominator either.
   const hasLogoutForm = page.forms.some((form) => form.crudOp === 'logout');
   for (const link of page.links) {
-    const action = paginationActionForControl(link.text, link.locator.value, link.href, page.url, baseUrl);
+    const action = paginationActionForControl(link.text, link.locator.value, targetOf(link), page.url, baseUrl);
     if (!action && hasLogoutForm && isLogoutPath(resolveHrefPathAndSearch(link.href, baseUrl))) continue;
-    keys.push(action ? `pagination:${pageShape}:${action}` : `link:${targetShapeKey(link.href, baseUrl)}`);
+    const key = link.inPage ? `button:${scriptedLabel(link)}` : `link:${targetShapeKey(link.href, baseUrl)}`;
+    keys.push(action ? `pagination:${pageShape}:${action}` : key);
   }
   for (const button of page.buttons) {
     if (formSubmitLocators.has(locatorKey(button.locator))) continue;
@@ -366,11 +368,26 @@ function interactionCasesForPage(role: string, page: PageModel, canonicalPageUrl
     // Title carries the query too: /todos and /todos?status=done are distinct scenarios
     // (different dedup keys) and must not share a title.
     const target = resolveHrefPathAndSearch(link.href, baseUrl);
-    if (isPaginationCandidate(link.text, link.locator.value, link.href, page.url, baseUrl)) continue;
+    if (isPaginationCandidate(link.text, link.locator.value, targetOf(link), page.url, baseUrl)) continue;
     if (hasLogoutForm && isLogoutPath(target)) continue;
-    const key = `link:${targetShapeKey(link.href, baseUrl)}`;
+    // A fragment or `javascript:` link navigates nowhere: it is a scripted control, one scenario
+    // per label like a button, with no landing page to expect.
+    const key = link.inPage ? `button:${scriptedLabel(link)}` : `link:${targetShapeKey(link.href, baseUrl)}`;
     if (seen.has(key)) continue;
     seen.add(key);
+    if (link.inPage) {
+      const label = scriptedLabel(link);
+      cases.push({
+        kind: 'interaction',
+        scenarioKey: key,
+        tier: 'positive',
+        title: `${role} · ${canonicalPageUrl} · clicks the "${normalizeTitleText(label)}" link`,
+        role,
+        page,
+        interaction: { type: 'button', label, locator: link.locator, ordinal: 0 },
+      });
+      continue;
+    }
     cases.push({
       kind: 'interaction',
       scenarioKey: key,
@@ -384,6 +401,7 @@ function interactionCasesForPage(role: string, page: PageModel, canonicalPageUrl
         locator: link.locator,
         ordinal: 0,
         href: link.href,
+        writes: link.method ? true : undefined,
       },
     });
   }
@@ -479,6 +497,17 @@ function fieldShapeKey(field: Field): string {
   ].join(':');
 }
 
+/** Where a link leads, or undefined for an in-page link, whose `href` is just the page it is on. */
+function targetOf(link: PageModel['links'][number]): string | undefined {
+  return link.inPage ? undefined : link.href;
+}
+
+/** How a scripted link is named: its accessible name, else its text, else its locator. */
+function scriptedLabel(link: PageModel['links'][number]): string {
+  const named = link.locator.strategy === 'role' ? link.locator.value.slice(link.locator.value.indexOf(':') + 1) : '';
+  return named || link.text || locatorKey(link.locator);
+}
+
 function locatorKey(locator: Locator): string {
   return `${locator.strategy}:${locator.value}`;
 }
@@ -493,12 +522,12 @@ function paginationCasesForPage(role: string, page: PageModel, canonicalPageUrl:
     | { type: 'button'; label: string; locator: Locator; action: PaginationAction };
 
   const candidates: (PaginationCandidate & { visible: boolean })[] = [
+    // An in-page pager is scripted: it behaves like a button, with no address to land on.
     ...page.links.map((link) => ({
-      type: 'link' as const,
+      ...(link.inPage ? { type: 'button' as const } : { type: 'link' as const, href: link.href }),
       label: controlLabel(link.text, link.locator.value),
       locator: link.locator,
-      href: link.href,
-      action: paginationActionForControl(link.text, link.locator.value, link.href, page.url, baseUrl),
+      action: paginationActionForControl(link.text, link.locator.value, targetOf(link), page.url, baseUrl),
       visible: link.visible !== false,
     })),
     ...page.buttons.map((button) => ({

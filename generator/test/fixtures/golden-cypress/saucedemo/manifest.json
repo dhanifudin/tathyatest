@@ -49,7 +49,7 @@
   },
   {
     "id": "t0004",
-    "title": "standard_user · /inventory.html · follows the \"All Items\" link to /inventory.html",
+    "title": "standard_user · /inventory.html · clicks the \"All Items\" link",
     "category": "nav",
     "tier": "positive",
     "role": "standard_user",
@@ -57,14 +57,158 @@
     "targetForm": null,
     "targetField": null,
     "constraintKind": null,
-    "assertionCount": 2,
+    "assertionCount": 1,
     "locatorStrategy": "role",
     "faultClass": null,
-    "scenarioKey": "link:/inventory.html",
-    "mutating": false
+    "scenarioKey": "button:All Items",
+    "mutating": true
   },
   {
     "id": "t0005",
+    "title": "standard_user · /inventory.html · clicks the \"Dynamic Catalog\" link",
+    "category": "nav",
+    "tier": "positive",
+    "role": "standard_user",
+    "route": "/inventory.html",
+    "targetForm": null,
+    "targetField": null,
+    "constraintKind": null,
+    "assertionCount": 1,
+    "locatorStrategy": "role",
+    "faultClass": null,
+    "scenarioKey": "button:Dynamic Catalog",
+    "mutating": true
+  },
+  {
+    "id": "t0006",
+    "title": "standard_user · /inventory.html · clicks the \"Logout\" link",
+    "category": "nav",
+    "tier": "positive",
+    "role": "standard_user",
+    "route": "/inventory.html",
+    "targetForm": null,
+    "targetField": null,
+    "constraintKind": null,
+    "assertionCount": 1,
+    "locatorStrategy": "role",
+    "faultClass": null,
+    "scenarioKey": "button:Logout",
+    "mutating": true
+  },
+  {
+    "id": "t0007",
+    "title": "standard_user · /inventory.html · clicks the \"Reset App State\" link",
+    "category": "nav",
+    "tier": "positive",
+    "role": "standard_user",
+    "route": "/inventory.html",
+    "targetForm": null,
+    "targetField": null,
+    "constraintKind": null,
+    "assertionCount": 1,
+    "locatorStrategy": "role",
+    "faultClass": null,
+    "scenarioKey": "button:Reset App State",
+    "mutating": true
+  },
+  {
+    "id": "t0008",
+    "title": "standard_user · /inventory.html · clicks the \"View details for Sauce Labs Backpack\" link",
+    "category": "nav",
+    "tier": "positive",
+    "role": "standard_user",
+    "route": "/inventory.html",
+    "targetForm": null,
+    "targetField": null,
+    "constraintKind": null,
+    "assertionCount": 1,
+    "locatorStrategy": "role",
+    "faultClass": null,
+    "scenarioKey": "button:View details for Sauce Labs Backpack",
+    "mutating": true
+  },
+  {
+    "id": "t0009",
+    "title": "standard_user · /inventory.html · clicks the \"View details for Sauce Labs Bike Light\" link",
+    "category": "nav",
+    "tier": "positive",
+    "role": "standard_user",
+    "route": "/inventory.html",
+    "targetForm": null,
+    "targetField": null,
+    "constraintKind": null,
+    "assertionCount": 1,
+    "locatorStrategy": "role",
+    "faultClass": null,
+    "scenarioKey": "button:View details for Sauce Labs Bike Light",
+    "mutating": true
+  },
+  {
+    "id": "t0010",
+    "title": "standard_user · /inventory.html · clicks the \"View details for Sauce Labs Bolt T-Shirt\" link",
+    "category": "nav",
+    "tier": "positive",
+    "role": "standard_user",
+    "route": "/inventory.html",
+    "targetForm": null,
+    "targetField": null,
+    "constraintKind": null,
+    "assertionCount": 1,
+    "locatorStrategy": "role",
+    "faultClass": null,
+    "scenarioKey": "button:View details for Sauce Labs Bolt T-Shirt",
+    "mutating": true
+  },
+  {
+    "id": "t0011",
+    "title": "standard_user · /inventory.html · clicks the \"View details for Sauce Labs Fleece Jacket\" link",
+    "category": "nav",
+    "tier": "positive",
+    "role": "standard_user",
+    "route": "/inventory.html",
+    "targetForm": null,
+    "targetField": null,
+    "constraintKind": null,
+    "assertionCount": 1,
+    "locatorStrategy": "role",
+    "faultClass": null,
+    "scenarioKey": "button:View details for Sauce Labs Fleece Jacket",
+    "mutating": true
+  },
+  {
+    "id": "t0012",
+    "title": "standard_user · /inventory.html · clicks the \"View details for Sauce Labs Onesie\" link",
+    "category": "nav",
+    "tier": "positive",
+    "role": "standard_user",
+    "route": "/inventory.html",
+    "targetForm": null,
+    "targetField": null,
+    "constraintKind": null,
+    "assertionCount": 1,
+    "locatorStrategy": "role",
+    "faultClass": null,
+    "scenarioKey": "button:View details for Sauce Labs Onesie",
+    "mutating": true
+  },
+  {
+    "id": "t0013",
+    "title": "standard_user · /inventory.html · clicks the \"View details for Test.allTheThings() T-Shirt (Red)\" link",
+    "category": "nav",
+    "tier": "positive",
+    "role": "standard_user",
+    "route": "/inventory.html",
+    "targetForm": null,
+    "targetField": null,
+    "constraintKind": null,
+    "assertionCount": 1,
+    "locatorStrategy": "role",
+    "faultClass": null,
+    "scenarioKey": "button:View details for Test.allTheThings() T-Shirt (Red)",
+    "mutating": true
+  },
+  {
+    "id": "t0014",
     "title": "standard_user · /inventory.html · clicks the \"Open Menu\" button",
     "category": "nav",
     "tier": "positive",
@@ -80,7 +224,7 @@
     "mutating": true
   },
   {
-    "id": "t0006",
+    "id": "t0015",
     "title": "standard_user · /inventory.html · clicks the \"Close Menu\" button",
     "category": "nav",
     "tier": "positive",
@@ -96,7 +240,7 @@
     "mutating": true
   },
   {
-    "id": "t0007",
+    "id": "t0016",
     "title": "standard_user · /inventory.html · clicks the \"Add to cart\" button",
     "category": "nav",
     "tier": "positive",
@@ -112,7 +256,7 @@
     "mutating": true
   },
   {
-    "id": "t0008",
+    "id": "t0017",
     "title": "standard_user · /inventory.html · selects \"Price (high to low)\" in the role:combobox:Sort products control",
     "category": "nav",
     "tier": "positive",
@@ -128,7 +272,7 @@
     "mutating": false
   },
   {
-    "id": "t0009",
+    "id": "t0018",
     "title": "standard_user can open /cart.html",
     "category": "rbac",
     "tier": "positive",
@@ -144,23 +288,7 @@
     "mutating": false
   },
   {
-    "id": "t0010",
-    "title": "standard_user · /cart.html · follows the \"All Items\" link to /cart.html",
-    "category": "nav",
-    "tier": "positive",
-    "role": "standard_user",
-    "route": "/cart.html",
-    "targetForm": null,
-    "targetField": null,
-    "constraintKind": null,
-    "assertionCount": 2,
-    "locatorStrategy": "role",
-    "faultClass": null,
-    "scenarioKey": "link:/cart.html",
-    "mutating": false
-  },
-  {
-    "id": "t0011",
+    "id": "t0019",
     "title": "standard_user · /cart.html · clicks the \"Continue Shopping\" button",
     "category": "nav",
     "tier": "positive",
@@ -176,7 +304,7 @@
     "mutating": true
   },
   {
-    "id": "t0012",
+    "id": "t0020",
     "title": "standard_user · /cart.html · clicks the \"Checkout\" button",
     "category": "nav",
     "tier": "positive",
@@ -192,7 +320,7 @@
     "mutating": true
   },
   {
-    "id": "t0013",
+    "id": "t0021",
     "title": "standard_user can open /checkout-step-one.html",
     "category": "rbac",
     "tier": "positive",
@@ -208,7 +336,7 @@
     "mutating": false
   },
   {
-    "id": "t0014",
+    "id": "t0022",
     "title": "standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · submits valid data successfully",
     "category": "crud",
     "tier": "positive",
@@ -221,10 +349,10 @@
     "locatorStrategy": "role",
     "faultClass": "crud",
     "scenarioKey": null,
-    "mutating": false
+    "mutating": true
   },
   {
-    "id": "t0015",
+    "id": "t0023",
     "title": "standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · firstName rejects an empty value",
     "category": "crud",
     "tier": "negative",
@@ -237,10 +365,10 @@
     "locatorStrategy": "role",
     "faultClass": "validation",
     "scenarioKey": null,
-    "mutating": false
+    "mutating": true
   },
   {
-    "id": "t0016",
+    "id": "t0024",
     "title": "standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · firstName survives a very long value",
     "category": "crud",
     "tier": "edge",
@@ -253,10 +381,10 @@
     "locatorStrategy": "role",
     "faultClass": "validation",
     "scenarioKey": null,
-    "mutating": false
+    "mutating": true
   },
   {
-    "id": "t0017",
+    "id": "t0025",
     "title": "standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · firstName survives unicode input",
     "category": "crud",
     "tier": "edge",
@@ -269,10 +397,10 @@
     "locatorStrategy": "role",
     "faultClass": "validation",
     "scenarioKey": null,
-    "mutating": false
+    "mutating": true
   },
   {
-    "id": "t0018",
+    "id": "t0026",
     "title": "standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · firstName survives surrounding whitespace",
     "category": "crud",
     "tier": "edge",
@@ -285,10 +413,10 @@
     "locatorStrategy": "role",
     "faultClass": "validation",
     "scenarioKey": null,
-    "mutating": false
+    "mutating": true
   },
   {
-    "id": "t0019",
+    "id": "t0027",
     "title": "standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · lastName rejects an empty value",
     "category": "crud",
     "tier": "negative",
@@ -301,10 +429,10 @@
     "locatorStrategy": "role",
     "faultClass": "validation",
     "scenarioKey": null,
-    "mutating": false
+    "mutating": true
   },
   {
-    "id": "t0020",
+    "id": "t0028",
     "title": "standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · lastName survives a very long value",
     "category": "crud",
     "tier": "edge",
@@ -317,10 +445,10 @@
     "locatorStrategy": "role",
     "faultClass": "validation",
     "scenarioKey": null,
-    "mutating": false
+    "mutating": true
   },
   {
-    "id": "t0021",
+    "id": "t0029",
     "title": "standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · lastName survives unicode input",
     "category": "crud",
     "tier": "edge",
@@ -333,10 +461,10 @@
     "locatorStrategy": "role",
     "faultClass": "validation",
     "scenarioKey": null,
-    "mutating": false
+    "mutating": true
   },
   {
-    "id": "t0022",
+    "id": "t0030",
     "title": "standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · lastName survives surrounding whitespace",
     "category": "crud",
     "tier": "edge",
@@ -349,10 +477,10 @@
     "locatorStrategy": "role",
     "faultClass": "validation",
     "scenarioKey": null,
-    "mutating": false
+    "mutating": true
   },
   {
-    "id": "t0023",
+    "id": "t0031",
     "title": "standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · postalCode rejects an empty value",
     "category": "crud",
     "tier": "negative",
@@ -365,10 +493,10 @@
     "locatorStrategy": "role",
     "faultClass": "validation",
     "scenarioKey": null,
-    "mutating": false
+    "mutating": true
   },
   {
-    "id": "t0024",
+    "id": "t0032",
     "title": "standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · postalCode survives a very long value",
     "category": "crud",
     "tier": "edge",
@@ -381,10 +509,10 @@
     "locatorStrategy": "role",
     "faultClass": "validation",
     "scenarioKey": null,
-    "mutating": false
+    "mutating": true
   },
   {
-    "id": "t0025",
+    "id": "t0033",
     "title": "standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · postalCode survives unicode input",
     "category": "crud",
     "tier": "edge",
@@ -397,10 +525,10 @@
     "locatorStrategy": "role",
     "faultClass": "validation",
     "scenarioKey": null,
-    "mutating": false
+    "mutating": true
   },
   {
-    "id": "t0026",
+    "id": "t0034",
     "title": "standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · postalCode survives surrounding whitespace",
     "category": "crud",
     "tier": "edge",
@@ -413,26 +541,10 @@
     "locatorStrategy": "role",
     "faultClass": "validation",
     "scenarioKey": null,
-    "mutating": false
+    "mutating": true
   },
   {
-    "id": "t0027",
-    "title": "standard_user · /checkout-step-one.html · follows the \"All Items\" link to /checkout-step-one.html",
-    "category": "nav",
-    "tier": "positive",
-    "role": "standard_user",
-    "route": "/checkout-step-one.html",
-    "targetForm": null,
-    "targetField": null,
-    "constraintKind": null,
-    "assertionCount": 2,
-    "locatorStrategy": "role",
-    "faultClass": null,
-    "scenarioKey": "link:/checkout-step-one.html",
-    "mutating": false
-  },
-  {
-    "id": "t0028",
+    "id": "t0035",
     "title": "standard_user · /checkout-step-one.html · clicks the \"Cancel\" button",
     "category": "nav",
     "tier": "positive",
@@ -448,7 +560,7 @@
     "mutating": true
   },
   {
-    "id": "t0029",
+    "id": "t0036",
     "title": "standard_user can open /checkout-step-two.html",
     "category": "rbac",
     "tier": "positive",
@@ -464,23 +576,7 @@
     "mutating": false
   },
   {
-    "id": "t0030",
-    "title": "standard_user · /checkout-step-two.html · follows the \"All Items\" link to /checkout-step-two.html",
-    "category": "nav",
-    "tier": "positive",
-    "role": "standard_user",
-    "route": "/checkout-step-two.html",
-    "targetForm": null,
-    "targetField": null,
-    "constraintKind": null,
-    "assertionCount": 2,
-    "locatorStrategy": "role",
-    "faultClass": null,
-    "scenarioKey": "link:/checkout-step-two.html",
-    "mutating": false
-  },
-  {
-    "id": "t0031",
+    "id": "t0037",
     "title": "standard_user · /checkout-step-two.html · clicks the \"Finish\" button",
     "category": "nav",
     "tier": "positive",

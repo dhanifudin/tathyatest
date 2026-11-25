@@ -4,13 +4,93 @@ import { test, expect, expectNoServerError } from '../support/tathya.js';
 test.describe("standard_user · /inventory.html", () => {
   test.skip(({ role }) => role !== "standard_user", "runs under the standard_user project only");
 
-  test("standard_user · /inventory.html · follows the \"All Items\" link to /inventory.html", { tag: ["@positive","@nav","@role:standard_user","@read"], annotation: [{"type":"tier","description":"positive"},{"type":"category","description":"nav"},{"type":"route","description":"/inventory.html"}] }, async ({ page, app }) => {
+  test("standard_user · /inventory.html · clicks the \"All Items\" link", { tag: ["@positive","@nav","@role:standard_user","@write"], annotation: [{"type":"tier","description":"positive"},{"type":"category","description":"nav"},{"type":"route","description":"/inventory.html"}] }, async ({ page, app }) => {
     await test.step("Log in as standard_user", () => app.loginAs("standard_user"));
     await test.step("Open /inventory.html", () => page.goto("/inventory.html"));
     const target = page.getByRole("button", { name: "All Items" }).first();
     test.skip(await target.count() === 0 || !(await target.isVisible().catch(() => false)), 'interaction target is not visible');
-    await test.step("Click link \"All Items\"", () => target.click());
-    await test.step("Expect to land on /inventory.html", () => expect(page).toHaveURL((url) => url.pathname === "/inventory.html"));
+    await test.step("Click button \"All Items\"", () => target.click());
+    await test.step('Expect no server error', () => expectNoServerError(page));
+  });
+
+  test("standard_user · /inventory.html · clicks the \"Dynamic Catalog\" link", { tag: ["@positive","@nav","@role:standard_user","@write"], annotation: [{"type":"tier","description":"positive"},{"type":"category","description":"nav"},{"type":"route","description":"/inventory.html"}] }, async ({ page, app }) => {
+    await test.step("Log in as standard_user", () => app.loginAs("standard_user"));
+    await test.step("Open /inventory.html", () => page.goto("/inventory.html"));
+    const target = page.getByRole("button", { name: "Dynamic Catalog" }).first();
+    test.skip(await target.count() === 0 || !(await target.isVisible().catch(() => false)), 'interaction target is not visible');
+    await test.step("Click button \"Dynamic Catalog\"", () => target.click());
+    await test.step('Expect no server error', () => expectNoServerError(page));
+  });
+
+  test("standard_user · /inventory.html · clicks the \"Logout\" link", { tag: ["@positive","@nav","@role:standard_user","@write"], annotation: [{"type":"tier","description":"positive"},{"type":"category","description":"nav"},{"type":"route","description":"/inventory.html"}] }, async ({ page, app }) => {
+    await test.step("Log in as standard_user", () => app.loginAs("standard_user"));
+    await test.step("Open /inventory.html", () => page.goto("/inventory.html"));
+    const target = page.getByRole("button", { name: "Logout" }).first();
+    test.skip(await target.count() === 0 || !(await target.isVisible().catch(() => false)), 'interaction target is not visible');
+    await test.step("Click button \"Logout\"", () => target.click());
+    await test.step('Expect no server error', () => expectNoServerError(page));
+  });
+
+  test("standard_user · /inventory.html · clicks the \"Reset App State\" link", { tag: ["@positive","@nav","@role:standard_user","@write"], annotation: [{"type":"tier","description":"positive"},{"type":"category","description":"nav"},{"type":"route","description":"/inventory.html"}] }, async ({ page, app }) => {
+    await test.step("Log in as standard_user", () => app.loginAs("standard_user"));
+    await test.step("Open /inventory.html", () => page.goto("/inventory.html"));
+    const target = page.getByRole("button", { name: "Reset App State" }).first();
+    test.skip(await target.count() === 0 || !(await target.isVisible().catch(() => false)), 'interaction target is not visible');
+    await test.step("Click button \"Reset App State\"", () => target.click());
+    await test.step('Expect no server error', () => expectNoServerError(page));
+  });
+
+  test("standard_user · /inventory.html · clicks the \"View details for Sauce Labs Backpack\" link", { tag: ["@positive","@nav","@role:standard_user","@write"], annotation: [{"type":"tier","description":"positive"},{"type":"category","description":"nav"},{"type":"route","description":"/inventory.html"}] }, async ({ page, app }) => {
+    await test.step("Log in as standard_user", () => app.loginAs("standard_user"));
+    await test.step("Open /inventory.html", () => page.goto("/inventory.html"));
+    const target = page.getByRole("button", { name: "View details for Sauce Labs Backpack" }).first();
+    test.skip(await target.count() === 0 || !(await target.isVisible().catch(() => false)), 'interaction target is not visible');
+    await test.step("Click button \"View details for Sauce Labs Backpack\"", () => target.click());
+    await test.step('Expect no server error', () => expectNoServerError(page));
+  });
+
+  test("standard_user · /inventory.html · clicks the \"View details for Sauce Labs Bike Light\" link", { tag: ["@positive","@nav","@role:standard_user","@write"], annotation: [{"type":"tier","description":"positive"},{"type":"category","description":"nav"},{"type":"route","description":"/inventory.html"}] }, async ({ page, app }) => {
+    await test.step("Log in as standard_user", () => app.loginAs("standard_user"));
+    await test.step("Open /inventory.html", () => page.goto("/inventory.html"));
+    const target = page.getByRole("button", { name: "View details for Sauce Labs Bike Light" }).first();
+    test.skip(await target.count() === 0 || !(await target.isVisible().catch(() => false)), 'interaction target is not visible');
+    await test.step("Click button \"View details for Sauce Labs Bike Light\"", () => target.click());
+    await test.step('Expect no server error', () => expectNoServerError(page));
+  });
+
+  test("standard_user · /inventory.html · clicks the \"View details for Sauce Labs Bolt T-Shirt\" link", { tag: ["@positive","@nav","@role:standard_user","@write"], annotation: [{"type":"tier","description":"positive"},{"type":"category","description":"nav"},{"type":"route","description":"/inventory.html"}] }, async ({ page, app }) => {
+    await test.step("Log in as standard_user", () => app.loginAs("standard_user"));
+    await test.step("Open /inventory.html", () => page.goto("/inventory.html"));
+    const target = page.getByRole("button", { name: "View details for Sauce Labs Bolt T-Shirt" }).first();
+    test.skip(await target.count() === 0 || !(await target.isVisible().catch(() => false)), 'interaction target is not visible');
+    await test.step("Click button \"View details for Sauce Labs Bolt T-Shirt\"", () => target.click());
+    await test.step('Expect no server error', () => expectNoServerError(page));
+  });
+
+  test("standard_user · /inventory.html · clicks the \"View details for Sauce Labs Fleece Jacket\" link", { tag: ["@positive","@nav","@role:standard_user","@write"], annotation: [{"type":"tier","description":"positive"},{"type":"category","description":"nav"},{"type":"route","description":"/inventory.html"}] }, async ({ page, app }) => {
+    await test.step("Log in as standard_user", () => app.loginAs("standard_user"));
+    await test.step("Open /inventory.html", () => page.goto("/inventory.html"));
+    const target = page.getByRole("button", { name: "View details for Sauce Labs Fleece Jacket" }).first();
+    test.skip(await target.count() === 0 || !(await target.isVisible().catch(() => false)), 'interaction target is not visible');
+    await test.step("Click button \"View details for Sauce Labs Fleece Jacket\"", () => target.click());
+    await test.step('Expect no server error', () => expectNoServerError(page));
+  });
+
+  test("standard_user · /inventory.html · clicks the \"View details for Sauce Labs Onesie\" link", { tag: ["@positive","@nav","@role:standard_user","@write"], annotation: [{"type":"tier","description":"positive"},{"type":"category","description":"nav"},{"type":"route","description":"/inventory.html"}] }, async ({ page, app }) => {
+    await test.step("Log in as standard_user", () => app.loginAs("standard_user"));
+    await test.step("Open /inventory.html", () => page.goto("/inventory.html"));
+    const target = page.getByRole("button", { name: "View details for Sauce Labs Onesie" }).first();
+    test.skip(await target.count() === 0 || !(await target.isVisible().catch(() => false)), 'interaction target is not visible');
+    await test.step("Click button \"View details for Sauce Labs Onesie\"", () => target.click());
+    await test.step('Expect no server error', () => expectNoServerError(page));
+  });
+
+  test("standard_user · /inventory.html · clicks the \"View details for Test.allTheThings() T-Shirt (Red)\" link", { tag: ["@positive","@nav","@role:standard_user","@write"], annotation: [{"type":"tier","description":"positive"},{"type":"category","description":"nav"},{"type":"route","description":"/inventory.html"}] }, async ({ page, app }) => {
+    await test.step("Log in as standard_user", () => app.loginAs("standard_user"));
+    await test.step("Open /inventory.html", () => page.goto("/inventory.html"));
+    const target = page.getByRole("button", { name: "View details for Test.allTheThings() T-Shirt (Red)" }).first();
+    test.skip(await target.count() === 0 || !(await target.isVisible().catch(() => false)), 'interaction target is not visible');
+    await test.step("Click button \"View details for Test.allTheThings() T-Shirt (Red)\"", () => target.click());
     await test.step('Expect no server error', () => expectNoServerError(page));
   });
 

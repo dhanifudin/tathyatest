@@ -62,14 +62,15 @@ export function tagsAndAnnotations(testCase: TestCase): { tags: string[]; annota
 }
 
 /**
- * Where a link click must end up, or null when that is unknowable: fragment/javascript hrefs,
- * and logout links (they redirect to the login page by design).
+ * Where a link click must end up, or null when that is unknowable: non-web hrefs, and logout
+ * links (they redirect to the login page by design). In-page links never get here — the mapper
+ * treats them as scripted controls.
  */
 export function linkLandingPath(testCase: Extract<TestCase, { kind: 'interaction' }>, config: Pick<TathyaConfig, 'baseUrl'>): string | null {
   const href = testCase.interaction.href;
   if (testCase.interaction.type !== 'link' || !href) return null;
   const trimmed = href.trim();
-  if (trimmed === '' || trimmed.startsWith('#') || /^(javascript|mailto|tel):/i.test(trimmed)) return null;
+  if (trimmed === '' || /^(javascript|mailto|tel):/i.test(trimmed)) return null;
   let url: URL;
   try {
     url = new URL(trimmed, config.baseUrl);

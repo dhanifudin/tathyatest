@@ -6,7 +6,7 @@ test.describe("standard_user · /checkout-step-one.html", () => {
   test.skip(({ role }) => role !== "standard_user", "runs under the standard_user project only");
 
   test.describe("\"Continue\" form → GET /checkout-step-one.html", () => {
-    test("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · submits valid data successfully", { tag: ["@positive","@crud","@role:standard_user","@read"], annotation: [{"type":"tier","description":"positive"},{"type":"category","description":"crud"},{"type":"route","description":"/checkout-step-one.html"}] }, async ({ page, app }) => {
+    test("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · submits valid data successfully", { tag: ["@positive","@crud","@role:standard_user","@write"], annotation: [{"type":"tier","description":"positive"},{"type":"category","description":"crud"},{"type":"route","description":"/checkout-step-one.html"}] }, async ({ page, app }) => {
       await test.step("Log in as standard_user", () => app.loginAs("standard_user"));
       await test.step("Open /checkout-step-one.html", () => page.goto("/checkout-step-one.html"));
       await test.step('Fill the form', async () => {
@@ -23,7 +23,7 @@ test.describe("standard_user · /checkout-step-one.html", () => {
         await expect(page.locator('body')).not.toContainText(/500|server error|exception/i);
       });
     });
-    test("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · firstName rejects an empty value", { tag: ["@negative","@crud","@role:standard_user","@read"], annotation: [{"type":"tier","description":"negative"},{"type":"category","description":"crud"},{"type":"route","description":"/checkout-step-one.html"},{"type":"targetField","description":"firstName"},{"type":"constraintKind","description":"required"}] }, async ({ page, app }) => {
+    test("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · firstName rejects an empty value", { tag: ["@negative","@crud","@role:standard_user","@write"], annotation: [{"type":"tier","description":"negative"},{"type":"category","description":"crud"},{"type":"route","description":"/checkout-step-one.html"},{"type":"targetField","description":"firstName"},{"type":"constraintKind","description":"required"}] }, async ({ page, app }) => {
       await test.step("Log in as standard_user", () => app.loginAs("standard_user"));
       await test.step("Open /checkout-step-one.html", () => page.goto("/checkout-step-one.html"));
       await test.step('Fill the form', async () => {
@@ -41,7 +41,7 @@ test.describe("standard_user · /checkout-step-one.html", () => {
         await expect(page).toHaveURL(new RegExp("/checkout-step-one\\.html(?:[?#].*)?$"));
       });
     });
-    test("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · firstName survives a very long value", { tag: ["@edge","@crud","@role:standard_user","@read"], annotation: [{"type":"tier","description":"edge"},{"type":"category","description":"crud"},{"type":"route","description":"/checkout-step-one.html"},{"type":"targetField","description":"firstName"},{"type":"constraintKind","description":"robustness"}] }, async ({ page, app }) => {
+    test("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · firstName survives a very long value", { tag: ["@edge","@crud","@role:standard_user","@write"], annotation: [{"type":"tier","description":"edge"},{"type":"category","description":"crud"},{"type":"route","description":"/checkout-step-one.html"},{"type":"targetField","description":"firstName"},{"type":"constraintKind","description":"robustness"}] }, async ({ page, app }) => {
       await test.step("Log in as standard_user", () => app.loginAs("standard_user"));
       await test.step("Open /checkout-step-one.html", () => page.goto("/checkout-step-one.html"));
       await test.step('Fill the form', async () => {
@@ -64,7 +64,7 @@ test.describe("standard_user · /checkout-step-one.html", () => {
         await expect(page.locator('body')).not.toContainText(/500|server error|exception/i);
       });
     });
-    test("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · firstName survives unicode input", { tag: ["@edge","@crud","@role:standard_user","@read"], annotation: [{"type":"tier","description":"edge"},{"type":"category","description":"crud"},{"type":"route","description":"/checkout-step-one.html"},{"type":"targetField","description":"firstName"},{"type":"constraintKind","description":"robustness"}] }, async ({ page, app }) => {
+    test("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · firstName survives unicode input", { tag: ["@edge","@crud","@role:standard_user","@write"], annotation: [{"type":"tier","description":"edge"},{"type":"category","description":"crud"},{"type":"route","description":"/checkout-step-one.html"},{"type":"targetField","description":"firstName"},{"type":"constraintKind","description":"robustness"}] }, async ({ page, app }) => {
       await test.step("Log in as standard_user", () => app.loginAs("standard_user"));
       await test.step("Open /checkout-step-one.html", () => page.goto("/checkout-step-one.html"));
       await test.step('Fill the form', async () => {
@@ -81,7 +81,7 @@ test.describe("standard_user · /checkout-step-one.html", () => {
         await expect(page.locator('body')).not.toContainText(/500|server error|exception/i);
       });
     });
-    test("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · firstName survives surrounding whitespace", { tag: ["@edge","@crud","@role:standard_user","@read"], annotation: [{"type":"tier","description":"edge"},{"type":"category","description":"crud"},{"type":"route","description":"/checkout-step-one.html"},{"type":"targetField","description":"firstName"},{"type":"constraintKind","description":"robustness"}] }, async ({ page, app }) => {
+    test("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · firstName survives surrounding whitespace", { tag: ["@edge","@crud","@role:standard_user","@write"], annotation: [{"type":"tier","description":"edge"},{"type":"category","description":"crud"},{"type":"route","description":"/checkout-step-one.html"},{"type":"targetField","description":"firstName"},{"type":"constraintKind","description":"robustness"}] }, async ({ page, app }) => {
       await test.step("Log in as standard_user", () => app.loginAs("standard_user"));
       await test.step("Open /checkout-step-one.html", () => page.goto("/checkout-step-one.html"));
       await test.step('Fill the form', async () => {
@@ -98,7 +98,7 @@ test.describe("standard_user · /checkout-step-one.html", () => {
         await expect(page.locator('body')).not.toContainText(/500|server error|exception/i);
       });
     });
-    test("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · lastName rejects an empty value", { tag: ["@negative","@crud","@role:standard_user","@read"], annotation: [{"type":"tier","description":"negative"},{"type":"category","description":"crud"},{"type":"route","description":"/checkout-step-one.html"},{"type":"targetField","description":"lastName"},{"type":"constraintKind","description":"required"}] }, async ({ page, app }) => {
+    test("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · lastName rejects an empty value", { tag: ["@negative","@crud","@role:standard_user","@write"], annotation: [{"type":"tier","description":"negative"},{"type":"category","description":"crud"},{"type":"route","description":"/checkout-step-one.html"},{"type":"targetField","description":"lastName"},{"type":"constraintKind","description":"required"}] }, async ({ page, app }) => {
       await test.step("Log in as standard_user", () => app.loginAs("standard_user"));
       await test.step("Open /checkout-step-one.html", () => page.goto("/checkout-step-one.html"));
       await test.step('Fill the form', async () => {
@@ -116,7 +116,7 @@ test.describe("standard_user · /checkout-step-one.html", () => {
         await expect(page).toHaveURL(new RegExp("/checkout-step-one\\.html(?:[?#].*)?$"));
       });
     });
-    test("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · lastName survives a very long value", { tag: ["@edge","@crud","@role:standard_user","@read"], annotation: [{"type":"tier","description":"edge"},{"type":"category","description":"crud"},{"type":"route","description":"/checkout-step-one.html"},{"type":"targetField","description":"lastName"},{"type":"constraintKind","description":"robustness"}] }, async ({ page, app }) => {
+    test("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · lastName survives a very long value", { tag: ["@edge","@crud","@role:standard_user","@write"], annotation: [{"type":"tier","description":"edge"},{"type":"category","description":"crud"},{"type":"route","description":"/checkout-step-one.html"},{"type":"targetField","description":"lastName"},{"type":"constraintKind","description":"robustness"}] }, async ({ page, app }) => {
       await test.step("Log in as standard_user", () => app.loginAs("standard_user"));
       await test.step("Open /checkout-step-one.html", () => page.goto("/checkout-step-one.html"));
       await test.step('Fill the form', async () => {
@@ -139,7 +139,7 @@ test.describe("standard_user · /checkout-step-one.html", () => {
         await expect(page.locator('body')).not.toContainText(/500|server error|exception/i);
       });
     });
-    test("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · lastName survives unicode input", { tag: ["@edge","@crud","@role:standard_user","@read"], annotation: [{"type":"tier","description":"edge"},{"type":"category","description":"crud"},{"type":"route","description":"/checkout-step-one.html"},{"type":"targetField","description":"lastName"},{"type":"constraintKind","description":"robustness"}] }, async ({ page, app }) => {
+    test("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · lastName survives unicode input", { tag: ["@edge","@crud","@role:standard_user","@write"], annotation: [{"type":"tier","description":"edge"},{"type":"category","description":"crud"},{"type":"route","description":"/checkout-step-one.html"},{"type":"targetField","description":"lastName"},{"type":"constraintKind","description":"robustness"}] }, async ({ page, app }) => {
       await test.step("Log in as standard_user", () => app.loginAs("standard_user"));
       await test.step("Open /checkout-step-one.html", () => page.goto("/checkout-step-one.html"));
       await test.step('Fill the form', async () => {
@@ -156,7 +156,7 @@ test.describe("standard_user · /checkout-step-one.html", () => {
         await expect(page.locator('body')).not.toContainText(/500|server error|exception/i);
       });
     });
-    test("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · lastName survives surrounding whitespace", { tag: ["@edge","@crud","@role:standard_user","@read"], annotation: [{"type":"tier","description":"edge"},{"type":"category","description":"crud"},{"type":"route","description":"/checkout-step-one.html"},{"type":"targetField","description":"lastName"},{"type":"constraintKind","description":"robustness"}] }, async ({ page, app }) => {
+    test("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · lastName survives surrounding whitespace", { tag: ["@edge","@crud","@role:standard_user","@write"], annotation: [{"type":"tier","description":"edge"},{"type":"category","description":"crud"},{"type":"route","description":"/checkout-step-one.html"},{"type":"targetField","description":"lastName"},{"type":"constraintKind","description":"robustness"}] }, async ({ page, app }) => {
       await test.step("Log in as standard_user", () => app.loginAs("standard_user"));
       await test.step("Open /checkout-step-one.html", () => page.goto("/checkout-step-one.html"));
       await test.step('Fill the form', async () => {
@@ -173,7 +173,7 @@ test.describe("standard_user · /checkout-step-one.html", () => {
         await expect(page.locator('body')).not.toContainText(/500|server error|exception/i);
       });
     });
-    test("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · postalCode rejects an empty value", { tag: ["@negative","@crud","@role:standard_user","@read"], annotation: [{"type":"tier","description":"negative"},{"type":"category","description":"crud"},{"type":"route","description":"/checkout-step-one.html"},{"type":"targetField","description":"postalCode"},{"type":"constraintKind","description":"required"}] }, async ({ page, app }) => {
+    test("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · postalCode rejects an empty value", { tag: ["@negative","@crud","@role:standard_user","@write"], annotation: [{"type":"tier","description":"negative"},{"type":"category","description":"crud"},{"type":"route","description":"/checkout-step-one.html"},{"type":"targetField","description":"postalCode"},{"type":"constraintKind","description":"required"}] }, async ({ page, app }) => {
       await test.step("Log in as standard_user", () => app.loginAs("standard_user"));
       await test.step("Open /checkout-step-one.html", () => page.goto("/checkout-step-one.html"));
       await test.step('Fill the form', async () => {
@@ -191,7 +191,7 @@ test.describe("standard_user · /checkout-step-one.html", () => {
         await expect(page).toHaveURL(new RegExp("/checkout-step-one\\.html(?:[?#].*)?$"));
       });
     });
-    test("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · postalCode survives a very long value", { tag: ["@edge","@crud","@role:standard_user","@read"], annotation: [{"type":"tier","description":"edge"},{"type":"category","description":"crud"},{"type":"route","description":"/checkout-step-one.html"},{"type":"targetField","description":"postalCode"},{"type":"constraintKind","description":"robustness"}] }, async ({ page, app }) => {
+    test("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · postalCode survives a very long value", { tag: ["@edge","@crud","@role:standard_user","@write"], annotation: [{"type":"tier","description":"edge"},{"type":"category","description":"crud"},{"type":"route","description":"/checkout-step-one.html"},{"type":"targetField","description":"postalCode"},{"type":"constraintKind","description":"robustness"}] }, async ({ page, app }) => {
       await test.step("Log in as standard_user", () => app.loginAs("standard_user"));
       await test.step("Open /checkout-step-one.html", () => page.goto("/checkout-step-one.html"));
       await test.step('Fill the form', async () => {
@@ -214,7 +214,7 @@ test.describe("standard_user · /checkout-step-one.html", () => {
         await expect(page.locator('body')).not.toContainText(/500|server error|exception/i);
       });
     });
-    test("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · postalCode survives unicode input", { tag: ["@edge","@crud","@role:standard_user","@read"], annotation: [{"type":"tier","description":"edge"},{"type":"category","description":"crud"},{"type":"route","description":"/checkout-step-one.html"},{"type":"targetField","description":"postalCode"},{"type":"constraintKind","description":"robustness"}] }, async ({ page, app }) => {
+    test("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · postalCode survives unicode input", { tag: ["@edge","@crud","@role:standard_user","@write"], annotation: [{"type":"tier","description":"edge"},{"type":"category","description":"crud"},{"type":"route","description":"/checkout-step-one.html"},{"type":"targetField","description":"postalCode"},{"type":"constraintKind","description":"robustness"}] }, async ({ page, app }) => {
       await test.step("Log in as standard_user", () => app.loginAs("standard_user"));
       await test.step("Open /checkout-step-one.html", () => page.goto("/checkout-step-one.html"));
       await test.step('Fill the form', async () => {
@@ -231,7 +231,7 @@ test.describe("standard_user · /checkout-step-one.html", () => {
         await expect(page.locator('body')).not.toContainText(/500|server error|exception/i);
       });
     });
-    test("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · postalCode survives surrounding whitespace", { tag: ["@edge","@crud","@role:standard_user","@read"], annotation: [{"type":"tier","description":"edge"},{"type":"category","description":"crud"},{"type":"route","description":"/checkout-step-one.html"},{"type":"targetField","description":"postalCode"},{"type":"constraintKind","description":"robustness"}] }, async ({ page, app }) => {
+    test("standard_user · /checkout-step-one.html · \"Continue\" form → GET /checkout-step-one.html · postalCode survives surrounding whitespace", { tag: ["@edge","@crud","@role:standard_user","@write"], annotation: [{"type":"tier","description":"edge"},{"type":"category","description":"crud"},{"type":"route","description":"/checkout-step-one.html"},{"type":"targetField","description":"postalCode"},{"type":"constraintKind","description":"robustness"}] }, async ({ page, app }) => {
       await test.step("Log in as standard_user", () => app.loginAs("standard_user"));
       await test.step("Open /checkout-step-one.html", () => page.goto("/checkout-step-one.html"));
       await test.step('Fill the form', async () => {

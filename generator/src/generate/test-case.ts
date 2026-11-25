@@ -39,6 +39,8 @@ export type TestCase =
         locator: Locator;
         ordinal: number;
         href?: string;
+        /** A link that script turns into a write (`data-method`, `hx-delete`). */
+        writes?: boolean;
         /** For type === 'select': the option value to select (a representative non-empty option). */
         optionValue?: string;
       };
@@ -74,20 +76,21 @@ export type TestCase =
     };
 
 /**
- * Whether running the case can change app data. Everything a GET can do is read-only; every
- * POST/PUT/PATCH/DELETE form (and all its validation variants), a wrong-password login (it leaves
- * auth-failure noise), and generic button clicks (they may trigger writes) are mutating.
+ * Whether running the case can change app data. Only a plain navigation is read-only: every
+ * POST/PUT/PATCH/DELETE form (and all its validation variants), a form script handles (nothing says
+ * what it sends), a wrong-password login (it leaves auth-failure noise), links that script turns
+ * into writes, and generic clicks on buttons and in-page links are mutating.
  */
 export function isMutating(testCase: TestCase): boolean {
   switch (testCase.kind) {
     case 'auth':
       return !testCase.expectSuccess || testCase.logout !== undefined;
     case 'form':
-      return testCase.form.method !== 'GET';
+      return testCase.form.method !== 'GET' || !testCase.form.declaresTarget;
     case 'interaction':
       if (testCase.interaction.type === 'button') return true;
       // A logout link ends the session (Breeze renders one that submits the POST logout form).
-      return testCase.interaction.type === 'link' && isLogoutPath(testCase.interaction.href ?? '');
+      return testCase.interaction.type === 'link' && (testCase.interaction.writes === true || isLogoutPath(testCase.interaction.href ?? ''));
     case 'pagination':
     case 'rbac':
       return false;

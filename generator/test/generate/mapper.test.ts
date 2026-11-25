@@ -9,8 +9,8 @@ function only<K extends TestCase['kind']>(cases: TestCase[], kind: K, keep: (tes
 }
 import type { CrawlOutput } from '../../src/crawl/model.js';
 import type { TathyaConfig } from '../../src/config.js';
-import type { AccessMatrix } from '../../src/generate/rbac.js';
-import { makeConfig } from '../helpers/fixtures.js';
+import { buildAccessMatrix, type AccessMatrix } from '../../src/generate/rbac.js';
+import { emptyPage, makeConfig } from '../helpers/fixtures.js';
 
 const config = makeConfig({
   output: { dir: '', language: 'ts' },
@@ -1065,3 +1065,39 @@ describe('mapTestCases', () => {
     ]);
   });
 });
+
+describe('scripted controls', () => {
+  const config = makeConfig({ coverage: 'positive' });
+  const locator = (value: string) => ({ strategy: 'role' as const, value });
+  const page = {
+    ...emptyPage('/cart', 'Cart'),
+    links: [
+      { href: '/cart', text: 'All Items', locator: locator('button:All Items'), inPage: true },
+      { href: '/cart', text: '', locator: locator('button:Backpack'), inPage: true },
+      { href: '/cart', text: 'Backpack', locator: locator('button:Backpack'), inPage: true },
+      { href: '/posts/1', text: 'Remove', locator: locator('link:Remove'), method: 'DELETE' },
+      { href: '/help', text: 'Help', locator: locator('link:Help') },
+    ],
+    forms: [{ action: '/cart', method: 'GET' as const, crudOp: 'unknown' as const, noValidate: false, declaresTarget: false, fields: [], submit: { text: 'Refresh', locator: locator('button:Refresh') } }],
+  };
+  const crawl = { baseUrl: 'http://127.0.0.1:8000', schemaVersion: 3, role: 'admin', crawledAt: '', pages: [page] };
+  const cases = mapTestCases([crawl], buildAccessMatrix([crawl]), config);
+  const titles = (list: typeof cases) => list.filter((testCase) => testCase.kind === 'interaction').map((testCase) => testCase.title);
+
+  it('tests an in-page link as one click per name, with no landing page', () => {
+    expect(titles(cases)).toEqual([
+      'admin · /cart · clicks the "All Items" link',
+      'admin · /cart · clicks the "Backpack" link',
+      'admin · /cart · follows the "Remove" link to /posts/1',
+      'admin · /cart · follows the "Help" link to /help',
+    ]);
+    expect(navScenarioKeysForPage(page, crawl.baseUrl)).toEqual(['button:All Items', 'button:Backpack', 'button:Backpack', 'link:/posts/:id', 'link:/help']);
+  });
+
+  it('keeps only plain navigation in read-only mode', () => {
+    const readOnly = mapTestCases([crawl], buildAccessMatrix([crawl]), { ...config, mode: 'read-only' });
+    expect(titles(readOnly)).toEqual(['admin · /cart · follows the "Help" link to /help']);
+    expect(readOnly.some((testCase) => testCase.kind === 'form')).toBe(false);
+  });
+});
+
