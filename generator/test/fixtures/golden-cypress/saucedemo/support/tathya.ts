@@ -37,20 +37,24 @@ declare global {
 export function registerTathyaCommands(): void {
   Cypress.Commands.addQuery('tt', function (locator: Loc) {
     return (subject: unknown) => {
-      const root = Cypress.dom.isJquery(subject) && subject.length > 0 ? subject[0] : cy.$$('body')[0];
+      // Without a subject, look inside the form under test (`scopeForm`) while it is on the page.
+      const root = Cypress.dom.isJquery(subject) && subject.length > 0 ? subject[0] : cy.$$(SCOPED).get(0) ?? cy.$$('body')[0];
       return Cypress.$(resolveAll(root, locator));
     };
   });
 }
 
-const normalize = (text: string): string => text.replace(/\s+/g, ' ').trim().toLowerCase();
+const normalize = (text: string): string => text.replace(/\s+/g, ' ').trim();
+
+/** The form under test, marked by `scopeForm` until the page is replaced. */
+const SCOPED = '[data-tt-form]';
 
 /**
- * Every element `locator` matches under `root`, in document order. Names match the way Playwright
- * matches them by default: role names and placeholders case-insensitively as substrings, labels
- * exactly. Role queries skip inaccessible elements, as getByRole does.
+ * Every element `locator` matches under `root`, in document order. Names, placeholders and labels
+ * match whole, as the Playwright specs match them. Role queries skip inaccessible elements, as
+ * getByRole does, unless `includeHidden`.
  */
-export function resolveAll(root: Element, locator: Loc): HTMLElement[] {
+export function resolveAll(root: Element, locator: Loc, includeHidden = false): HTMLElement[] {
   const container = root as HTMLElement;
   switch (locator.strategy) {
     case 'testid':
@@ -59,12 +63,12 @@ export function resolveAll(root: Element, locator: Loc): HTMLElement[] {
       const [role, ...nameParts] = locator.value.split(':');
       const name = nameParts.join(':');
       const wanted = normalize(name);
-      return queryAllByRole(container, role as ByRoleMatcher, name ? { name: (accessibleName: string) => normalize(accessibleName).includes(wanted) } : {});
+      return queryAllByRole(container, role as ByRoleMatcher, { hidden: includeHidden, ...(name ? { name: (accessibleName: string) => normalize(accessibleName) === wanted } : {}) });
     }
     case 'label':
       return queryAllByLabelText(container, locator.value, { exact: true });
     case 'placeholder':
-      return queryAllByPlaceholderText(container, locator.value, { exact: false });
+      return queryAllByPlaceholderText(container, locator.value, { exact: true });
     case 'id':
       return [...root.querySelectorAll<HTMLElement>(`#${CSS.escape(locator.value)}`)];
     case 'name':
@@ -102,13 +106,15 @@ function settled(find: (body: HTMLElement) => HTMLElement | undefined, deadline:
   });
 }
 
-/** Skip the test when the target (the `ordinal`-th match) is absent or hidden. */
+/** Fail when the target (the `ordinal`-th match) is gone; skip when it is there but hidden. */
 export function skipUnlessVisible(ctx: Mocha.Context, locator: Loc, ordinal: number, reason: string): void {
   settled((body) => resolveAll(body, locator)[ordinal]).then((visible) => {
-    if (!visible) {
+    if (visible) return;
+    cy.get('body').then(($body) => {
+      if (resolveAll($body[0], locator, true)[ordinal] === undefined) throw new Error('crawled control is missing');
       cy.log(reason);
       ctx.skip();
-    }
+    });
   });
 }
 
@@ -231,10 +237,10 @@ export function submitLogout(formSelector: string, locator: Loc): void {
   settled((body) => submitControlOf(body, formSelector, locator));
   cy.get('body').then(($body) => {
     const form = $body[0].querySelector<HTMLFormElement>(formSelector);
-    const control = resolveAll(form ?? $body[0], locator)[0];
+    if (!form) throw new Error('crawled logout form is missing');
+    const control = resolveAll(form, locator)[0];
     if (isVisible(control)) cy.wrap(control).click();
-    else if (form) form.requestSubmit();
-    else cy.tt(locator).first().click({ force: true });
+    else form.requestSubmit();
   });
 }
 
@@ -351,19 +357,47 @@ export function uploadFixture(mimeType: string): { contents: ReturnType<typeof C
   return { contents, fileName: 'tathyatest-upload.' + extension, mimeType };
 }
 
-function submitControlOf(body: HTMLElement, formSelector: string, locator: Loc): HTMLElement | undefined {
-  return resolveAll(body.querySelector(formSelector) ?? body, locator)[0];
+/** The selector of the form `scopeForm` chose, for the oracles that look for it again. */
+let chosenForm: string | undefined;
+
+/**
+ * Find the form a test acts on and mark it, so later queries look inside it: the one matching
+ * `formSelector` that holds the submit control, else (for a row action) the same action on another
+ * row. A form that cannot be found fails the test.
+ */
+export function scopeForm(formSelector: string, actionShape: string | null, locator: Loc): void {
+  settled((body) => body.querySelector<HTMLElement>(formSelector) ?? undefined);
+  cy.get('body').then(($body) => {
+    const body = $body[0];
+    const holds = (form: Element) => resolveAll(form, locator).length > 0;
+    const exact = Array.from(body.querySelectorAll<HTMLFormElement>(formSelector));
+    const rows = actionShape
+      ? Array.from(body.querySelectorAll<HTMLFormElement>('form[action]'))
+        .filter((form) => new RegExp(actionShape).test(new URL(form.getAttribute('action') ?? '', body.baseURI).pathname) && holds(form))
+      : [];
+    const form = exact.find(holds) ?? exact[0] ?? rows[0];
+    if (!form) throw new Error('crawled form is missing: ' + formSelector);
+    form.setAttribute('data-tt-form', '');
+    chosenForm = exact.includes(form) ? formSelector : 'form[action="' + attrEscape(form.getAttribute('action') ?? '') + '"]';
+  });
+}
+
+function submitControlOf(body: HTMLElement, formSelector: string, locator: Loc, includeHidden = false): HTMLElement | undefined {
+  const form = body.querySelector(SCOPED) ?? body.querySelector(formSelector);
+  return form ? resolveAll(form, locator, includeHidden)[0] : undefined;
 }
 
 /**
- * Click the form's submit control, scoped to the owning form when its action identifies one
- * (pages with one form per table row repeat the same button name). A control hidden behind a
- * collapsed menu skips the test instead of failing it.
+ * Click the form's submit control. A control hidden behind a collapsed menu skips the test; a
+ * missing one fails it.
  */
 export function submitForm(ctx: Mocha.Context, formSelector: string, locator: Loc): void {
   settled((body) => submitControlOf(body, formSelector, locator)).then((visible) => {
-    if (!visible) ctx.skip();
-    else cy.get('body').then(($body) => cy.wrap(submitControlOf($body[0], formSelector, locator)).click());
+    cy.get('body').then(($body) => {
+      if (visible) cy.wrap(submitControlOf($body[0], formSelector, locator)).click();
+      else if (submitControlOf($body[0], formSelector, locator, true)) ctx.skip();
+      else throw new Error('crawled submit control is missing');
+    });
   });
 }
 
@@ -397,6 +431,7 @@ export function expectGraceful(): void {
 /** Reopening the edit page shows the submitted value: the update was stored, not only accepted. */
 export function expectValuePersisted(url: string, locator: Loc, value: string): void {
   cy.visit(url, { failOnStatusCode: false });
+  // The reopened page is a new document: nothing is marked, so the field is found page-wide.
   cy.tt(locator).first().should('have.value', value);
 }
 
@@ -423,7 +458,7 @@ function countValidationErrors({ selector, root }: { selector: string; root?: Do
 
 
 export function expectGone(selector: string): void {
-  cy.get(selector).should('not.exist');
+  cy.then(() => cy.get(chosenForm ?? selector).should('not.exist'));
 }
 
 export function expectAbsent(locator: Loc): void {
@@ -461,18 +496,13 @@ export function expectQueryEcho(params: Record<string, string>, path: string): v
   expectNoServerError();
 }
 
-/**
- * A fieldless state-change form proves it worked by its own submit control reading differently
- * afterwards; a control that disappeared (the row moved to another list) is accepted too.
- */
+/** A fieldless state-change form proves it worked by its own form reading differently afterwards. */
 export function expectStateFlipped(formSelector: string, beforeAlias: `@${string}`): void {
   cy.get<string | null>(beforeAlias).then((before) => {
-    if (before) {
-      cy.get('body').should(($body) => {
-        const form = $body.find(formSelector).first();
-        if (form.length > 0) expect(form.text()).not.to.contain(before);
-      });
-    }
+    expect(before, 'the submit control had no text to compare').to.be.a('string').and.not.equal('');
+    cy.then(() => cy.get(chosenForm ?? formSelector).first().should(($form) => {
+      expect($form.text()).not.to.contain(before);
+    }));
     expectNoServerError();
   });
 }

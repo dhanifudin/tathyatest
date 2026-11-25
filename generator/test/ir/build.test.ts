@@ -24,9 +24,9 @@ describe('planFor (scenario rules, no framework)', () => {
 
   it('declares runtime values, fills, submits, and proves persistence on a valid create', () => {
     const { steps } = planFor(formCase({}), config);
-    expect(kinds(steps)).toEqual(['login', 'open', 'declare', 'fill', 'submit', 'assert']);
-    expect(steps[2]).toEqual({ kind: 'declare', name: 'f_title', expr: 'faker.lorem.words(3)' });
-    expect(steps[3]).toMatchObject({ fills: [{ kind: 'type', value: { kind: 'var', name: 'f_title' } }] });
+    expect(kinds(steps)).toEqual(['login', 'open', 'scope-form', 'declare', 'fill', 'submit', 'assert']);
+    expect(steps[3]).toEqual({ kind: 'declare', name: 'f_title', expr: 'faker.lorem.words(3)' });
+    expect(steps[4]).toMatchObject({ fills: [{ kind: 'type', value: { kind: 'var', name: 'f_title' } }] });
     expect(steps.at(-1)).toEqual({
       kind: 'assert', title: 'Expect the submission to succeed',
       oracles: [{ type: 'text-visible', value: { kind: 'var', name: 'f_title' } }, { type: 'no-validation-error', errorSelector: config.oracle.errorSelector }],
@@ -52,7 +52,7 @@ describe('planFor (scenario rules, no framework)', () => {
   it('captures the toggle text before a state-change submit', () => {
     const toggle = { ...createForm, action: '/todos/1/toggle', crudOp: 'update' as const, fields: [], submit: { text: 'Mark done', locator: { strategy: 'role' as const, value: 'button:Mark done' } } };
     const { steps } = planFor(formCase({ form: toggle, values: {} }), config);
-    expect(kinds(steps)).toEqual(['login', 'open', 'capture-text', 'submit', 'assert']);
+    expect(kinds(steps)).toEqual(['login', 'open', 'scope-form', 'capture-text', 'submit', 'assert']);
     expect(steps.at(-1)).toMatchObject({ oracles: [{ type: 'state-flipped' }] });
   });
 
@@ -164,6 +164,22 @@ describe('oracles that can fail', () => {
       logout: { page: emptyPage('/', 'Home'), form: { ...createForm, action: '/logout', crudOp: 'logout', fields: [] }, protectedPath: '/dashboard' },
     };
     expect(last(logout)).toMatchObject({ oracles: [{ type: 'logged-out', path: '/dashboard' }] });
+  });
+});
+
+describe('the form under test', () => {
+  const target = (form: Parameters<typeof formCase>[0]['form']) => {
+    const step = planFor(formCase({ form, values: {} }), config).steps.find((candidate) => candidate.kind === 'scope-form');
+    return step?.kind === 'scope-form' ? step.submit : undefined;
+  };
+
+  it('may be another row of the same action, but never any form on the page', () => {
+    expect(target({ ...createForm, action: '/todos/3', crudOp: 'delete', fields: [] })).toMatchObject({ formSelector: 'form[action$="/todos/3"]', actionShape: '^/todos/\\d+$' });
+    expect(target(createForm)).toMatchObject({ formSelector: 'form[action$="/todos"]', actionShape: null });
+  });
+
+  it('is found by its control when it declares no action', () => {
+    expect(target({ ...createForm, action: '/checkout', hasActionAttribute: false })).toMatchObject({ formSelector: 'form:not([action])', actionShape: null });
   });
 });
 

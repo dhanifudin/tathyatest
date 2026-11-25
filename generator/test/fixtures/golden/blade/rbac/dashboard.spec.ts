@@ -23,6 +23,6 @@ test.describe("user · /dashboard", () => {
   test("user does not see the \"Users\" link to /admin/users on /dashboard", { tag: ["@negative","@rbac","@role:user","@read"], annotation: [{"type":"tier","description":"negative"},{"type":"category","description":"rbac"},{"type":"route","description":"/dashboard"}] }, async ({ page, app }) => {
     await test.step("Log in as user", () => app.loginAs("user"));
     await test.step("Open /dashboard", () => page.goto("/dashboard"));
-    await test.step("Expect no \"Users\" link", () => expect(page.getByRole("link", { name: "Users" })).toHaveCount(0));
+    await test.step("Expect no \"Users\" link", () => expect(page.getByRole("link", { name: "Users", exact: true })).toHaveCount(0));
   });
 });

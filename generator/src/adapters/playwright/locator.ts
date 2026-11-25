@@ -9,20 +9,23 @@ function q(value: string): string {
  * Render a Playwright locator expression for `locator`, rooted at `scope` — `page` by default,
  * or any expression that evaluates to a Playwright Locator (the getBy and locator methods exist
  * on both). Scoping disambiguates repeated per-row controls (e.g. one submit per table row).
+ * `includeHidden` names a boolean in the emitted code; only role queries exclude hidden elements.
  */
-export function locatorSource(locator: Locator, scope = 'page'): string {
+export function locatorSource(locator: Locator, scope = 'page', includeHidden?: string): string {
   switch (locator.strategy) {
     case 'testid':
       return `${scope}.getByTestId(${q(locator.value)})`;
     case 'role': {
       const [role, ...nameParts] = locator.value.split(':');
       const name = nameParts.join(':');
-      return name ? `${scope}.getByRole(${q(role)}, { name: ${q(name)} })` : `${scope}.getByRole(${q(role)})`;
+      // Names are matched whole: "Users" must not also find "My users".
+      const options = [...(name ? [`name: ${q(name)}`, 'exact: true'] : []), ...(includeHidden ? [includeHidden] : [])];
+      return options.length > 0 ? `${scope}.getByRole(${q(role)}, { ${options.join(', ')} })` : `${scope}.getByRole(${q(role)})`;
     }
     case 'label':
       return `${scope}.getByLabel(${q(locator.value)}, { exact: true })`;
     case 'placeholder':
-      return `${scope}.getByPlaceholder(${q(locator.value)})`;
+      return `${scope}.getByPlaceholder(${q(locator.value)}, { exact: true })`;
     case 'id':
       return `${scope}.locator(${q(`#${escapeCssIdent(locator.value)}`)})`;
     case 'name':

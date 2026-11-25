@@ -31,8 +31,12 @@ export type ValueRef = { kind: 'var'; name: string } | { kind: 'literal'; value:
 /** A crawled locator plus which match to take (`first()` for 0, `nth(n)` otherwise). */
 export type Target = { locator: Locator; ordinal: number };
 
-/** A form's submit control: scoped to the form found by `formSelector`, else the first match. */
-export type SubmitTarget = { formSelector: string; locator: Locator };
+/**
+ * A form and its submit control. The form is the one matching `formSelector` that holds the
+ * control; for a row action (`actionShape`, a pathname pattern with record ids) another row's form
+ * stands in when this record is not listed. A form that cannot be found fails the test.
+ */
+export type SubmitTarget = { formSelector: string; actionShape: string | null; locator: Locator };
 
 /** Named navigation captures; oracles read them back (`response`, `opened`). */
 export type Capture = 'response' | 'opened';
@@ -44,16 +48,18 @@ export type Step =
   | { kind: 'login-with'; title: string; username: string; password: string }
   /** Navigate to `url`; with `capture` the response status is kept for later oracles. */
   | { kind: 'open'; title: string; url: string; capture?: Capture }
+  /** Find the form under test. Later fills, the submit and field oracles are looked up inside it. */
+  | { kind: 'scope-form'; submit: SubmitTarget }
   /** Declare a runtime value: `const <name> = <expr>` (a faker expression, emitted verbatim). */
   | { kind: 'declare'; name: string; expr: string }
   | { kind: 'fill'; title: string; fills: Fill[] }
   /** Remember the submit control's text before submitting (state-change forms). */
   | { kind: 'capture-text'; name: 'before'; submit: SubmitTarget }
-  /** Click the form's submit control; skip the test when it is not visible. */
+  /** Click the form's submit control: a missing control fails the test, a hidden one skips it. */
   | { kind: 'submit'; title: string; submit: SubmitTarget; acceptDialog: boolean }
   /** End the session through the logout form, submitting it directly when its control is hidden. */
   | { kind: 'logout'; title: string; submit: SubmitTarget }
-  /** Act on a crawled control; skip the test with `skipReason` when the target is absent or hidden. */
+  /** Act on a crawled control: a missing target fails the test, a hidden one skips it with `skipReason`. */
   | { kind: 'act'; title: string; target: Target; action: { type: 'click' } | { type: 'select'; value: string }; skipReason: string }
   | { kind: 'assert'; title: string; oracles: Oracle[] };
 

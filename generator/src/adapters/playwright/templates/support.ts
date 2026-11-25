@@ -120,6 +120,64 @@ export async function assertLoginRejected(page: Page): Promise<void> {
   await expect(page.locator('input[type="password"]').first()).toBeVisible();
 }
 
+export type OwnedForm = {
+  /** The form under test. */
+  form: Locator;
+  /** A selector that finds it again (after the submit, or on a reopened page). */
+  selector: string;
+  /** Its submit control; `includeHidden` also finds one that is not shown. */
+  submit: (includeHidden: boolean) => Locator;
+};
+
+/**
+ * The form a test acts on: the one matching `selector` that holds the submit control. A row action
+ * (`actionShape`) whose record is not on this page is the same action on another row, because the
+ * order of a list is the app's business. Anything else that cannot be found fails the test.
+ */
+export async function formOf(page: Page, selector: string, actionShape: string | null, submit: (form: Locator, includeHidden: boolean) => Locator): Promise<OwnedForm> {
+  const own = (form: Locator, found: string): OwnedForm => ({ form, selector: found, submit: (includeHidden) => submit(form, includeHidden).first() });
+  const matches = page.locator(selector);
+  // A client-rendered page draws its forms after the document loads.
+  await matches.first().waitFor({ state: 'attached', timeout: 5000 }).catch(() => undefined);
+  const candidates = await matches.all();
+  for (const form of candidates) {
+    if ((await submit(form, false).count()) > 0) return own(form, selector);
+  }
+  if (candidates.length === 0 && actionShape) {
+    for (const form of await page.locator('form[action]').all()) {
+      const action = (await form.getAttribute('action')) ?? '';
+      if (new RegExp(actionShape).test(new URL(action, page.url()).pathname) && (await submit(form, false).count()) > 0) {
+        return own(form, 'form[action="' + cssEscape(action) + '"]');
+      }
+    }
+  }
+  await expect(matches.first(), 'crawled form is missing').toBeAttached();
+  return own(matches.first(), selector);
+}
+
+/**
+ * A crawled control that is gone from the page fails the test; one that is there but not shown (a
+ * closed menu) skips it. `control(true)` also finds hidden elements.
+ */
+export async function requireControl(control: (includeHidden: boolean) => Locator, hiddenReason: string): Promise<Locator> {
+  const shown = control(false);
+  await expect(shown.or(control(true)).first(), 'crawled control is missing').toBeAttached();
+  test.skip(!(await shown.isVisible().catch(() => false)), hiddenReason);
+  return shown;
+}
+
+/**
+ * End the session through the logout form. Its control usually sits in a collapsed account menu;
+ * the scenario is that the session ends, not the menu animation, so a hidden control is bypassed.
+ */
+export async function submitLogout(page: Page, selector: string, control: (form: Locator) => Locator): Promise<void> {
+  const form = page.locator(selector).first();
+  await expect(form, 'crawled logout form is missing').toBeAttached();
+  const button = control(form).first();
+  if (await button.isVisible().catch(() => false)) await button.click();
+  else await form.evaluate((element) => (element as HTMLFormElement).requestSubmit());
+}
+
 /** A stable number per name, added to the faker seed so every project draws its own values. */
 export function seedOffset(name: string): number {
   return Array.from(name).reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) % 100000, 0);
@@ -183,13 +241,14 @@ function countValidationErrors({ selector, root }: { selector: string; root?: Do
 
 /**
  * A fieldless state-change form (toggle done/undone, archive, publish) proves it worked by its
- * own submit control reading differently afterwards; a control that disappeared (the row moved
- * to another list) is accepted too.
+ * own form reading differently afterwards.
  */
 export async function expectStateFlipped(page: Page, formSelector: string, before: string | null): Promise<void> {
   await page.waitForLoadState('domcontentloaded').catch(() => undefined);
-  const control = page.locator(formSelector).first();
-  if (before && (await control.count()) > 0) await expect(control).not.toContainText(before);
+  expect(before, 'the submit control had no text to compare').toBeTruthy();
+  const form = page.locator(formSelector).first();
+  await expect(form, 'the form disappeared instead of changing').toBeAttached();
+  await expect(form).not.toContainText(before ?? '');
   await expectNoServerError(page);
 }
 

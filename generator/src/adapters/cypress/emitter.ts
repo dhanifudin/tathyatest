@@ -25,7 +25,7 @@ export const cypressEmitter: SpecEmitter = {
 /** Helpers a spec may import from the support module, in import order. */
 const HELPERS = [
   'currentRole', 'seedOffset', 'step', 'byTestId', 'byRole', 'byLabel', 'byPlaceholder', 'byId', 'byName', 'byCss', 'nth', 'skipUnlessVisible',
-  'loginAs', 'ensureLoggedIn', 'performLogin', 'openPage', 'submitLogout', 'submitForm', 'captureSubmitText',
+  'loginAs', 'ensureLoggedIn', 'performLogin', 'openPage', 'submitLogout', 'scopeForm', 'submitForm', 'captureSubmitText',
   'fillIn', 'forceValue', 'forceOption', 'clearSelect', 'uncheckRadios', 'forceRadio', 'clearFile', 'uploadFixture',
   'assertLoggedIn', 'assertLoginRejected', 'assertLoggedOut', 'expectServerError', 'expectInvalid', 'expectGraceful',
   'expectGone', 'expectAbsent', 'expectTextVisible', 'expectLanded', 'expectLandedShape', 'expectValuePersisted', 'expectNoValidationError', 'expectQueryEcho', 'expectStateFlipped',
@@ -93,6 +93,8 @@ function stepSource(step: Step): string {
       return `step(${q(step.title)}, () => performLogin(${q(step.username)}, ${q(step.password)}));`;
     case 'open':
       return `step(${q(step.title)}, () => openPage(${q(step.url)}${step.capture ? `, ${q(step.capture)}` : ''}));`;
+    case 'scope-form':
+      return `scopeForm(${q(step.submit.formSelector)}, ${JSON.stringify(step.submit.actionShape)}, ${locatorSource(step.submit.locator)});`;
     case 'declare':
       return `const ${step.name} = ${step.expr};`;
     case 'fill':

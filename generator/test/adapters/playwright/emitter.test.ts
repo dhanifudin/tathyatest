@@ -78,7 +78,7 @@ describe('emitTs', () => {
       const logoutSpec = await readFile(join(dir, 'auth', 'login.spec.ts'), 'utf8');
       expect(logoutSpec).toContain('test("admin logs out", { tag: ["@positive","@auth","@role:admin","@write"]');
       expect(logoutSpec).toContain('await test.step("Log in as admin", () => app.loginAs("admin"));');
-      expect(logoutSpec).toContain('page.locator("form[action$=\\"/logout\\"]")');
+      expect(logoutSpec).toContain('submitLogout(page, "form[action$=\\"/logout\\"]", (form) => form.getByRole("button", { name: "Log Out", exact: true }))');
       expect(logoutSpec).toContain('await test.step("Expect /dashboard to need a login again", () => assertLoggedOut(page, "/dashboard"));');
       expect(authSpec).not.toContain('storageState/admin.json');
       // Login mechanics live in the support module, not in every spec.
@@ -180,9 +180,9 @@ describe('emitTs', () => {
       const spec = await readFile(join(dir, 'forms', 'profile.spec.ts'), 'utf8');
       const support = await readFile(join(dir, 'support', 'tathya.ts'), 'utf8');
 
-      expect(spec).toContain("import { test, expect, uploadFixture, expectQueryEcho, expectStateFlipped, expectNoServerError, expectNoValidationError, expectValuePersisted } from '../support/tathya.js';");
-      expect(spec).toContain('await page.getByLabel("Avatar", { exact: true }).setInputFiles(uploadFixture("image/png"));');
-      expect(spec).toContain('await page.getByLabel("Avatar", { exact: true }).setInputFiles([]);');
+      expect(spec).toContain("import { test, expect, formOf, requireControl, uploadFixture, expectQueryEcho, expectStateFlipped, expectNoServerError, expectNoValidationError, expectValuePersisted } from '../support/tathya.js';");
+      expect(spec).toContain('await crawledForm.form.getByLabel("Avatar", { exact: true }).setInputFiles(uploadFixture("image/png"));');
+      expect(spec).toContain('await crawledForm.form.getByLabel("Avatar", { exact: true }).setInputFiles([]);');
       expect(spec).not.toContain('.fill("image/png")');
       expect(support).toContain('export function uploadFixture(mimeType: string)');
     } finally {
@@ -227,8 +227,10 @@ describe('emitTs', () => {
 
       expect(forms).toContain('await expectQueryEcho(page, { "search": f_search, "status": "open" }, "/todos");');
       expect(forms).toContain('await test.step("Expect the filters in the URL", async () => {');
-      expect(forms).toContain('const before = await ((await page.locator("form[action$=\\"/todos/1/toggle\\"]").count()) > 0');
-      expect(forms).toContain('await expectStateFlipped(page, "form[action$=\\"/todos/1/toggle\\"]", before);');
+      expect(forms).toContain('const crawledForm = await formOf(page, "form[action$=\\"/todos/1/toggle\\"]", "^/todos/\\\\d+/toggle$", (form, includeHidden) => form.getByRole("button", { name: "Mark done", exact: true, includeHidden }));');
+      expect(forms).toContain('const before = await crawledForm.submit(false).textContent().catch(() => null);');
+      expect(forms).toContain('await expectStateFlipped(page, crawledForm.selector, before);');
+      expect(forms).toContain('const submitControl = await requireControl(crawledForm.submit, \'submit control is not visible\');');
       expect(links).toContain('await test.step("Expect to land on /todos", () => expect(page).toHaveURL((url) => url.pathname === "/todos"));');
       // Logout links redirect by design: no landing assertion.
       expect(links).not.toContain('Expect to land on /logout');
@@ -354,7 +356,7 @@ describe('emitTs', () => {
       await emit(cases, { ...config, output: { ...config.output, dir } });
       const interactionsSpec = await readFile(join(dir, 'interactions', 'inventory-html.spec.ts'), 'utf8');
 
-      expect(interactionsSpec).toContain('page.getByRole("button", { name: "Add to cart" }).nth(1)');
+      expect(interactionsSpec).toContain('requireControl((includeHidden) => page.getByRole("button", { name: "Add to cart", exact: true, includeHidden }).nth(1), ');
       expect(interactionsSpec).toContain('interaction target is not visible');
       expect(interactionsSpec).toContain('await test.step("Log in as admin", () => app.loginAs("admin"));');
       expect(interactionsSpec).toContain('await test.step("Click button \\"Add to cart\\"", () => target.click());');
@@ -396,7 +398,7 @@ describe('emitTs', () => {
       }], { ...config, output: { ...config.output, dir } });
       const affordance = await readFile(join(dir, 'rbac', 'dashboard.spec.ts'), 'utf8');
       expect(affordance).toContain('await test.step("Open /dashboard", () => page.goto("/dashboard"));');
-      expect(affordance).toContain('await test.step("Expect no \\"Users\\" link", () => expect(page.getByRole("link", { name: "Users" })).toHaveCount(0));');
+      expect(affordance).toContain('await test.step("Expect no \\"Users\\" link", () => expect(page.getByRole("link", { name: "Users", exact: true })).toHaveCount(0));');
       expect(affordance).toContain('"@negative","@rbac","@role:user","@read"');
       // The oracle logic itself lives once, in the support module.
       expect(support).toContain("expect(await page.locator('a, button, form, select, input').count()).toBeGreaterThan(0);");
@@ -425,7 +427,7 @@ describe('emitTs', () => {
       const paginationSpec = await readFile(join(dir, 'pagination', 'products.spec.ts'), 'utf8');
 
       expect(paginationSpec).toContain('app.loginAs("admin")');
-      expect(paginationSpec).toContain('page.getByRole("link", { name: "Next" }).first()');
+      expect(paginationSpec).toContain('page.getByRole("link", { name: "Next", exact: true, includeHidden }).first()');
       expect(paginationSpec).toContain('await test.step("Go to the next page", () => target.click());');
       expect(paginationSpec).toContain('expect(page).toHaveURL((url) => url.pathname + url.search === "/products?page=2")');
     } finally {
@@ -514,8 +516,8 @@ describe('emitTs', () => {
       expect(support).not.toContain('type LoginLocator');
       expect(support).not.toContain(': Promise<void>');
       expect(interactionsSpec).toContain("from '../support/tathya.js'");
-      expect(interactionsSpec).toContain('page.getByRole("link", { name: "Cart" }).first()');
-      expect(paginationSpec).toContain('page.getByRole("link", { name: "Next" }).first()');
+      expect(interactionsSpec).toContain('page.getByRole("link", { name: "Cart", exact: true, includeHidden }).first()');
+      expect(paginationSpec).toContain('page.getByRole("link", { name: "Next", exact: true, includeHidden }).first()');
       await expect(stat(`${dir}-ts-tmp`)).rejects.toThrow();
     } finally {
       await rm(dir, { recursive: true, force: true });

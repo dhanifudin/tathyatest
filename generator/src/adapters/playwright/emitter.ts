@@ -1,7 +1,8 @@
 import type { TathyaConfig } from '../../config.js';
+import type { Locator } from '../../crawl/model.js';
 import { groupBy } from '../../ir/layout.js';
 import { escapeAttrValue } from '../../util/escape.js';
-import { assertNever, type Fill, type Oracle, type Step, type SubmitTarget, type TestPlan, type ValueRef } from '../../ir/types.js';
+import { assertNever, type Fill, type Oracle, type Step, type TestPlan, type ValueRef } from '../../ir/types.js';
 import type { SpecEmitter } from '../types.js';
 import { locatorSource } from './locator.js';
 import { GENERATED_HEADER, SUPPORT_IMPORT, SUPPORT_MODULE_PATH, supportModuleSource } from './support.js';
@@ -55,12 +56,12 @@ function helperImports(kind: TestPlan['kind'], config: TathyaConfig): string[] {
   const seeded = config.data.faker.seed !== null && config.data.faker.seed !== undefined ? ['seedOffset'] : [];
   switch (kind) {
     case 'auth':
-      return ['test', 'performLogin', 'assertLoggedIn', 'assertLoginRejected', 'assertLoggedOut'];
+      return ['test', 'performLogin', 'submitLogout', 'assertLoggedIn', 'assertLoginRejected', 'assertLoggedOut'];
     case 'form':
-      return ['test', 'expect', 'uploadFixture', 'expectQueryEcho', 'expectStateFlipped', 'expectNoServerError', 'expectNoValidationError', 'expectValuePersisted', ...seeded, ...readOnlyExtra];
+      return ['test', 'expect', 'formOf', 'requireControl', 'uploadFixture', 'expectQueryEcho', 'expectStateFlipped', 'expectNoServerError', 'expectNoValidationError', 'expectValuePersisted', ...seeded, ...readOnlyExtra];
     case 'interaction':
     case 'pagination':
-      return ['test', 'expect', 'expectNoServerError', ...readOnlyExtra];
+      return ['test', 'expect', 'requireControl', 'expectNoServerError', ...readOnlyExtra];
     case 'rbac':
       return ['test', 'expect', 'expectRouteAllowed', 'expectRouteBlocked', 'expectInferredRouteOpens'];
   }
@@ -85,8 +86,12 @@ function testSource(plan: TestPlan): string {
   // Only the logged-out auth scenarios run without the `app` session fixture.
   const fixtures = plan.steps.some((step) => step.kind === 'login') ? '{ page, app }' : '{ page }';
   const body = plan.steps.map((step) => indent(stepSource(step, plan), 2));
+
   return [`test(${q(plan.title)}, ${options}, async (${fixtures}) => {`, ...body, '});'].join('\n');
 }
+
+/** The emitted variable holding the form under test (`formOf`). */
+const FORM = 'crawledForm';
 
 function stepSource(step: Step, plan: TestPlan): string {
   switch (step.kind) {
@@ -100,31 +105,26 @@ function stepSource(step: Step, plan: TestPlan): string {
       return step.capture
         ? `const ${step.capture} = await test.step(${q(step.title)}, () => page.goto(${q(step.url)}));`
         : `await test.step(${q(step.title)}, () => page.goto(${q(step.url)}));`;
+    case 'scope-form': {
+      const { formSelector, actionShape, locator } = step.submit;
+      const parameters = locator.strategy === 'role' ? '(form, includeHidden)' : '(form)';
+      return `const ${FORM} = await formOf(page, ${q(formSelector)}, ${JSON.stringify(actionShape)}, ${parameters} => ${locatorSource(locator, 'form', 'includeHidden')});`;
+    }
     case 'declare':
       return `const ${step.name} = ${step.expr};`;
     case 'fill':
       return [`await test.step('${step.title}', async () => {`, ...step.fills.map((fill) => indent(fillSource(fill), 2)), '});'].join('\n');
     case 'capture-text':
-      return `const ${step.name} = await ${scopedSubmitSource(step.submit)}.textContent().catch(() => null);`;
+      return `const ${step.name} = await ${FORM}.submit(false).textContent().catch(() => null);`;
     case 'submit':
-      return [`await test.step('${step.title}', async () => {`, indent(submitClickSource(step.submit, step.acceptDialog), 2), '});'].join('\n');
-    case 'logout': {
-      const scope = `page.locator(${q(step.submit.formSelector)})`;
-      return `await test.step('${step.title}', async () => {
-  const form = ${scope}.first();
-  const submitControl = ((await form.count()) > 0 ? ${locatorSource(step.submit.locator, 'form')} : ${locatorSource(step.submit.locator)}.first());
-  // Logout controls usually live in a collapsed account menu; the scenario is that the session
-  // ends, not the menu animation, so submit the form directly when its control is hidden.
-  if (await submitControl.isVisible().catch(() => false)) await submitControl.click();
-  else if ((await form.count()) > 0) await form.evaluate((element) => (element as HTMLFormElement).requestSubmit());
-  else await submitControl.click({ force: true });
-});`;
-    }
+      return [`await test.step('${step.title}', async () => {`, indent(submitClickSource(step.acceptDialog), 2), '});'].join('\n');
+    case 'logout':
+      return `await test.step(${q(step.title)}, () => submitLogout(page, ${q(step.submit.formSelector)}, (form) => ${locatorSource(step.submit.locator, 'form')}));`;
     case 'act': {
       const action = step.action.type === 'select' ? `target.selectOption(${q(step.action.value)})` : 'target.click()';
+      const parameters = step.target.locator.strategy === 'role' ? '(includeHidden)' : '()';
       return [
-        `const target = ${nth(locatorSource(step.target.locator), step.target.ordinal)};`,
-        `test.skip(await target.count() === 0 || !(await target.isVisible().catch(() => false)), '${step.skipReason}');`,
+        `const target = await requireControl(${parameters} => ${nth(locatorSource(step.target.locator, 'page', 'includeHidden'), step.target.ordinal)}, '${step.skipReason}');`,
         `await test.step(${q(step.title)}, () => ${action});`,
       ].join('\n');
     }
@@ -149,49 +149,37 @@ function assertTitle(title: string, oracle: Oracle): string {
   return fixed ? `'${title}'` : q(title);
 }
 
-/**
- * Click the form's submit control, scoped to the owning form when it can be identified by its
- * action attribute. Pages with one form per table row (toggle/delete) repeat the same accessible
- * button name, so an unscoped getByRole click violates strict mode; scoping by action keeps the
- * click on the intended form. Falls back to `.first()` for forms without a usable action
- * attribute (e.g. SPA forms that submit via JS).
- */
-function submitClickSource(submit: SubmitTarget, acceptDialog: boolean): string {
+/** Click the form's submit control. */
+function submitClickSource(acceptDialog: boolean): string {
   const lines: string[] = [];
   // Playwright dismisses dialogs by default, which would silently cancel a destructive action.
   if (acceptDialog) lines.push(`page.once('dialog', (dialog) => { dialog.accept().catch(() => undefined); });`);
   lines.push(
-    `const submitControl = ${scopedSubmitSource(submit)};`,
-    // Controls hidden behind collapsed menus/dropdowns (e.g. a logout form inside a nav dropdown)
-    // are skipped, not failed.
-    `test.skip(!(await submitControl.isVisible().catch(() => false)), 'submit control is not visible');`,
+    // Controls hidden behind collapsed menus/dropdowns are skipped; missing ones fail.
+    `const submitControl = await requireControl(${FORM}.submit, 'submit control is not visible');`,
     `await submitControl.click();`,
   );
   return lines.join('\n');
 }
 
-/** The submit control scoped to its form when the action identifies one, else the first match. */
-function scopedSubmitSource(submit: SubmitTarget): string {
-  const scope = `page.locator(${q(submit.formSelector)})`;
-  return `((await ${scope}.count()) > 0 ? ${locatorSource(submit.locator, `${scope}.first()`)} : ${locatorSource(submit.locator)}.first())`;
-}
-
 function fillSource(fill: Fill): string {
+  const within = (locator: Locator) => locatorSource(locator, `${FORM}.form`);
+  const group = (selector: string) => `${FORM}.form.locator(${q(selector)})`;
   switch (fill.kind) {
     case 'type':
-      return `await ${locatorSource(fill.target)}.fill(${valueSource(fill.value)});`;
+      return `await ${within(fill.target)}.fill(${valueSource(fill.value)});`;
     case 'upload':
-      return `await ${locatorSource(fill.target)}.setInputFiles(uploadFixture(${q(fill.mimeType)}));`;
+      return `await ${within(fill.target)}.setInputFiles(uploadFixture(${q(fill.mimeType)}));`;
     case 'clear-file':
-      return `await ${locatorSource(fill.target)}.setInputFiles([]);`;
+      return `await ${within(fill.target)}.setInputFiles([]);`;
     case 'check':
-      return `await ${locatorSource(fill.target)}.check();`;
+      return `await ${within(fill.target)}.check();`;
     case 'set-checked':
-      return `await ${locatorSource(fill.target)}.setChecked(${JSON.stringify(fill.checked)});`;
+      return `await ${within(fill.target)}.setChecked(${JSON.stringify(fill.checked)});`;
     case 'select-option':
-      return `await ${locatorSource(fill.target)}.selectOption(${q(fill.value)});`;
+      return `await ${within(fill.target)}.selectOption(${q(fill.value)});`;
     case 'force-radio':
-      return `await page.locator(${q(`input[type="radio"][name="${escapeAttrValue(fill.name)}"]`)}).first().evaluate((element, value) => {
+      return `await ${group(`input[type="radio"][name="${escapeAttrValue(fill.name)}"]`)}.first().evaluate((element, value) => {
   if (element instanceof HTMLInputElement) {
     element.value = value;
     element.checked = true;
@@ -200,7 +188,7 @@ function fillSource(fill: Fill): string {
   }
 }, ${q(fill.value)});`;
     case 'uncheck-radios':
-      return `await page.locator(${q(`[name="${escapeAttrValue(fill.name)}"]`)}).evaluateAll((elements) => {
+      return `await ${group(`[name="${escapeAttrValue(fill.name)}"]`)}.evaluateAll((elements) => {
   for (const element of elements) {
     if (element instanceof HTMLInputElement && element.type === 'radio') {
       element.checked = false;
@@ -210,7 +198,7 @@ function fillSource(fill: Fill): string {
   }
 });`;
     case 'force-option':
-      return `await ${locatorSource(fill.target)}.evaluate((element, value) => {
+      return `await ${within(fill.target)}.evaluate((element, value) => {
   if (element instanceof HTMLSelectElement) {
     const option = document.createElement('option');
     option.value = value;
@@ -222,7 +210,7 @@ function fillSource(fill: Fill): string {
   }
 }, ${q(fill.value)});`;
     case 'clear-select':
-      return `await ${locatorSource(fill.target)}.evaluate((element) => {
+      return `await ${within(fill.target)}.evaluate((element) => {
   if (element instanceof HTMLSelectElement) {
     element.selectedIndex = -1;
     element.dispatchEvent(new Event('input', { bubbles: true }));
@@ -230,7 +218,7 @@ function fillSource(fill: Fill): string {
   }
 });`;
     case 'force-value':
-      return `await ${locatorSource(fill.target)}.evaluate((element, value) => {
+      return `await ${within(fill.target)}.evaluate((element, value) => {
   if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
     element.value = value;
     element.dispatchEvent(new Event('input', { bubbles: true }));
@@ -251,17 +239,18 @@ function oracleCalls(oracle: Oracle): string[] {
         `expect(page).toHaveURL(new RegExp(${q(oracle.urlPattern)}))`,
       ];
     case 'native-invalid':
-      return [`expect(${locatorSource(oracle.target)}).toHaveJSProperty('validity.valid', false)`];
+      // Only form outcomes use it, so the field is looked up in the form under test.
+      return [`expect(${locatorSource(oracle.target, `${FORM}.form`)}).toHaveJSProperty('validity.valid', false)`];
     case 'body-graceful':
       return ['expectNoServerError(page)'];
     case 'record-gone':
-      return [`expect(page.locator(${q(oracle.formSelector)})).toHaveCount(0)`];
+      return [`expect(page.locator(${FORM}.selector)).toHaveCount(0)`];
     case 'state-flipped':
-      return [`expectStateFlipped(page, ${q(oracle.formSelector)}, before)`];
+      return [`expectStateFlipped(page, ${FORM}.selector, before)`];
     case 'query-echo':
       return [`expectQueryEcho(page, { ${oracle.params.map((param) => `${q(param.name)}: ${valueSource(param.value)}`).join(', ')} }, ${q(oracle.path)})`];
     case 'value-persisted':
-      return [`expectValuePersisted(page, ${q(oracle.url)}, ${locatorSource(oracle.target)}, ${valueSource(oracle.value)})`];
+      return [`expectValuePersisted(page, ${q(oracle.url)}, ${locatorSource(oracle.target, `page.locator(${FORM}.selector)`)}, ${valueSource(oracle.value)})`];
     case 'no-validation-error':
       return ['expectNoValidationError(page)'];
     case 'landed-shape':

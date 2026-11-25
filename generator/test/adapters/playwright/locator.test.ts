@@ -4,7 +4,9 @@ import { locatorSource } from '../../../src/adapters/playwright/locator.js';
 describe('locatorSource', () => {
   it('renders stable css selectors and role locators', () => {
     expect(locatorSource({ strategy: 'css', value: '#wrapper span' })).toBe('page.locator("#wrapper span")');
-    expect(locatorSource({ strategy: 'role', value: 'textbox:Search' })).toBe('page.getByRole("textbox", { name: "Search" })');
+    expect(locatorSource({ strategy: 'role', value: 'textbox:Search' })).toBe('page.getByRole("textbox", { name: "Search", exact: true })');
+    expect(locatorSource({ strategy: 'role', value: 'link:Next' }, 'form', 'includeHidden')).toBe('form.getByRole("link", { name: "Next", exact: true, includeHidden })');
+    expect(locatorSource({ strategy: 'placeholder', value: 'Name' })).toBe('page.getByPlaceholder("Name", { exact: true })');
     expect(locatorSource({ strategy: 'label', value: 'Contact email' })).toBe('page.getByLabel("Contact email", { exact: true })');
   });
 

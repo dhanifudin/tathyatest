@@ -33,7 +33,7 @@ export function planFor(testCase: TestCase, config: TathyaConfig): TestPlan {
 function stepsFor(testCase: TestCase, config: TathyaConfig): Step[] {
   switch (testCase.kind) {
     case 'auth':
-      return authSteps(testCase);
+      return authSteps(testCase, config);
     case 'form':
       return formSteps(testCase, config);
     case 'interaction':
@@ -70,15 +70,27 @@ export function formActionSelector(action: string): string {
   return `form[action$="${action.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"]`;
 }
 
-function submitTargetOf(form: Form): SubmitTarget {
-  return { formSelector: formActionSelector(form.action), locator: form.submit.locator };
+/** A form without an `action` attribute can only be told apart by the control it holds. */
+function formSelectorOf(form: Form): string {
+  return form.hasActionAttribute === false ? 'form:not([action])' : formActionSelector(form.action);
+}
+
+function submitTargetOf(form: Form, baseUrl: string): SubmitTarget {
+  const path = new URL(form.action, baseUrl).pathname;
+  const actionShape = form.hasActionAttribute !== false && routeShape(path) !== path ? shapePattern(path) : null;
+  return { formSelector: formSelectorOf(form), actionShape, locator: form.submit.locator };
+}
+
+/** A pattern matching every pathname of `path`'s route shape (record ids are interchangeable). */
+function shapePattern(path: string): string {
+  return `^${routeShape(path).split('/').map((part) => (part === ':id' ? '\\d+' : escapeRegExp(part))).join('/')}$`;
 }
 
 // ---------------------------------------------------------------------------------------------
 // Auth
 // ---------------------------------------------------------------------------------------------
 
-function authSteps(testCase: Extract<TestCase, { kind: 'auth' }>): Step[] {
+function authSteps(testCase: Extract<TestCase, { kind: 'auth' }>, config: TathyaConfig): Step[] {
   if (testCase.logout) {
     const { page: logoutPage, form } = testCase.logout;
     // A page that needs the session: where the login landed, else the page that offered the logout.
@@ -88,7 +100,7 @@ function authSteps(testCase: Extract<TestCase, { kind: 'auth' }>): Step[] {
       { kind: 'open', title: `Open ${logoutPage.url}`, url: logoutPage.url },
       // Logout controls usually live in a collapsed account menu; the scenario is that the session
       // ends, not the menu animation, so the form is submitted directly when its control is hidden.
-      { kind: 'logout', title: 'Log out', submit: submitTargetOf(form) },
+      { kind: 'logout', title: 'Log out', submit: submitTargetOf(form, config.baseUrl) },
       { kind: 'assert', title: `Expect ${protectedPath} to need a login again`, oracles: [{ type: 'logged-out', path: protectedPath }] },
     ];
   }
@@ -106,12 +118,13 @@ function authSteps(testCase: Extract<TestCase, { kind: 'auth' }>): Step[] {
 
 function formSteps(testCase: FormCase, config: TathyaConfig): Step[] {
   const { decls, fills } = fillPlan(testCase);
-  const steps: Step[] = [loginStep(testCase, config), ...openSteps(testCase.page.url, config), ...decls];
+  const submit = submitTargetOf(testCase.form, config.baseUrl);
+  const steps: Step[] = [loginStep(testCase, config), ...openSteps(testCase.page.url, config), { kind: 'scope-form', submit }, ...decls];
   if (fills.length > 0) steps.push({ kind: 'fill', title: 'Fill the form', fills });
   // A state-change form (toggle) is judged by its own control reading differently afterwards.
-  if (isStateChangeForm(testCase)) steps.push({ kind: 'capture-text', name: 'before', submit: submitTargetOf(testCase.form) });
+  if (isStateChangeForm(testCase)) steps.push({ kind: 'capture-text', name: 'before', submit });
   // Accept a potential confirm() dialog on delete; a dismissed dialog would silently cancel it.
-  steps.push({ kind: 'submit', title: 'Submit', submit: submitTargetOf(testCase.form), acceptDialog: testCase.variant.name === 'delete' });
+  steps.push({ kind: 'submit', title: 'Submit', submit, acceptDialog: testCase.variant.name === 'delete' });
   steps.push({ kind: 'assert', title: outcomeStepTitle(testCase), oracles: formOracles(testCase, config) });
   return steps;
 }
@@ -234,7 +247,7 @@ function shouldForceInvalidOption(testCase: FormCase, field: Field): boolean {
 }
 
 function formOracles(testCase: FormCase, config: TathyaConfig): Oracle[] {
-  const formSelector = formActionSelector(testCase.form.action);
+  const formSelector = formSelectorOf(testCase.form);
   const accepted: Oracle = { type: 'no-validation-error', errorSelector: config.oracle.errorSelector };
   if (testCase.form.crudOp === 'delete' && testCase.variant.name === 'delete') {
     // The deleted entity's form action is unique per row, so its disappearance proves the delete
@@ -362,8 +375,7 @@ function interactionSteps(testCase: Extract<TestCase, { kind: 'interaction' }>, 
 function landingStep(path: string): Step {
   const shape = routeShape(path);
   if (shape === path) return { kind: 'assert', title: `Expect to land on ${path}`, oracles: [{ type: 'landed', path, withSearch: false }] };
-  const pattern = `^${shape.split('/').map((part) => (part === ':id' ? '\\d+' : escapeRegExp(part))).join('/')}$`;
-  return { kind: 'assert', title: `Expect to land on ${shape}`, oracles: [{ type: 'landed-shape', pattern }] };
+  return { kind: 'assert', title: `Expect to land on ${shape}`, oracles: [{ type: 'landed-shape', pattern: shapePattern(path) }] };
 }
 
 function paginationSteps(testCase: Extract<TestCase, { kind: 'pagination' }>, config: TathyaConfig): Step[] {
