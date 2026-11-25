@@ -21,7 +21,7 @@ export function reliabilityOf(runs: SuiteRun[]): ReliabilityMetrics {
   if (repeats === 0) {
     return {
       repeats: 0, flakeRate: 0, crossBrowserKappa: 1, passRate: 0, unstable: [],
-      kappaPerRepeat: [], agreementRate: 1, disagreeingTests: 0, skippedExecutions: 0, intermittentSkips: [],
+      kappaPerRepeat: [], agreementRate: 1, disagreeingTests: 0, skippedExecutions: 0, intermittentSkips: [], neverExecuted: [],
     };
   }
 
@@ -53,6 +53,10 @@ export function reliabilityOf(runs: SuiteRun[]): ReliabilityMetrics {
     if (statuses.size > 1 || statuses.has('failed')) unstable.push(labelOf(key));
   }
   const intermittentSkips = [...skippedKeys].filter((key) => statusByKey.has(key)).map(labelOf).sort();
+  // Role gates skip a test in other roles' projects; one that ran nowhere was skipped by its own.
+  const outcomes = runs.flatMap((run) => run.outcomes);
+  const executed = new Set(outcomes.filter((outcome) => outcome.status !== 'skipped').map((outcome) => outcome.title));
+  const neverExecuted = [...new Set(outcomes.map((outcome) => outcome.title).filter((title) => !executed.has(title)))].sort();
 
   const perRepeat = runs.map((run) => crossBrowserStats(run));
   const disagreeing = new Set<string>();
@@ -69,6 +73,7 @@ export function reliabilityOf(runs: SuiteRun[]): ReliabilityMetrics {
     disagreeingTests: disagreeing.size,
     skippedExecutions: Math.round(skipped / repeats),
     intermittentSkips,
+    neverExecuted,
   };
 }
 

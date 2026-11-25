@@ -301,3 +301,18 @@ describe('medianDurationPerTest', () => {
     expect(medianDurationPerTest(runs, 'chromium')).toEqual([15]);
   });
 });
+
+describe('tests that never execute', () => {
+  it('are listed, while role-gated skips of executed tests are not', () => {
+    const run = {
+      outcomes: [
+        { title: 'menu link', project: 'admin-chromium', status: 'skipped' as const, durationMs: 0 },
+        { title: 'menu link', project: 'user-chromium', status: 'skipped' as const, durationMs: 0 },
+        { title: 'create', project: 'admin-chromium', status: 'passed' as const, durationMs: 1 },
+        { title: 'create', project: 'user-chromium', status: 'skipped' as const, durationMs: 0 },
+      ],
+    };
+    expect(reliabilityOf([run, run]).neverExecuted).toEqual(['menu link']);
+  });
+});
+

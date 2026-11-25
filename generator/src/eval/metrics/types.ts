@@ -98,6 +98,8 @@ export type ReliabilityMetrics = {
   skippedExecutions: number;
   /** Tests that were executed in some repeats and skipped in others (a runtime skip can hide a failure). */
   intermittentSkips: string[];
+  /** Titles that no project executed in any repeat: counted as covered, yet never checked. */
+  neverExecuted: string[];
 };
 
 export type EfficiencyMetrics = {
