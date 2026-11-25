@@ -155,8 +155,7 @@ export function shouldExtractCrawlPage(status: number | null, requestedPath: str
  */
 export function isMeaningfulErrorPage(status: number | null, model: Pick<DomPageModel, 'forms' | 'links'> & { controls?: unknown[] }): boolean {
   if (status === null || status < 400) return false;
-  // Debug pages decorate themselves with `#` anchors; those lead nowhere.
-  const navigable = model.forms.length + model.links.filter((link) => !link.inPage).length + (model.controls?.length ?? 0);
+  const navigable = model.forms.length + model.links.length + (model.controls?.length ?? 0);
   return navigable === 0;
 }
 

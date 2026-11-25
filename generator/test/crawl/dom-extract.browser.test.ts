@@ -17,6 +17,7 @@ describe('parseAriaNode', () => {
 
 const html = `<!doctype html><title>fixture</title>
 <nav style="display:none"><a href="#">All Items</a></nav>
+<aside aria-hidden="true"><a href="#" id="reset">Reset state</a><a href="#" id="off" role="button">Sign off</a></aside>
 <a href="javascript:void(0)">Toggle</a>
 <a href="/posts/1" data-method="delete">Remove post</a>
 <a href="/help">Help</a>
@@ -63,6 +64,13 @@ describe.skipIf(!chromiumAvailable)('extractPage (in a browser)', () => {
     expect(link('Toggle')).toMatchObject({ inPage: true, href: '/posts' });
     expect(link('Remove post')).toMatchObject({ inPage: false, method: 'DELETE' });
     expect(link('Help')).toMatchObject({ inPage: false, method: null, locator: { strategy: 'role', value: 'link:Help' } });
+  });
+
+  it('keeps the role name of a link that is only hidden from assistive technology or from view', () => {
+    expect(link('All Items')?.locator).toEqual({ strategy: 'role', value: 'link:All Items' });
+    expect(link('Reset state')?.locator).toEqual({ strategy: 'role', value: 'link:Reset state' });
+    // An anchor that declares another role is found by that role.
+    expect(link('Sign off')?.locator).toEqual({ strategy: 'role', value: 'button:Sign off' });
   });
 
   it('records one field per radio group and skips controls a test cannot fill', () => {

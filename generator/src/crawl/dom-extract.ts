@@ -90,9 +90,11 @@ export async function extractPage(page: Page): Promise<DomPageModel> {
       const testid = attr(el, 'data-testid');
       if (testid) return { strategy: 'testid', value: testid };
       const name = attr(el, 'aria-label') ?? text(el);
-      const role = fallbackRole ?? inferredRole(el);
+      // An explicit `role` attribute wins over what the tag implies (`<a role="button">`).
+      const declared = attr(el, 'role')?.trim().split(/\s+/)[0] || null;
+      const role = declared ?? fallbackRole ?? inferredRole(el);
       if (role && name) {
-        const explicitRole = role === 'button' || role === 'link' || attr(el, 'aria-label') !== null;
+        const explicitRole = declared !== null || role === 'button' || role === 'link' || attr(el, 'aria-label') !== null;
         if (explicitRole) return { strategy: 'role', value: `${role}:${name}`, probe: probeOf(el), fallback: cssLocator(el) };
       }
       // `getByLabel` matches the label's whole text content, so a label that also contains the

@@ -107,7 +107,8 @@ A "stable" id rejects anything matching `/[0-9a-f]{8,}|:/` (hashed or framework-
 ids such as React's `:r3:`). Accessible roles are inferred from the tag/type:
 `button`→button, `textarea`→textbox, `select`→combobox, `a[href]`→link, and `<input>` by
 `type`: `button|submit|reset|image`→button, `checkbox`→checkbox, `radio`→radio,
-`number`→spinbutton, everything else→textbox. A label is used only when its whole text is its own
+`number`→spinbutton, everything else→textbox; an explicit `role` attribute wins over all of these.
+A label is used only when its whole text is its own
 wording: a label wrapping a select or textarea contains that control's text too, so such a field is
 located by its accessible role instead.
 

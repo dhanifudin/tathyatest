@@ -51,23 +51,24 @@ type Refined = { locator: RawLocator; name: string | null };
 async function refineLocator(page: Page, locator: RawLocator): Promise<Refined> {
   if (locator.probe === undefined) return { locator, name: null };
   const element = page.locator(`[data-tt-probe="${locator.probe}"]`);
-  if (locator.strategy === 'role') {
-    const [role, ...nameParts] = locator.value.split(':');
-    if (await hasRoleName(page, element, role ?? '', nameParts.join(':'))) return { locator, name: null };
-  }
+  // Null when the element is outside the accessibility tree (a closed menu, `aria-hidden`).
   const node = await accessibleNode(element);
-  if (node && await hasRoleName(page, element, node.role, node.name)) {
+  if (locator.strategy === 'role') {
+    const [role = '', ...nameParts] = locator.value.split(':');
+    const name = nameParts.join(':');
+    // The name a test will see. Hidden descendants count only for an element that is itself
+    // hidden, where nothing but a hidden-inclusive query can reach it.
+    if (await hasRoleName(page, element, role, name, false)) return { locator, name: null };
+    if (!node && await hasRoleName(page, element, role, name, true)) return { locator, name: null };
+  }
+  if (node && await hasRoleName(page, element, node.role, node.name, false)) {
     return { locator: { strategy: 'role', value: `${node.role}:${node.name}` }, name: node.name };
   }
-  // A wrong role name is worse than a plain selector. A hidden element exposes no snapshot, so its
-  // name cannot be corrected: it falls back too.
+  // A wrong role name is worse than a plain selector.
   return { locator: locator.strategy === 'role' ? locator.fallback ?? locator : locator, name: null };
 }
 
-async function hasRoleName(page: Page, element: PlaywrightLocator, role: string, name: string): Promise<boolean> {
-  // The name a test will see: hidden descendants count only when the element itself is hidden
-  // (a closed menu), where nothing but a hidden-inclusive query can reach it.
-  const includeHidden = !(await element.isVisible().catch(() => false));
+async function hasRoleName(page: Page, element: PlaywrightLocator, role: string, name: string, includeHidden: boolean): Promise<boolean> {
   const byRole = page.getByRole(role as Parameters<Page['getByRole']>[0], { name, exact: true, includeHidden });
   return (await byRole.and(element).count().catch(() => 0)) === 1;
 }
