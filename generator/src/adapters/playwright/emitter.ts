@@ -57,7 +57,7 @@ function helperImports(kind: TestPlan['kind'], config: TathyaConfig): string[] {
     case 'auth':
       return ['test', 'performLogin', 'assertLoggedIn', 'assertLoginRejected', 'assertLoggedOut'];
     case 'form':
-      return ['test', 'expect', 'uploadFixture', 'expectQueryEcho', 'expectStateFlipped', ...seeded, ...readOnlyExtra];
+      return ['test', 'expect', 'uploadFixture', 'expectQueryEcho', 'expectStateFlipped', 'expectNoServerError', 'expectNoValidationError', 'expectValuePersisted', ...seeded, ...readOnlyExtra];
     case 'interaction':
     case 'pagination':
       return ['test', 'expect', 'expectNoServerError', ...readOnlyExtra];
@@ -253,13 +253,19 @@ function oracleCalls(oracle: Oracle): string[] {
     case 'native-invalid':
       return [`expect(${locatorSource(oracle.target)}).toHaveJSProperty('validity.valid', false)`];
     case 'body-graceful':
-      return [`expect(page.locator('body')).not.toContainText(/500|server error|exception/i)`];
+      return ['expectNoServerError(page)'];
     case 'record-gone':
       return [`expect(page.locator(${q(oracle.formSelector)})).toHaveCount(0)`];
     case 'state-flipped':
       return [`expectStateFlipped(page, ${q(oracle.formSelector)}, before)`];
     case 'query-echo':
-      return [`expectQueryEcho(page, { ${oracle.params.map((param) => `${q(param.name)}: ${valueSource(param.value)}`).join(', ')} })`];
+      return [`expectQueryEcho(page, { ${oracle.params.map((param) => `${q(param.name)}: ${valueSource(param.value)}`).join(', ')} }, ${q(oracle.path)})`];
+    case 'value-persisted':
+      return [`expectValuePersisted(page, ${q(oracle.url)}, ${locatorSource(oracle.target)}, ${valueSource(oracle.value)})`];
+    case 'no-validation-error':
+      return ['expectNoValidationError(page)'];
+    case 'landed-shape':
+      return [`expect(page).toHaveURL((url) => new RegExp(${q(oracle.pattern)}).test(url.pathname))`];
     case 'text-visible':
       return [`expect(page.getByText(${valueSource(oracle.value)}).first()).toBeVisible()`];
     case 'landed':

@@ -37,14 +37,14 @@ describe('errorOracle', () => {
   });
 
   it('uses DOM error selector for server validated forms', () => {
-    expect(errorOracle({ ...form, noValidate: true }, field, '.error', '/login')).toEqual({ type: 'server-error', errorSelector: '.error', urlPattern: '/login(?:[?#].*)?$' });
+    expect(errorOracle({ ...form, noValidate: true }, field, '.error', '/login')).toEqual({ type: 'server-error', errorSelector: '.error', urlPattern: '^[^:]+://[^/]+/login(?:[?#].*)?$' });
   });
 
   it('uses the DOM error selector for required-empty on fields without a native required attribute', () => {
     // data.requiredFields can force blank negatives for fields the app validates in JS or on the
     // server only (e.g. SauceDemo checkout) — validity.valid never flips for those.
     const optionalField: Field = { ...field, required: false };
-    expect(errorOracle(form, optionalField, '.error', '/checkout-step-one.html', 'required-empty')).toEqual({ type: 'server-error', errorSelector: '.error', urlPattern: '/checkout-step-one\\.html(?:[?#].*)?$' });
+    expect(errorOracle(form, optionalField, '.error', '/checkout-step-one.html', 'required-empty')).toEqual({ type: 'server-error', errorSelector: '.error', urlPattern: '^[^:]+://[^/]+/checkout-step-one\\.html(?:[?#].*)?$' });
     // A natively-required field keeps the constraint-validation oracle.
     expect(errorOracle(form, field, '.error', '/checkout-step-one.html', 'required-empty').type).toBe('native-invalid');
   });

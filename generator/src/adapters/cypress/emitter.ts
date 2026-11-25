@@ -28,7 +28,7 @@ const HELPERS = [
   'loginAs', 'ensureLoggedIn', 'performLogin', 'openPage', 'submitLogout', 'submitForm', 'captureSubmitText',
   'fillIn', 'forceValue', 'forceOption', 'clearSelect', 'uncheckRadios', 'forceRadio', 'clearFile', 'uploadFixture',
   'assertLoggedIn', 'assertLoginRejected', 'assertLoggedOut', 'expectServerError', 'expectInvalid', 'expectGraceful',
-  'expectGone', 'expectAbsent', 'expectTextVisible', 'expectLanded', 'expectQueryEcho', 'expectStateFlipped',
+  'expectGone', 'expectAbsent', 'expectTextVisible', 'expectLanded', 'expectLandedShape', 'expectValuePersisted', 'expectNoValidationError', 'expectQueryEcho', 'expectStateFlipped',
   'expectNoServerError', 'expectRouteAllowed', 'expectInferredRouteOpens', 'expectRouteBlocked',
 ];
 
@@ -170,7 +170,13 @@ function oracleSource(oracle: Oracle): string {
     case 'state-flipped':
       return `expectStateFlipped(${q(oracle.formSelector)}, '@before');`;
     case 'query-echo':
-      return `expectQueryEcho({ ${oracle.params.map((param) => `${q(param.name)}: ${valueSource(param.value)}`).join(', ')} });`;
+      return `expectQueryEcho({ ${oracle.params.map((param) => `${q(param.name)}: ${valueSource(param.value)}`).join(', ')} }, ${q(oracle.path)});`;
+    case 'value-persisted':
+      return `expectValuePersisted(${q(oracle.url)}, ${locatorSource(oracle.target)}, ${valueSource(oracle.value)});`;
+    case 'no-validation-error':
+      return 'expectNoValidationError();';
+    case 'landed-shape':
+      return `expectLandedShape(${q(oracle.pattern)});`;
     case 'text-visible':
       return `expectTextVisible(${valueSource(oracle.value)});`;
     case 'landed':

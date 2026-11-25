@@ -2,6 +2,7 @@ import type { TathyaConfig } from '../config.js';
 import type { Field, Form, Locator } from '../crawl/model.js';
 import type { TestCase } from '../generate/test-case.js';
 import { escapeAttrValue, escapeRegExp } from '../util/escape.js';
+import { routeShape } from '../generate/rbac.js';
 import { canonicalPath } from '../util/paths.js';
 import { describeTitle, formDescribeTitle, linkLandingPath, specStemFor, tagsAndAnnotations } from './layout.js';
 import type { Fill, Oracle, Step, SubmitTarget, TestPlan, ValueRef } from './types.js';
@@ -80,13 +81,15 @@ function submitTargetOf(form: Form): SubmitTarget {
 function authSteps(testCase: Extract<TestCase, { kind: 'auth' }>): Step[] {
   if (testCase.logout) {
     const { page: logoutPage, form } = testCase.logout;
+    // A page that needs the session: where the login landed, else the page that offered the logout.
+    const protectedPath = testCase.logout.protectedPath ?? logoutPage.url;
     return [
       { kind: 'login', title: `Log in as ${testCase.role}`, role: testCase.role, mode: 'reset' },
       { kind: 'open', title: `Open ${logoutPage.url}`, url: logoutPage.url },
       // Logout controls usually live in a collapsed account menu; the scenario is that the session
       // ends, not the menu animation, so the form is submitted directly when its control is hidden.
       { kind: 'logout', title: 'Log out', submit: submitTargetOf(form) },
-      { kind: 'assert', title: `Expect ${logoutPage.url} to need a login again`, oracles: [{ type: 'logged-out', path: logoutPage.url }] },
+      { kind: 'assert', title: `Expect ${protectedPath} to need a login again`, oracles: [{ type: 'logged-out', path: protectedPath }] },
     ];
   }
   return [
@@ -232,6 +235,7 @@ function shouldForceInvalidOption(testCase: FormCase, field: Field): boolean {
 
 function formOracles(testCase: FormCase, config: TathyaConfig): Oracle[] {
   const formSelector = formActionSelector(testCase.form.action);
+  const accepted: Oracle = { type: 'no-validation-error', errorSelector: config.oracle.errorSelector };
   if (testCase.form.crudOp === 'delete' && testCase.variant.name === 'delete') {
     // The deleted entity's form action is unique per row, so its disappearance proves the delete
     // took effect. Row counting is deliberately avoided: on paginated listings the page size stays
@@ -241,19 +245,28 @@ function formOracles(testCase: FormCase, config: TathyaConfig): Oracle[] {
   if (testCase.variant.outcome === 'error' && testCase.targetField) {
     return [errorOracle(testCase.form, testCase.targetField, config.oracle.errorSelector, testCase.page.url, testCase.variant.name)];
   }
-  if (testCase.variant.outcome === 'graceful') return [{ type: 'body-graceful' }];
+  if (testCase.variant.outcome === 'graceful') {
+    // Padded and omitted values are legitimate input; very long or exotic ones may be refused.
+    const legitimate = ['whitespace', 'optional-omitted'].includes(testCase.variant.name);
+    return legitimate ? [{ type: 'body-graceful' }, accepted] : [{ type: 'body-graceful' }];
+  }
   if (isStateChangeForm(testCase)) return [{ type: 'state-flipped', formSelector }];
   if (echoesQuery(testCase)) {
     const params = submittedParams(testCase);
-    if (params.length > 0) return [{ type: 'query-echo', params }];
+    if (params.length > 0) return [{ type: 'query-echo', path: new URL(testCase.form.action, config.baseUrl).pathname, params }];
   }
   const representative = representativeTextValue(testCase);
-  // Only the canonical happy path asserts the echoed value: other success-outcome variants
-  // (maxlength-exact, optional-omitted) submit values a list view may legitimately truncate.
+  // Only the canonical happy path asserts the stored value: other success-outcome variants
+  // (maxlength-exact) submit values a list view may legitimately truncate.
   if (representative && testCase.variant.name === 'valid' && (testCase.form.crudOp === 'create' || testCase.form.crudOp === 'update')) {
-    return [{ type: 'text-visible', value: representative }];
+    const { field, value } = representative;
+    // An edit form shows the record's values, so reopening it proves the update wherever the
+    // record is listed; a created record is looked up where the app sends the user.
+    return testCase.form.crudOp === 'update' && field.prefilled
+      ? [accepted, { type: 'value-persisted', url: testCase.page.url, target: field.locator, value }]
+      : [{ type: 'text-visible', value }, accepted];
   }
-  return [{ type: 'body-graceful' }];
+  return testCase.variant.outcome === 'success' ? [{ type: 'body-graceful' }, accepted] : [{ type: 'body-graceful' }];
 }
 
 /**
@@ -264,7 +277,8 @@ function formOracles(testCase: FormCase, config: TathyaConfig): Oracle[] {
  */
 export function errorOracle(form: Form, field: Field, errorSelector: string, expectedPath?: string, variantName?: string): Oracle {
   if (form.noValidate || !nativelyObservable(field, variantName)) {
-    return { type: 'server-error', errorSelector, urlPattern: `${escapeRegExp(expectedPath ?? form.action)}(?:[?#].*)?$` };
+    // Anchored after the origin: `/todos` must not also match `/admin/todos`.
+    return { type: 'server-error', errorSelector, urlPattern: `^[^:]+://[^/]+${escapeRegExp(expectedPath ?? form.action)}(?:[?#].*)?$` };
   }
   return { type: 'native-invalid', target: field.locator };
 }
@@ -301,20 +315,20 @@ function submittedParams(testCase: FormCase): { name: string; value: ValueRef }[
   return entries;
 }
 
-// The submitted value the app should echo back after a successful create/update — asserting it
+// The submitted value the app should keep after a successful create/update — asserting it
 // is what makes the positive oracle prove persistence (a redirect alone also happens when the
 // server silently drops the write). Prefer a faker-generated text field (unique by
 // construction); fall back to a config-pinned literal text value. Textarea fields are excluded
 // because their content is rarely rendered in list/summary views.
-function representativeTextValue(testCase: FormCase): ValueRef | null {
+function representativeTextValue(testCase: FormCase): { field: Field; value: ValueRef } | null {
   for (const field of testCase.form.fields) {
     const fieldValue = testCase.values[field.name];
-    if (fieldValue?.kind === 'runtime' && ['text', 'search'].includes(field.type)) return variableOf(testCase.form, field.name);
+    if (fieldValue?.kind === 'runtime' && ['text', 'search'].includes(field.type)) return { field, value: variableOf(testCase.form, field.name) };
   }
   for (const field of testCase.form.fields) {
     const fieldValue = testCase.values[field.name];
     if (fieldValue?.kind === 'literal' && fieldValue.value.trim().length >= 3 && ['text', 'search'].includes(field.type)) {
-      return { kind: 'literal', value: fieldValue.value };
+      return { field, value: { kind: 'literal', value: fieldValue.value } };
     }
   }
   return null;
@@ -336,9 +350,20 @@ function interactionSteps(testCase: Extract<TestCase, { kind: 'interaction' }>, 
     loginStep(testCase, config),
     ...openSteps(testCase.page.url, config),
     act,
-    ...(landing ? [{ kind: 'assert', title: `Expect to land on ${landing}`, oracles: [{ type: 'landed', path: landing, withSearch: false }] } satisfies Step] : []),
+    ...(landing ? [landingStep(landing)] : []),
     { kind: 'assert', title: 'Expect no server error', oracles: [{ type: 'no-server-error' }] },
   ];
+}
+
+/**
+ * Landing on a link's target. A target carrying a record id (a row's "Edit" link) is checked by its
+ * route shape: which record comes first depends on the app's data order, not on the link working.
+ */
+function landingStep(path: string): Step {
+  const shape = routeShape(path);
+  if (shape === path) return { kind: 'assert', title: `Expect to land on ${path}`, oracles: [{ type: 'landed', path, withSearch: false }] };
+  const pattern = `^${shape.split('/').map((part) => (part === ':id' ? '\\d+' : escapeRegExp(part))).join('/')}$`;
+  return { kind: 'assert', title: `Expect to land on ${shape}`, oracles: [{ type: 'landed-shape', pattern }] };
 }
 
 function paginationSteps(testCase: Extract<TestCase, { kind: 'pagination' }>, config: TathyaConfig): Step[] {

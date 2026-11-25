@@ -11,8 +11,11 @@ export type TestCase =
       username: string;
       password: string;
       expectSuccess: boolean;
-      /** Present for a logout scenario: the page and form whose submit ends the session. */
-      logout?: { page: PageModel; form: Form };
+      /**
+       * Present for a logout scenario: the page and form whose submit ends the session, and a page
+       * that needs one (where the login landed).
+       */
+      logout?: { page: PageModel; form: Form; protectedPath?: string };
     }
   | {
       kind: 'form';

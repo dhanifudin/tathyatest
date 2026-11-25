@@ -228,6 +228,8 @@ export function assertLoggedOut(protectedPath: string): void {
 /** A rejected login shows the app's error indicator. */
 export function assertLoginRejected(): void {
   cy.get(errorSelector).first().should('be.visible');
+  cy.location('pathname').should('equal', loginPathname());
+  cy.get('input[type="password"]').first().should('be.visible');
 }
 
 /** End the session through the logout form; submit it directly when its control is hidden. */
@@ -395,8 +397,36 @@ export function expectInvalid(locator: Loc): void {
 }
 
 export function expectGraceful(): void {
-  cy.get('body').invoke('text').should('not.match', /500|server error|exception/i);
+  expectNoServerError();
 }
+
+/** Reopening the edit page shows the submitted value: the update was stored, not only accepted. */
+export function expectValuePersisted(url: string, locator: Loc, value: string): void {
+  cy.visit(url, { failOnStatusCode: false });
+  cy.tt(locator).first().should('have.value', value);
+}
+
+/** The app accepted the submission: no form shows an invalid field or error. */
+export function expectNoValidationError(): void {
+  cy.get('body').should(($body) => {
+    expect(countValidationErrors({ selector: errorSelector, root: $body[0].ownerDocument }), 'a form shows a validation error').to.equal(0);
+  });
+}
+
+/**
+ * Invalid fields and error indicators shown inside forms. Messages outside forms (a success flash
+ * with `role=alert`) and styled controls (a red "Delete" button) are not validation errors.
+ */
+function countValidationErrors({ selector, root }: { selector: string; root?: Document }): number {
+  const doc = root ?? document;
+  const controls = 'button, a, input, select, textarea, [role="button"]';
+  const shown = (el: Element): boolean => el.getClientRects().length > 0 && doc.defaultView?.getComputedStyle(el).visibility !== 'hidden';
+  return Array.from(doc.querySelectorAll('form')).flatMap((form) => [
+    ...Array.from(form.querySelectorAll('[aria-invalid="true"], :user-invalid')),
+    ...Array.from(form.querySelectorAll(selector)).filter((el) => !el.closest(controls) && (el.textContent ?? '').trim() !== ''),
+  ]).filter(shown).length;
+}
+
 
 export function expectGone(selector: string): void {
   cy.get(selector).should('not.exist');
@@ -416,11 +446,16 @@ export function expectLanded(path: string, withSearch: boolean): void {
   });
 }
 
+export function expectLandedShape(pattern: string): void {
+  cy.location('pathname').should('match', new RegExp(pattern));
+}
+
 /**
  * A GET (search/filter) form round-trips its fields into the URL: every submitted value must
  * come back in the query string (an empty value may be omitted by the app).
  */
-export function expectQueryEcho(params: Record<string, string>): void {
+export function expectQueryEcho(params: Record<string, string>, path: string): void {
+  cy.location('pathname').should('equal', path);
   cy.location('search').should((search) => {
     const query = new URLSearchParams(search);
     for (const [key, value] of Object.entries(params)) {
@@ -467,6 +502,8 @@ export function expectNoServerError(statusAlias?: `@${string}`): void {
 export function expectRouteAllowed(statusAlias: `@${string}`, routePath: string): void {
   cy.get<number>(statusAlias).then((status) => {
     if (status >= 400) {
+      // Only a 404 can be an app shell served for a deep link; a denial stays a denial.
+      expect(status, 'server answered ' + status).to.equal(404);
       cy.location('pathname').should('equal', routePath);
       cy.get('a, button, form, select, input').should('have.length.greaterThan', 0);
     }
@@ -480,7 +517,8 @@ export function expectRouteAllowed(statusAlias: `@${string}`, routePath: string)
  */
 export function expectInferredRouteOpens(ctx: Mocha.Context, statusAlias: `@${string}`, routePath: string): void {
   cy.get<number>(statusAlias).then((status) => {
-    if (status === 404 || status === 405) {
+    if (status === 405) ctx.skip();
+    if (status === 404) {
       cy.get('body').then(($body) => {
         const anchors = [...$body[0].querySelectorAll<HTMLAnchorElement>('a[href]')];
         const sameOriginLinks = anchors.filter((anchor) => anchor.origin === anchor.ownerDocument.location.origin).length;

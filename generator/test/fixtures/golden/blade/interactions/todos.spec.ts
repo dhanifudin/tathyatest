@@ -20,7 +20,7 @@ test.describe("admin · /todos", () => {
     const target = page.getByRole("link", { name: "Edit" }).first();
     test.skip(await target.count() === 0 || !(await target.isVisible().catch(() => false)), 'interaction target is not visible');
     await test.step("Click link \"Edit\"", () => target.click());
-    await test.step("Expect to land on /todos/1/edit", () => expect(page).toHaveURL((url) => url.pathname === "/todos/1/edit"));
+    await test.step("Expect to land on /todos/:id/edit", () => expect(page).toHaveURL((url) => new RegExp("^/todos/\\d+/edit$").test(url.pathname)));
     await test.step('Expect no server error', () => expectNoServerError(page));
   });
 });
@@ -44,7 +44,7 @@ test.describe("user · /todos", () => {
     const target = page.getByRole("link", { name: "Edit" }).first();
     test.skip(await target.count() === 0 || !(await target.isVisible().catch(() => false)), 'interaction target is not visible');
     await test.step("Click link \"Edit\"", () => target.click());
-    await test.step("Expect to land on /todos/13/edit", () => expect(page).toHaveURL((url) => url.pathname === "/todos/13/edit"));
+    await test.step("Expect to land on /todos/:id/edit", () => expect(page).toHaveURL((url) => new RegExp("^/todos/\\d+/edit$").test(url.pathname)));
     await test.step('Expect no server error', () => expectNoServerError(page));
   });
 });

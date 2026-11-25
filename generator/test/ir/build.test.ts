@@ -27,7 +27,10 @@ describe('planFor (scenario rules, no framework)', () => {
     expect(kinds(steps)).toEqual(['login', 'open', 'declare', 'fill', 'submit', 'assert']);
     expect(steps[2]).toEqual({ kind: 'declare', name: 'f_title', expr: 'faker.lorem.words(3)' });
     expect(steps[3]).toMatchObject({ fills: [{ kind: 'type', value: { kind: 'var', name: 'f_title' } }] });
-    expect(steps.at(-1)).toEqual({ kind: 'assert', title: 'Expect the submission to succeed', oracles: [{ type: 'text-visible', value: { kind: 'var', name: 'f_title' } }] });
+    expect(steps.at(-1)).toEqual({
+      kind: 'assert', title: 'Expect the submission to succeed',
+      oracles: [{ type: 'text-visible', value: { kind: 'var', name: 'f_title' } }, { type: 'no-validation-error', errorSelector: config.oracle.errorSelector }],
+    });
   });
 
   it('forces over-long values past maxlength and judges a server-validated error', () => {
@@ -36,7 +39,7 @@ describe('planFor (scenario rules, no framework)', () => {
       values: { title: { kind: 'literal', value: 'x'.repeat(256) } },
     }), config);
     expect(steps.find((step) => step.kind === 'fill')).toMatchObject({ fills: [{ kind: 'force-value', value: 'x'.repeat(256) }] });
-    expect(steps.at(-1)).toMatchObject({ title: 'Expect a validation error', oracles: [{ type: 'server-error', urlPattern: '/todos/create(?:[?#].*)?$' }] });
+    expect(steps.at(-1)).toMatchObject({ title: 'Expect a validation error', oracles: [{ type: 'server-error', urlPattern: '^[^:]+://[^/]+/todos/create(?:[?#].*)?$' }] });
   });
 
   it('accepts the confirm dialog and checks the row is gone on delete', () => {
@@ -56,9 +59,9 @@ describe('planFor (scenario rules, no framework)', () => {
   it('echoes a valid GET form into the URL only when the form declares a method or action', () => {
     const search = { ...createForm, action: '/todos', method: 'GET' as const, crudOp: 'unknown' as const, noValidate: false };
     const echoed = planFor(formCase({ form: search }), config).steps.at(-1);
-    expect(echoed).toMatchObject({ oracles: [{ type: 'query-echo' }] });
+    expect(echoed).toMatchObject({ oracles: [{ type: 'query-echo', path: '/todos' }] });
     const scriptForm = planFor(formCase({ form: { ...search, declaresTarget: false } }), config).steps.at(-1);
-    expect(scriptForm).toMatchObject({ oracles: [{ type: 'body-graceful' }] });
+    expect(scriptForm).toMatchObject({ oracles: [{ type: 'body-graceful' }, { type: 'no-validation-error' }] });
   });
 
   it('reuses the session and checks each page is up in read-only mode', () => {
@@ -119,6 +122,48 @@ describe('fill planning for radios and repeated names', () => {
       values: { ...values, size: { kind: 'literal', value: '__x__' } },
     });
     expect(fills(invalid).at(-1)).toEqual({ kind: 'force-radio', name: 'size', value: '__x__' });
+  });
+});
+
+describe('oracles that can fail', () => {
+  const last = (testCase: TestCase) => planFor(testCase, config).steps.at(-1);
+  const types = (testCase: TestCase) => {
+    const step = last(testCase);
+    return step?.kind === 'assert' ? step.oracles.map((oracle) => oracle.type) : [];
+  };
+
+  it('reopens the edit page to prove an update was stored', () => {
+    const form = { ...createForm, action: '/todos/7', crudOp: 'update' as const, fields: [{ ...title, prefilled: true }] };
+    const testCase = formCase({ form, page: emptyPage('/todos/7/edit', 'Edit') });
+    expect(types(testCase)).toEqual(['no-validation-error', 'value-persisted']);
+    expect(last(testCase)).toMatchObject({ oracles: [{}, { url: '/todos/7/edit', value: { kind: 'var', name: 'f_title' } }] });
+  });
+
+  it('requires accepted boundary, padded and omitted input to show no validation error', () => {
+    const variant = (name: string, outcome: 'success' | 'graceful') => formCase({ tier: 'edge', targetField: title, variant: { kind: 'edge', name, value: 'x', outcome }, values: { title: { kind: 'literal', value: 'x' } } });
+    expect(types(variant('maxlength-exact', 'success'))).toEqual(['body-graceful', 'no-validation-error']);
+    expect(types(variant('whitespace', 'graceful'))).toEqual(['body-graceful', 'no-validation-error']);
+    expect(types(variant('optional-omitted', 'graceful'))).toEqual(['body-graceful', 'no-validation-error']);
+    // Absurd input may legitimately be refused.
+    expect(types(variant('very-long', 'graceful'))).toEqual(['body-graceful']);
+  });
+
+  it('checks a record link by its route shape and a plain link by its path', () => {
+    const link = (href: string): TestCase => ({
+      kind: 'interaction', tier: 'positive', title: 't', role: 'admin', page: emptyPage('/todos', 'Todos'),
+      interaction: { type: 'link', label: 'Edit', locator: { strategy: 'role', value: 'link:Edit' }, ordinal: 0, href },
+    });
+    const landing = (href: string) => planFor(link(href), config).steps.at(-2);
+    expect(landing('/todos/14/edit')).toMatchObject({ title: 'Expect to land on /todos/:id/edit', oracles: [{ type: 'landed-shape', pattern: '^/todos/\\d+/edit$' }] });
+    expect(landing('/todos')).toMatchObject({ oracles: [{ type: 'landed', path: '/todos' }] });
+  });
+
+  it('checks a logout against a page that needs the session', () => {
+    const logout: TestCase = {
+      kind: 'auth', tier: 'positive', title: 'admin logs out', role: 'admin', username: 'a', password: 'b', expectSuccess: true,
+      logout: { page: emptyPage('/', 'Home'), form: { ...createForm, action: '/logout', crudOp: 'logout', fields: [] }, protectedPath: '/dashboard' },
+    };
+    expect(last(logout)).toMatchObject({ oracles: [{ type: 'logged-out', path: '/dashboard' }] });
   });
 });
 

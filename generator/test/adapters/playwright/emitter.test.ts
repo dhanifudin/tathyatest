@@ -180,7 +180,7 @@ describe('emitTs', () => {
       const spec = await readFile(join(dir, 'forms', 'profile.spec.ts'), 'utf8');
       const support = await readFile(join(dir, 'support', 'tathya.ts'), 'utf8');
 
-      expect(spec).toContain("import { test, expect, uploadFixture, expectQueryEcho, expectStateFlipped } from '../support/tathya.js';");
+      expect(spec).toContain("import { test, expect, uploadFixture, expectQueryEcho, expectStateFlipped, expectNoServerError, expectNoValidationError, expectValuePersisted } from '../support/tathya.js';");
       expect(spec).toContain('await page.getByLabel("Avatar", { exact: true }).setInputFiles(uploadFixture("image/png"));');
       expect(spec).toContain('await page.getByLabel("Avatar", { exact: true }).setInputFiles([]);');
       expect(spec).not.toContain('.fill("image/png")');
@@ -225,7 +225,7 @@ describe('emitTs', () => {
       const forms = await readFile(join(dir, 'forms', 'todos.spec.ts'), 'utf8');
       const links = await readFile(join(dir, 'interactions', 'dashboard.spec.ts'), 'utf8');
 
-      expect(forms).toContain('await expectQueryEcho(page, { "search": f_search, "status": "open" });');
+      expect(forms).toContain('await expectQueryEcho(page, { "search": f_search, "status": "open" }, "/todos");');
       expect(forms).toContain('await test.step("Expect the filters in the URL", async () => {');
       expect(forms).toContain('const before = await ((await page.locator("form[action$=\\"/todos/1/toggle\\"]").count()) > 0');
       expect(forms).toContain('await expectStateFlipped(page, "form[action$=\\"/todos/1/toggle\\"]", before);');

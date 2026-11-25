@@ -89,12 +89,18 @@ export type Oracle =
   | { type: 'record-gone'; formSelector: string }
   /** The submit control of `formSelector` reads differently than the `before` capture. */
   | { type: 'state-flipped'; formSelector: string }
-  /** A GET form echoed its submitted values into the query string. */
-  | { type: 'query-echo'; params: { name: string; value: ValueRef }[] }
+  /** A GET form navigated to its action and echoed its submitted values into the query string. */
+  | { type: 'query-echo'; path: string; params: { name: string; value: ValueRef }[] }
   /** The submitted value is rendered on the page (persistence proof). */
   | { type: 'text-visible'; value: ValueRef }
+  /** Reopening the edit page shows the submitted value in its field (the update was stored). */
+  | { type: 'value-persisted'; url: string; target: Locator; value: ValueRef }
+  /** No form shows an invalid field or an error indicator: the app accepted the submission. */
+  | { type: 'no-validation-error'; errorSelector: string }
   /** The browser landed on `path` (pathname, or pathname + search when `withSearch`). */
   | { type: 'landed'; path: string; withSearch: boolean }
+  /** The browser landed on a record route: the pathname matches `pattern` (which record depends on list order). */
+  | { type: 'landed-shape'; pattern: string }
   | { type: 'no-server-error' }
   | { type: 'route-allowed'; path: string; capture: Capture }
   | { type: 'route-blocked'; path: string; capture: Capture }

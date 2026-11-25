@@ -33,8 +33,9 @@ describe('buildManifest', () => {
     ];
 
     const manifest = manifestFor(cases, makeConfig());
-    // A server-validated error is two calls (indicator visible, still on the form URL).
-    expect(manifest.map((entry) => entry.assertionCount)).toEqual([1, 1, 2, 1]);
+    // A valid create is checked for a server error and a validation error; a server-validated
+    // rejection is two calls too (indicator visible, still on the form URL).
+    expect(manifest.map((entry) => entry.assertionCount)).toEqual([1, 2, 2, 1]);
     expect(manifest).toHaveLength(4);
     expect(manifest.map((entry) => entry.category)).toEqual(['auth', 'crud', 'crud', 'rbac']);
     expect(manifest.map((entry) => entry.faultClass)).toEqual(['auth', 'crud', 'validation', 'authz']);

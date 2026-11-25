@@ -2,7 +2,7 @@
 // typechecked with the generator; `tt generate` swaps the block between the two config markers for
 // values pinned from the user's config and prepends a generated-file header. Edit the code here,
 // never in tests/generated/.
-import { test as base, expect, type Page, type Response } from '@playwright/test';
+import { test as base, expect, type Locator, type Page, type Response } from '@playwright/test';
 
 export { expect };
 
@@ -113,9 +113,11 @@ export async function assertLoggedOut(page: Page, protectedPath: string): Promis
   expect(landed, 'a protected page is still reachable after logging out').not.toBe(new URL(protectedPath, 'http://tathyatest.local').pathname);
 }
 
-/** A rejected login shows the app's error indicator. */
+/** A rejected login shows the app's error indicator and stays on the login form. */
 export async function assertLoginRejected(page: Page): Promise<void> {
   await expect(page.locator(errorSelector).first()).toBeVisible();
+  expect(new URL(page.url()).pathname, 'a rejected login left the login page').toBe(new URL(loginPath, 'http://tathyatest.local').pathname);
+  await expect(page.locator('input[type="password"]').first()).toBeVisible();
 }
 
 /** A stable number per name, added to the faker seed so every project draws its own values. */
@@ -138,7 +140,8 @@ export function uploadFixture(mimeType: string): { name: string; mimeType: strin
  * A GET (search/filter) form round-trips its fields into the URL: every submitted value must
  * come back in the query string (an empty value may be omitted by the app).
  */
-export async function expectQueryEcho(page: Page, params: Record<string, string>): Promise<void> {
+export async function expectQueryEcho(page: Page, params: Record<string, string>, path: string): Promise<void> {
+  await expect(page).toHaveURL((url) => url.pathname === path);
   await page.waitForLoadState('domcontentloaded').catch(() => undefined);
   const query = new URL(page.url()).searchParams;
   for (const [key, value] of Object.entries(params)) {
@@ -147,6 +150,35 @@ export async function expectQueryEcho(page: Page, params: Record<string, string>
     else expect(actual, 'query parameter ' + key).toBe(value);
   }
   await expectNoServerError(page);
+}
+
+/** Reopening the edit page shows the submitted value: the update was stored, not only accepted. */
+export async function expectValuePersisted(page: Page, url: string, field: Locator, value: string): Promise<void> {
+  await page.goto(url);
+  await expect(field.first()).toHaveValue(value);
+}
+
+/** The app accepted the submission: once it has answered, no form shows an invalid field or error. */
+export async function expectNoValidationError(page: Page): Promise<void> {
+  await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => undefined);
+  await expect.poll(
+    () => page.evaluate(countValidationErrors, { selector: errorSelector }),
+    { message: 'a form shows a validation error' },
+  ).toBe(0);
+}
+
+/**
+ * Invalid fields and error indicators shown inside forms. Messages outside forms (a success flash
+ * with `role=alert`) and styled controls (a red "Delete" button) are not validation errors.
+ */
+function countValidationErrors({ selector, root }: { selector: string; root?: Document }): number {
+  const doc = root ?? document;
+  const controls = 'button, a, input, select, textarea, [role="button"]';
+  const shown = (el: Element): boolean => el.getClientRects().length > 0 && doc.defaultView?.getComputedStyle(el).visibility !== 'hidden';
+  return Array.from(doc.querySelectorAll('form')).flatMap((form) => [
+    ...Array.from(form.querySelectorAll('[aria-invalid="true"], :user-invalid')),
+    ...Array.from(form.querySelectorAll(selector)).filter((el) => !el.closest(controls) && (el.textContent ?? '').trim() !== ''),
+  ]).filter(shown).length;
 }
 
 /**
@@ -176,13 +208,15 @@ export async function expectNoServerError(page: Page, response?: Response | null
 }
 
 /**
- * Allowed = a healthy (< 400) document response, OR — because SPA hosts serve deep links with an
- * error status while the client router still renders the page — staying on the route with
- * interactive content rendered. A genuine error page fails both arms.
+ * Allowed = a healthy (< 400) document response, OR — because SPA hosts serve deep links with a
+ * 404 while the client router still renders the page — staying on the route with interactive
+ * content rendered. Any other error status, and a genuine 404 page, fails.
  */
 export async function expectRouteAllowed(page: Page, response: Response | null, routePath: string): Promise<void> {
   const status = response?.status() ?? 200;
   if (status >= 400) {
+    // Only a 404 can be an app shell served for a deep link; a denial stays a denial.
+    expect(status, 'server answered ' + status).toBe(404);
     await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => undefined);
     expect(new URL(page.url()).pathname).toBe(routePath);
     expect(await page.locator('a, button, form, select, input').count()).toBeGreaterThan(0);
@@ -197,10 +231,11 @@ export async function expectRouteAllowed(page: Page, response: Response | null, 
  */
 export async function expectInferredRouteOpens(page: Page, response: Response | null, routePath: string): Promise<void> {
   const status = response?.status() ?? 200;
-  // 404 (no such page) or 405 (the path exists for other verbs only) with no app content behind
-  // it: the convention does not hold for this app. Same-origin links/forms are the signal — a
-  // framework debug page has buttons and external links but no app navigation.
-  if (status === 404 || status === 405) {
+  // 405: the path exists for other verbs only. 404 with no app content behind it: no such page.
+  // Either way the convention does not hold for this app. Same-origin links/forms are the signal —
+  // a framework debug page has buttons and external links but no app navigation.
+  test.skip(status === 405, 'inferred route is not implemented by the app (HTTP 405)');
+  if (status === 404) {
     const sameOriginLinks = await page.locator('a[href]').evaluateAll((anchors) => anchors.filter((anchor) => (anchor as HTMLAnchorElement).origin === location.origin).length);
     const navigable = sameOriginLinks + (await page.locator('form, select').count());
     test.skip(navigable === 0, 'inferred route is not implemented by the app (HTTP ' + status + ')');

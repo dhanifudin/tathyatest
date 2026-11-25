@@ -50,7 +50,7 @@ export function mapTestCases(crawls: CrawlOutput[], matrix: AccessMatrix, config
         expectAllowed: true,
       });
       const forms = dedupeForms(crawl.role, page.forms, canonicalPageUrl, seenFieldlessForms, seenFieldForms);
-      cases.push(...formCasesForPage(crawl.role, page, canonicalPageUrl, forms, config, scenarios));
+      cases.push(...formCasesForPage(crawl.role, page, canonicalPageUrl, forms, config, scenarios, crawl.landingPath ?? undefined));
       cases.push(...paginationCasesForPage(crawl.role, page, canonicalPageUrl, crawl.baseUrl));
       cases.push(...interactionCasesForPage(crawl.role, page, canonicalPageUrl, crawl.baseUrl, seenInteractions));
     }
@@ -106,6 +106,7 @@ function formCasesForPage(
   forms: Form[],
   config: TathyaConfig,
   state: FormScenarioState,
+  landingPath: string | undefined,
 ): TestCase[] {
   const cases: TestCase[] = [];
   const formSignatureCounts = countBy(forms.map((form) => formTitleSignature(form)));
@@ -181,7 +182,7 @@ function formCasesForPage(
           username: credentials?.username ?? '',
           password: credentials?.password ?? '',
           expectSuccess: true,
-          logout: { page, form },
+          logout: { page, form, protectedPath: landingPath },
         });
       }
     } else {
