@@ -5,6 +5,22 @@ All notable changes to this project are recorded here, newest first. The format 
 
 ## Unreleased
 
+### Fixed (crawler and Playwright generator)
+- Crawl: denial and server-error pages are no longer recorded as reachable; one bad page no longer ends the
+  crawl; depth limits links instead of stopping; logout links are skipped and a lost session logs in again;
+  one login rule for crawler and specs; locators are verified against the accessibility tree.
+- Crawl contract v3 (in-page links, effective form method, radio groups, prefilled fields, config
+  fingerprint). Older crawls are taken again.
+- Generation: radios and repeated names no longer break a spec file; native validation is used only where the
+  browser can see the violation; valid values honour field constraints; script writes are not read-only.
+- Oracles: record links by route shape, updates by reopening the edit page, accepted input must show no
+  validation error, only a 404 may be an app shell, anchored URL checks.
+- Tests act inside their crawled form with whole-name locators; **a missing control fails, a hidden one
+  skips**; `tt eval` lists tests that never execute.
+
+Results measured before these changes are not comparable: test counts, assertion counts and density,
+navigation coverage and skips all differ.
+
 ### Added
 - Cypress output: `tt generate|run|all|report|eval --framework playwright|cypress` and `output.framework` in the
   config; a `cypress.browsers` list; root `cypress.config.ts`; hand-written Cypress baselines

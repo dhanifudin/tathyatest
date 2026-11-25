@@ -86,6 +86,7 @@ the protocol (repeat, seed, comparison browser, server mode). Quote it when you 
 | Assertion density, locator mix | one TypeScript-AST analyser applied to the emitted specs and to the baseline sources (page objects included, `node_modules` skipped); the manifest figure is a cross-check |
 | Duration per execution | mean per-execution duration on both sides, optionally restricted to one browser (`evaluation.comparisonBrowser`); suite wall-clock is reported separately |
 | Flake rate | tests whose executed status changed between repeats; skipped executions are not verdicts and are listed separately |
+| Never executed | tests that no browser ran in any repeat (hidden controls, inferred routes the app does not have): they count towards model coverage without being checked |
 | Cross-browser kappa | Fleiss kappa per repeat (mean); observed agreement and the disagreeing tests are reported because kappa degenerates when every verdict is the same |
 | Mann-Whitney | one median duration per test, with a bootstrap 95% interval for the rank-biserial effect size |
 

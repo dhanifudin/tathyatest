@@ -214,8 +214,8 @@ every tier that `config.coverage` enables. Default is `all`.
 - Boundary-exact length (exactly `maxlength` characters) → success
 - Very long string (10× `maxlength` or 10 000 chars when no limit) → no 500, handled
 - Unicode: emoji, RTL, CJK → no 500, handled
-- Leading/trailing whitespace in text fields → no 500, handled
-- All optional fields omitted → no 500, form accepts
+- Leading/trailing whitespace in text fields → no 500, no validation error
+- Optional field omitted → no 500, no validation error
 
 **Constraints:**
 - Assert error **state** (element visible, field `:invalid`), never exact message text.
@@ -237,6 +237,13 @@ noValidate === false  → HTML5 native validation prevents submit
                         assert: input.validity.valid === false  (via toHaveJSProperty)
                                 OR input matches :invalid
 ```
+
+Violations the browser cannot see (`duplicate`, `confirmation-mismatch`, `tel-format` without a `pattern`,
+`required-empty` on a field without `required`) always use the server-side assertion.
+
+**Missing fails, hidden skips.** A test acts only on its crawled form and controls: no "first match anywhere"
+fallback (a row action may use another row of the same action). A missing one fails the test; a hidden one
+skips it.
 
 Never generate an assertion for a specific error message string. Generate an assertion that
 an error **indicator** is present. The built-in default selector list lives in `generator/src/config.ts` (`oracle.errorSelector`);

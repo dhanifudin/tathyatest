@@ -122,8 +122,8 @@ row is one generated test case:
 | always | `valid` | positive | a realistic value for the field's type | success |
 | `required` (or `data.requiredFields`) | `required-empty` | negative | empty string | error |
 | `type` is `email`, `url`, or `tel` | `<type>-format` | negative | a value of the wrong shape for that type | error |
-| `pattern` attribute present | `pattern-fail` | negative | the first of a fixed candidate list that fails the anchored pattern (skipped when the pattern is invalid or nothing fails it) | error |
-| `minlength` set | `minlength-minus-one` | negative | one character short of the minimum | error |
+| `pattern` attribute present | `pattern-fail` | negative | the first of a fixed list of non-empty candidates that fails the anchored pattern (skipped when the pattern is invalid or nothing fails it) | error |
+| `minlength` ≥ 2 | `minlength-minus-one` | negative | one character short of the minimum (an empty value never counts as too short) | error |
 | `maxlength` set | `maxlength-plus-one` | negative | one character past the maximum | error |
 | `maxlength` set | `maxlength-exact` | edge | a format-valid value of exactly that length | success |
 | `maxlength` set (or not, for text-like fields) | `very-long` | edge | ~10× the limit, or 10,000 chars with no limit | graceful (no 500) |
@@ -149,6 +149,9 @@ Supporting keyword lists:
   constraint validation blocks submission before JS runs, so `maxlength-plus-one`,
   `invalid-option`, `confirmation-mismatch`, and `accept-mismatch` (`accept` is a picker
   hint, not a validated constraint) are skipped — they'd never reach the server-side oracle.
+  `duplicate`, a `tel-format` on a field without `pattern`, and a `required-empty` forced by
+  `data.requiredFields` are judged by the app's error display, because the browser cannot see them.
+- **Radio groups** are one field: a value is chosen by checking the radio that carries it.
 - **No format negative for `number`, `date`/`time`/`month`/`week`, or `color` inputs**: the
   browser sanitises a malformed value to empty before the app ever sees it (and Playwright
   refuses to type it), so the case is covered by `required-empty`, `min`/`max`, and `step`
@@ -158,6 +161,34 @@ Supporting keyword lists:
   emitted test uploads a tiny in-memory fixture of it via `setInputFiles`.
 
 ![Field constraint to generated test variant: each trigger (required, type, pattern, length, range, options, confirmation, optional) fans out to its negative/edge/positive variant name](diagrams/constraint-variants.svg)
+
+### How a test judges the outcome
+
+| Submission | Checks |
+|---|---|
+| rejected (negative variants) | native: the field's `validity.valid` is false. App-side: an `oracle.errorSelector` match is visible and the URL is the form's page |
+| delete | the record's form is gone, and no server error |
+| state change (a field-less update such as "Mark done") | the form is still there and reads differently |
+| GET search or filter that declares `method` or `action` | the browser is on the action path and the URL carries the submitted values |
+| create | the submitted text is shown, and **no validation error** |
+| update of a prefilled edit form | no validation error, and reopening the edit page shows the new value |
+| other accepted input (exact length, whitespace, omitted optional field) | no server error and no validation error |
+| very long or unusual input | no server error (the app may refuse it) |
+
+"No validation error" means no form shows an invalid field (`aria-invalid`, `:user-invalid`) or a
+non-empty element matching `oracle.errorSelector`; messages outside forms and styled buttons or links do
+not count. "No server error" looks at the response status and at error-page wording, so a page that merely
+mentions "500" passes.
+
+### Finding the form and the controls
+
+A form test first finds its form: the one matching the crawled action that holds the submit button (a form
+without an `action` is the one without that attribute that holds it). Fields and the submit are looked up
+inside it. When a row action's record is not on the page, because list order differs between runs, the same
+action on another row stands in; no other form ever does. Role and placeholder names are matched whole.
+
+A crawled form or control that is **missing** fails the test. One that is present but **hidden** (a closed
+menu) skips it, and `tt eval` lists tests that no browser ever executed.
 
 ### 3. CRUD-operation classification
 
@@ -221,14 +252,22 @@ over the raw `type` attribute. Patterns, in priority order: `email`; `username`/
 generic faker expression instead (`email`, `url`, `tel`, `number`, `range`, `date`,
 `datetime-local`, `time`, `month`, `password`, `color`).
 
+Short keywords are matched as whole words of the name (`country` is not a `count`, `message` has no
+`age`). Valid values respect `minlength`, `maxlength`, `min`, `max`, `step` and one-sided date bounds; a
+select skips an empty placeholder option; each browser project draws its own values from `data.faker.seed`.
+
 ### 6. Other classification rules worth knowing
 
 - A link or button is treated as a plain **interaction** test only if it isn't already
-  classified as pagination and isn't a form's own submit control.
+  classified as pagination and isn't a form's own submit control. A fragment or `javascript:` link is a
+  scripted control: one click test per name, with no landing page. A link to a record
+  (`/todos/14/edit`) is checked by its route shape.
+- **Read-only** keeps only plain navigation: forms that send anything but GET, forms handled by script,
+  links with `data-method` or `hx-*` writes, and clicks on buttons and in-page links are dropped.
 - **REST show routes are inferred** (`crawl.inferRestRoutes`, default on): a crawled
   `/todos/7/edit` page or a `DELETE /todos/7` form implies a `/todos/7` page nobody linked
   to; it gets an allowed-route case titled `… (inferred from /todos/7/edit)`. An app that has
-  no such page answers 404/405 with no app content behind it — the test then skips itself, so a
+  no such page answers 405, or 404 with no app content behind it — the test then skips itself, so a
   wrong inference never fails a run — while a declared-but-broken route (5xx) fails like any
   other. Set `inferRestRoutes: false` to skip the inference entirely.
 - **RBAC affordances**: on a page shape that several roles reach, a link one role gets and

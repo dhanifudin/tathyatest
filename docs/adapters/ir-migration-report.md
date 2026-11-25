@@ -8,6 +8,9 @@ Representation (IR)**. Two adapters, Playwright and Cypress, render that IR, and
 
 The refactor's promise is that **no rule changed**. The last section gives the evidence.
 
+> This is a record of the migration. Rules changed afterwards (form scoping, "missing fails, hidden skips",
+> stronger oracles, crawl contract v3); [../how-it-works.md](../how-it-works.md) describes the current ones.
+
 ## 1. Architecture, before and after
 
 ```

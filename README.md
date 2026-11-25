@@ -100,7 +100,8 @@ Each form and page becomes tests in three tiers, controlled by `coverage` in the
 
 The tests are grouped into five spec files per page shape (auth, forms, interactions, pagination, RBAC) and carry
 tags such as `@negative`, `@role:admin`, and `@read` or `@write`. Assertions check state (an error indicator is
-visible, the URL changed, a field is invalid) and never exact message text. The exact rules for every variant are
+visible, the URL changed, a field is invalid, an edit page shows the new value) and never exact message text.
+A crawled control that is missing fails its test; one that is hidden skips it. The exact rules for every variant are
 in [docs/how-it-works.md](docs/how-it-works.md).
 
 Valid values for create and update forms are generated fresh on every run with `@faker-js/faker` (repeatable with
