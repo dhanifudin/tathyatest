@@ -58,12 +58,12 @@ function helperImports(kind: TestPlan['kind'], config: TathyaConfig): string[] {
     case 'auth':
       return ['test', 'performLogin', 'submitLogout', 'assertLoggedIn', 'assertLoginRejected', 'assertLoggedOut'];
     case 'form':
-      return ['test', 'expect', 'formOf', 'requireControl', 'uploadFixture', 'expectQueryEcho', 'expectStateFlipped', 'expectNoServerError', 'expectNoValidationError', 'expectValuePersisted', ...seeded, ...readOnlyExtra];
+      return ['test', 'expect', 'formOf', 'requireControl', 'uploadFixture', 'expectQueryEcho', 'expectStateFlipped', 'expectNoServerError', 'expectNoValidationError', 'expectRecordGone', 'expectValuePersisted', ...seeded, ...readOnlyExtra];
     case 'interaction':
     case 'pagination':
       return ['test', 'expect', 'requireControl', 'expectNoServerError', ...readOnlyExtra];
     case 'rbac':
-      return ['test', 'expect', 'expectRouteAllowed', 'expectRouteBlocked', 'expectInferredRouteOpens'];
+      return ['test', 'expect', 'expectAbsent', 'expectRouteAllowed', 'expectRouteBlocked', 'expectInferredRouteOpens'];
   }
 }
 
@@ -244,7 +244,7 @@ function oracleCalls(oracle: Oracle): string[] {
     case 'body-graceful':
       return ['expectNoServerError(page)'];
     case 'record-gone':
-      return [`expect(page.locator(${FORM}.selector)).toHaveCount(0)`];
+      return [`expectRecordGone(page, ${FORM}.selector)`];
     case 'state-flipped':
       return [`expectStateFlipped(page, ${FORM}.selector, before)`];
     case 'query-echo':
@@ -270,7 +270,7 @@ function oracleCalls(oracle: Oracle): string[] {
     case 'route-inferred':
       return [`expectInferredRouteOpens(page, ${oracle.capture}, ${q(oracle.path)})`];
     case 'absent':
-      return [`expect(${locatorSource(oracle.target)}).toHaveCount(0)`];
+      return [`expectAbsent(page, ${locatorSource(oracle.target)})`];
     case 'logged-in':
       return ['assertLoggedIn(page)'];
     case 'login-rejected':

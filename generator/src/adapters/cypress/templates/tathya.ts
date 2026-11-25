@@ -463,11 +463,18 @@ function countValidationErrors({ selector, root }: { selector: string; root?: Do
 }
 
 
+/** Any control at all: a client-rendered page is an empty shell until it draws some. */
+const RENDERED = 'a[href], button, input, select, textarea';
+
+/** The deleted record's form is gone, judged on a page that has drawn its controls again. */
 export function expectGone(selector: string): void {
+  cy.get(RENDERED).should('exist');
   cy.then(() => cy.get(chosenForm ?? selector).should('not.exist'));
 }
 
+/** A control this role must not see is absent from the page, once the page has drawn its controls. */
 export function expectAbsent(locator: Loc): void {
+  cy.get(RENDERED).should('exist');
   cy.tt(locator).should('not.exist');
 }
 

@@ -180,7 +180,7 @@ describe('emitTs', () => {
       const spec = await readFile(join(dir, 'forms', 'profile.spec.ts'), 'utf8');
       const support = await readFile(join(dir, 'support', 'tathya.ts'), 'utf8');
 
-      expect(spec).toContain("import { test, expect, formOf, requireControl, uploadFixture, expectQueryEcho, expectStateFlipped, expectNoServerError, expectNoValidationError, expectValuePersisted } from '../support/tathya.js';");
+      expect(spec).toContain("import { test, expect, formOf, requireControl, uploadFixture, expectQueryEcho, expectStateFlipped, expectNoServerError, expectNoValidationError, expectRecordGone, expectValuePersisted } from '../support/tathya.js';");
       expect(spec).toContain('await crawledForm.form.getByLabel("Avatar", { exact: true }).setInputFiles(uploadFixture("image/png"));');
       expect(spec).toContain('await crawledForm.form.getByLabel("Avatar", { exact: true }).setInputFiles([]);');
       expect(spec).not.toContain('.fill("image/png")');
@@ -398,7 +398,7 @@ describe('emitTs', () => {
       }], { ...config, output: { ...config.output, dir } });
       const affordance = await readFile(join(dir, 'rbac', 'dashboard.spec.ts'), 'utf8');
       expect(affordance).toContain('await test.step("Open /dashboard", () => page.goto("/dashboard"));');
-      expect(affordance).toContain('await test.step("Expect no \\"Users\\" link", () => expect(page.getByRole("link", { name: "Users", exact: true })).toHaveCount(0));');
+      expect(affordance).toContain('await test.step("Expect no \\"Users\\" link", () => expectAbsent(page, page.getByRole("link", { name: "Users", exact: true })));');
       expect(affordance).toContain('"@negative","@rbac","@role:user","@read"');
       // The oracle logic itself lives once, in the support module.
       expect(support).toContain("expect(await page.locator('a, button, form, select, input').count()).toBeGreaterThan(0);");

@@ -210,6 +210,28 @@ export async function expectQueryEcho(page: Page, params: Record<string, string>
   await expectNoServerError(page);
 }
 
+/** Any control at all: a client-rendered page is an empty shell until it draws some. */
+const RENDERED = 'a[href], button, input, select, textarea';
+
+/**
+ * The deleted record's form is gone. On an empty shell everything is "gone", so absence counts
+ * only once the page shows controls again, and must still hold when the network is quiet.
+ */
+export async function expectRecordGone(page: Page, formSelector: string): Promise<void> {
+  const gone = await page
+    .waitForFunction(({ rendered, selector }) => document.querySelector(rendered) !== null && document.querySelector(selector) === null, { rendered: RENDERED, selector: formSelector }, { timeout: 5000 })
+    .then(() => true, () => false);
+  expect(gone, 'the deleted record is still listed').toBe(true);
+  await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => undefined);
+  await expect(page.locator(formSelector)).toHaveCount(0);
+}
+
+/** A control this role must not see is absent from the page, once the page has drawn its controls. */
+export async function expectAbsent(page: Page, control: Locator): Promise<void> {
+  await expect(page.locator(RENDERED).first()).toBeAttached();
+  await expect(control).toHaveCount(0);
+}
+
 /** Reopening the edit page shows the submitted value: the update was stored, not only accepted. */
 export async function expectValuePersisted(page: Page, url: string, field: Locator, value: string): Promise<void> {
   await page.goto(url);
@@ -219,6 +241,7 @@ export async function expectValuePersisted(page: Page, url: string, field: Locat
 /** The app accepted the submission: once it has answered, no form shows an invalid field or error. */
 export async function expectNoValidationError(page: Page): Promise<void> {
   await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => undefined);
+  await expect(page.locator(RENDERED).first()).toBeAttached();
   await expect.poll(
     () => page.evaluate(countValidationErrors, { selector: errorSelector }),
     { message: 'a form shows a validation error' },
